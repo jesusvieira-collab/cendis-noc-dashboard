@@ -363,7 +363,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 /* ── RESPONSIVO MÓVIL — estándar Farmatodo CENDIS ── */
 @media (max-width: 768px) {
   .sidebar { display: none !important; }
-  .main { padding: 16px 12px 32px; }
+  .main { padding: 16px 12px 90px; } /* padding-bottom para la nav inferior */
   .kpi-grid { grid-template-columns: 1fr 1fr !important; gap: 8px; }
   .area-grid { grid-template-columns: 1fr !important; }
   .gmail-cycle { grid-template-columns: 1fr !important; }
@@ -374,10 +374,77 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .hd-actions { flex-wrap: wrap; gap: 6px; }
   .tbl-toolbar { flex-wrap: wrap; gap: 6px; }
   button, input, select { min-height: 36px; }
+  .topbar-date { display: none; }
 }
 @media (max-width: 420px) {
   .kpi-grid { grid-template-columns: 1fr !important; }
   .kpi-num { font-size: 26px; }
+}
+
+/* ── BARRA NAV MÓVIL (bottom tab bar) ── */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 64px;
+  background: var(--surface);
+  border-top: 1px solid var(--border2);
+  z-index: 200;
+  padding: 0 4px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mobile-nav-inner {
+  display: flex;
+  align-items: stretch;
+  height: 64px;
+  gap: 0;
+}
+.mob-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  font-family: inherit;
+  border-radius: 10px;
+  transition: all .15s;
+  position: relative;
+  padding: 8px 4px;
+}
+.mob-btn.active { color: var(--blue); }
+.mob-btn.active .mob-icon { background: rgba(59,130,246,.12); }
+.mob-icon {
+  font-size: 18px;
+  width: 36px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  transition: background .15s;
+}
+.mob-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  white-space: nowrap;
+}
+.mob-badge {
+  position: absolute;
+  top: 4px; right: 12px;
+  background: var(--red);
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 5px;
+  font-size: 8px;
+  font-weight: 800;
+  display: none;
+}
+@media (max-width: 768px) {
+  .mobile-nav { display: block; }
 }
 </style>
 <!-- ══ FIREBASE SDK — cendis-noc26 ══ -->
@@ -878,6 +945,33 @@ tr:hover td{background:rgba(255,255,255,.02)}
 </main>
 </div>
 
+<!-- ── BARRA NAV MÓVIL ── -->
+<nav class="mobile-nav" id="mobile-nav">
+  <div class="mobile-nav-inner">
+    <button class="mob-btn active" id="mob-dashboard" onclick="nav('dashboard')">
+      <div class="mob-icon">◈</div>
+      <span class="mob-label">Dashboard</span>
+    </button>
+    <button class="mob-btn" id="mob-inventario" onclick="nav('inventario')">
+      <div class="mob-icon">▦</div>
+      <span class="mob-label">Inventario</span>
+      <span class="mob-badge" id="mob-badge">0</span>
+    </button>
+    <button class="mob-btn" id="mob-acciones" onclick="nav('acciones')">
+      <div class="mob-icon">⚡</div>
+      <span class="mob-label">Acciones</span>
+    </button>
+    <button class="mob-btn" id="mob-gmail" onclick="nav('gmail')">
+      <div class="mob-icon">◎</div>
+      <span class="mob-label">Alertas</span>
+    </button>
+    <button class="mob-btn" id="mob-carga" onclick="nav('carga')">
+      <div class="mob-icon">↑</div>
+      <span class="mob-label">R033</span>
+    </button>
+  </div>
+</nav>
+
 <div id="toast"></div>
 
 <script>
@@ -909,6 +1003,12 @@ function nav(id){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('panel-'+id).classList.add('active');
   document.querySelector(`.nav-item[onclick="nav('${id}')"]`).classList.add('active');
+  // Sincronizar barra móvil
+  document.querySelectorAll('.mob-btn').forEach(b=>b.classList.remove('active'));
+  const mobBtn = document.getElementById('mob-'+id);
+  if(mobBtn) mobBtn.classList.add('active');
+  // Scroll al tope en móvil
+  document.getElementById('main-area').scrollTo(0,0);
 }
 
 // ── DRAG & DROP ──────────────────────────────────────────────────────────────
@@ -1156,8 +1256,13 @@ function updateKPIs(){
 
 function updateBadges(){
   const b=document.getElementById('badge-inv');
+  const mb=document.getElementById('mob-badge');
   b.textContent=records.length;
   b.style.display=records.length?'inline-flex':'none';
+  if(mb){
+    mb.textContent=records.length;
+    mb.style.display=records.length?'block':'none';
+  }
 }
 
 function updateCycleIndicator(){
