@@ -614,6 +614,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       </div>
       <div class="hd-actions">
         <button class="btn btn-ghost" onclick="exportCSV()">↓ Exportar CSV</button>
+        <button class="btn btn-ghost" onclick="resetData()" style="border-color:rgba(239,68,68,.3);color:var(--red)" title="Limpiar datos actuales antes de cargar un nuevo R033">↺ Reiniciar</button>
         <button class="btn btn-primary" onclick="nav('carga')">↑ Cargar R033</button>
       </div>
     </div>
@@ -1674,6 +1675,50 @@ async function sendAll(){
   stAll.className='send-all-status ss-ok';
   stAll.innerHTML='✓ Borradores creados para los 3 equipos';
   stAll.style.display='flex';
+}
+
+// ── REINICIAR ─────────────────────────────────────────────────────────────────
+function resetData(){
+  if(!confirm('¿Confirmas que deseas limpiar los datos actuales?\n\nDespués de esto deberás cargar un nuevo R033.')) return;
+  records = [];
+  // Limpiar KPIs
+  ['k-tot','k-v','k-c','k-a','k-uds'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent='—';
+  });
+  document.getElementById('k-tot-d').textContent='Carga el R033 para iniciar';
+  // Ocultar secciones del dashboard
+  const da=document.getElementById('dash-acciones');
+  const dp=document.getElementById('dash-prov');
+  if(da) da.style.display='none';
+  if(dp) dp.style.display='none';
+  document.getElementById('dash-empty').style.display='block';
+  // Limpiar pulso
+  const canvas=document.getElementById('pulse-canvas');
+  if(canvas){ const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+  document.getElementById('pulse-empty').style.display='block';
+  canvas.style.display='none';
+  // Limpiar tablas
+  ['inv-body','prov-body','tbody-reab','tbody-com','tbody-dev'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.innerHTML='';
+  });
+  document.getElementById('inv-count').textContent='—';
+  // Limpiar badge
+  const b=document.getElementById('badge-inv');
+  const mb=document.getElementById('mob-badge');
+  if(b){ b.textContent='0'; b.style.display='none'; }
+  if(mb) mb.style.display='none';
+  // Resetear indicador ciclo
+  document.getElementById('cycle-dot').className='cycle-dot';
+  document.getElementById('cycle-label').textContent='Sin datos';
+  // Limpiar upload zone
+  rawFile=null;
+  document.getElementById('file-lbl').textContent='Formato aceptado: .xlsx · .xls';
+  document.getElementById('dz').classList.remove('ready');
+  document.getElementById('proc-btn').disabled=true;
+  // Limpiar Firebase
+  if(typeof window.fbSave==='function') window.fbSave({records:[],savedAt:new Date().toISOString()});
+  toast('↺ Datos reiniciados — carga el nuevo R033');
+  nav('carga');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
