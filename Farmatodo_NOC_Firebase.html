@@ -1,6 +1,250 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+
+<script>
+// ══════════════════════════════════════════════
+// MOBILE TAKEOVER — ejecuta antes del render
+// Detecta móvil y reemplaza UI completa
+// ══════════════════════════════════════════════
+(function() {
+  var isMobile = window.innerWidth <= 768 || /iPhone|Android|iPad|Mobile/i.test(navigator.userAgent);
+  if (!isMobile) return;
+
+  // CSS para móvil — inyectado inmediatamente
+  var style = document.createElement('style');
+  style.textContent = `
+    /* Ocultar topbar original en móvil */
+    .topbar { display: none !important; }
+
+    /* Header móvil limpio */
+    #m-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg,#001E62,#0047C8);
+      color: #fff;
+      padding: 8px 12px;
+      position: sticky;
+      top: 0;
+      z-index: 500;
+      height: 56px;
+    }
+    #m-logo-chip { background:#fff; border-radius:8px; padding:4px 6px; display:flex; align-items:center; flex-shrink:0; box-shadow:0 1px 4px rgba(0,10,40,.25); }
+    #m-logo { height: 28px; width: auto; display:block; }
+    #m-header-title { font-size: 12.5px; font-weight: 900; line-height: 1.15; flex: 1; margin: 0 10px; letter-spacing:.04em; }
+    #m-header-title span { display: block; font-size: 9px; opacity: .7; font-weight: 600; letter-spacing:.05em; }
+    #m-fb { font-size: 9px; font-weight: 700; display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+            background: rgba(255,255,255,.12); padding: 3px 8px; border-radius: 12px; }
+    #m-fb-dot { width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; display: inline-block; }
+    #m-fb-dot.on { background: #22c55e; animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* Bottom nav */
+    #m-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 58px;
+      background: #fff; border-top: 1px solid #e2e8f0;
+      display: flex; z-index: 500;
+      box-shadow: 0 -3px 12px rgba(0,20,80,.1);
+    }
+    .m-nav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 2px; border: none; background: none;
+      color: #94a3b8; cursor: pointer; padding: 4px 2px;
+      font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+      min-height: 0; -webkit-tap-highlight-color: transparent;
+    }
+    .m-nav-btn.on { color: #001E62; }
+    .m-nav-btn .ico { font-size: 19px; line-height: 1; }
+
+    /* Menú acciones */
+    #m-menu { display: none; position: fixed; inset: 0; z-index: 600; }
+    #m-menu.open { display: block; }
+    #m-menu-bg { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+    #m-menu-panel {
+      position: absolute; bottom: 58px; left: 0; right: 0;
+      background: #fff; border-radius: 16px 16px 0 0;
+      padding: 12px 12px 20px;
+      box-shadow: 0 -8px 32px rgba(0,20,80,.15);
+    }
+    #m-menu-panel h3 { font-size: 10px; font-weight: 800; color: #94a3b8;
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+    .m-action { display: block; width: 100%; padding: 12px 14px; margin-bottom: 6px;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+      font-size: 13px; font-weight: 600; color: #0f172a; text-align: left; cursor: pointer; }
+    .m-action.prim { background: #001E62; color: #fff; border-color: #001E62; }
+    .m-action.close { background: #f1f5f9; color: #64748b; border: none; }
+
+    /* Subbar compacto */
+    .subbar { padding: 6px 10px !important; gap: 6px !important; flex-wrap: wrap !important; }
+    .subbar-right { font-size: 10px !important; }
+    .mes-select { font-size: 11px !important; }
+
+    /* Inner tabs scroll — SIN sticky en móvil: la barra nunca tapa el título */
+    .nav, #mod-v22 .nav, #mod-monta .tabs {
+      position: static !important; top: auto !important; }
+    .nav { overflow-x: auto !important; flex-wrap: nowrap !important;
+      scrollbar-width: none !important; -webkit-overflow-scrolling: touch !important; }
+    .nav::-webkit-scrollbar { display: none !important; }
+    .ntab { white-space: nowrap !important; flex-shrink: 0 !important;
+      font-size: 10px !important; padding: 9px 12px !important; }
+
+    /* Zona superior compacta y continua: header → subbar → pestañas sin huecos */
+    .subbar { margin: 0 !important; border-bottom: none !important; }
+    #subbar-noc { margin: 0 !important; }
+    .main { padding-top: 14px !important; }
+    .sec-header { margin-top: 0 !important; }
+
+    /* Content padding */
+    body { padding-bottom: 62px !important; overflow-x: hidden !important; }
+    .main, #mod-noc, #mod-v22, #mod-monta, #mod-vit { max-width: 100vw !important; overflow-x: hidden !important; }
+
+    /* Grids → 1 columna */
+    .dash-grid-2, .dash-grid-3-1, .grid-2, .grid-3, .grid-12,
+    .reco-grid, .peg, .op-kgrid, .an-charts-wrap,
+    .vit-grid { grid-template-columns: 1fr !important; align-items: start !important; }
+
+    /* KPI strip scroll */
+    .dash-kpi-strip { overflow-x: auto !important; flex-wrap: nowrap !important;
+      -webkit-overflow-scrolling: touch !important; scrollbar-width: none !important; padding-bottom: 6px !important; }
+    .dash-kpi-strip::-webkit-scrollbar { display: none !important; }
+    .dash-kpi-strip > * { min-width: 130px !important; flex-shrink: 0 !important; }
+
+    /* Charts */
+    canvas { max-height: 220px !important; }
+    .chart-wrap, .chart-container { overflow-x: auto !important; }
+
+    /* Tables */
+    table { display: block !important; overflow-x: auto !important; }
+
+    /* Cards */
+    .card, .dash-card { padding: 10px 8px !important; }
+    /* Encabezado de gráficas: título a lo ancho arriba, botones abajo (evita título aplastado en columna) */
+    .ccard-hdr { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
+    .ccard-hdr > div:first-child { width: 100% !important; }
+    .ccard-actions { flex-wrap: wrap !important; gap: 4px !important; justify-content: flex-start !important; }
+
+    /* Forms */
+    .fgrid { grid-template-columns: 1fr !important; }
+    input, select { font-size: 16px !important; } /* prevent iOS zoom */
+  `;
+  document.head.appendChild(style);
+
+  // Inject mobile header + nav after DOM ready
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+    // Header
+    var header = document.createElement('div');
+    header.id = 'm-header';
+    header.innerHTML =
+      '<div id="m-logo-chip"><img src="" id="m-logo" alt="Farmatodo"></div>' +
+      '<div id="m-header-title">PRODUCTIVIDAD REPOSICI\u00d3N NOCTURNA <span>Farmatodo \u00b7 CENDIS \u00b7 Turno NOC \u00b7 2026</span></div>' +
+      '<div id="m-fb"><span id="m-fb-dot"></span><span id="m-fb-txt">Cargando...</span></div>';
+
+    // Copy logo from existing topbar
+    // (buscar dentro de `header` — aún no está insertado en el documento,
+    //  por lo que document.getElementById devolvería null y el logo quedaría roto)
+    var origLogo = document.querySelector('.topbar img');
+    var mLogo = header.querySelector('#m-logo');
+    if (origLogo && origLogo.src && mLogo) {
+      mLogo.src = origLogo.src;
+    } else if (mLogo) {
+      // Fallback: si no hay logo en el topbar, ocultar el chip para no mostrar imagen rota
+      var chip = header.querySelector('#m-logo-chip');
+      if (chip) chip.style.display = 'none';
+    }
+
+    // Hide original topbar
+    var origTopbar = document.querySelector('.topbar');
+    if (origTopbar) origTopbar.style.cssText = 'display:none!important';
+    document.body.insertBefore(header, document.body.firstChild);
+
+    // Bottom nav
+    var nav = document.createElement('div');
+    nav.id = 'm-nav';
+    nav.innerHTML =
+      '<button class="m-nav-btn on" id="mbn-noc" data-mod="noc"><span class="ico">🛒</span>Reposición</button>' +
+      '<button class="m-nav-btn" id="mbn-v22" data-mod="v22"><span class="ico">🏗</span>Almacenaje</button>' +
+      '<button class="m-nav-btn" id="mbn-monta" data-mod="monta"><span class="ico">👷</span>Operadores</button>' +
+      '<button class="m-nav-btn" id="mbn-vit" data-mod="vit"><span class="ico">📋</span>Vitácora</button>' +
+      '<button class="m-nav-btn" id="mbn-cfg" data-mod="cfg"><span class="ico">⚙️</span>Acciones</button>';
+    document.body.appendChild(nav);
+    nav.addEventListener('click', function(e) {
+      var btn = e.target.closest('.m-nav-btn');
+      if (!btn) return;
+      var mod = btn.getAttribute('data-mod');
+      if (mod === 'cfg') { toggleMenu(); return; }
+      if (typeof switchMod === 'function') switchMod(mod);
+      mbnOn(mod);
+    });
+
+    // Action menu
+    var menu = document.createElement('div');
+    menu.id = 'm-menu';
+    menu.innerHTML =
+      '<div id="m-menu-bg" onclick="toggleMenu()"></div>' +
+      '<div id="m-menu-panel">' +
+        '<h3>Acciones del Dashboard</h3>' +
+        '<button class="m-action" onclick="importarDatos();toggleMenu()">⬆️ Importar datos</button>' +
+        '<button class="m-action" onclick="abrirCargaHistorica();toggleMenu()">📥 Cargar día anterior</button>' +
+        '<button class="m-action" onclick="abrirModalDescarga();toggleMenu()">📷 Descargar gráficas</button>' +
+        '<button class="m-action prim" onclick="descargarHTML();toggleMenu()">💾 Guardar con datos</button>' +
+        '<button class="m-action" onclick="window.print();toggleMenu()">🖨️ Imprimir</button>' +
+        '<button class="m-action close" onclick="toggleMenu()">✕ Cerrar</button>' +
+      '</div>';
+    document.body.appendChild(menu);
+
+    // Sync Firebase status to mobile header
+    var origDot = document.getElementById('fb-dot');
+    var origTxt = document.getElementById('fb-txt');
+    if (origDot && origTxt) {
+      var syncInterval = setInterval(function() {
+        var d = document.getElementById('m-fb-dot');
+        var t = document.getElementById('m-fb-txt');
+        if (d && t) {
+          d.className = origDot.style.background === 'rgb(34, 197, 94)' ? 'on' : '';
+          t.textContent = origTxt.textContent;
+        }
+      }, 1000);
+    }
+
+    // Fix layouts after renders
+    var fixTimer;
+    function fixLayouts() {
+      document.querySelectorAll('[style*="grid-template-columns"]').forEach(function(el) {
+        var s = el.style.gridTemplateColumns;
+        // No forzar 1 columna en cuadrículas compactas (mini KPIs, leyendas):
+        // apilarlas verticalmente crea tarjetas kilométricas con espacio vacío.
+        if (el.id === 'miniKpisMes' || el.closest('#donutLegend')) return;
+        if (s && s !== '1fr' && !el.closest('.fgrid')) {
+          el.style.gridTemplateColumns = '1fr';
+        }
+      });
+    }
+    var obs = new MutationObserver(function() {
+      clearTimeout(fixTimer);
+      fixTimer = setTimeout(fixLayouts, 150);
+    });
+    obs.observe(document.body, { childList: true, subtree: true, attributes: true });
+    setTimeout(fixLayouts, 500);
+    setTimeout(fixLayouts, 2000);
+    } catch(e) { console.warn('Mobile UI error:', e); }
+  });
+
+  // Global functions
+  window.mbnOn = function(mod) {
+    document.querySelectorAll('.m-nav-btn').forEach(function(b) { b.classList.remove('on'); });
+    var btn = document.getElementById('mbn-' + mod);
+    if (btn) btn.classList.add('on');
+  };
+  window.toggleMenu = function() {
+    var m = document.getElementById('m-menu');
+    if (m) m.classList.toggle('open');
+  };
+
+})();
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>FARMATODO · Sistema NOC 3-en-1</title>
@@ -121,7 +365,18 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-
 .ccard-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;}
 .ccard-title{font-family:var(--font);font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;}
 .ccard-sub{font-size:10px;color:var(--muted);margin-bottom:12px;font-family:var(--font-b);}
-.ccard-actions{display:flex;gap:4px;flex-shrink:0;}
+.ccard-actions{display:flex;gap:4px;flex-shrink:0;align-items:center;flex-wrap:wrap;}
+/* Controles de gráfica (tipo línea/barra + período D/S/M) — mismo formato que el botón PNG */
+.chart-ctrl-bar{display:inline-flex;align-items:center;gap:3px;}
+.chart-type-btn,.period-btn{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:6px;border:1px solid rgba(0,48,135,0.18);background:#F0F4FA;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;letter-spacing:.03em;white-space:nowrap;transition:.15s;min-width:24px;}
+.chart-type-btn:hover,.period-btn:hover{background:#E2EAF6;color:var(--navy);}
+.chart-type-btn.active,.period-btn.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+.ctrl-divider{width:1px;height:14px;background:rgba(0,48,135,0.15);margin:0 3px;display:inline-block;}
+/* Franja de estadísticas Máx/Prom/Mín/umbral en cards de Reposición (estilo V22) */
+.rep-stat-row{display:flex;gap:0;padding:6px 4px 10px;flex-wrap:wrap;}
+.rep-stat{flex:1;min-width:90px;text-align:center;}
+.rep-stat-v{font-family:var(--font);font-size:18px;font-weight:900;line-height:1.1;}
+.rep-stat-l{font-size:8.5px;font-weight:700;color:rgba(0,48,135,.45);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
 .dl-btn{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:6px;border:1px solid rgba(0,48,135,0.18);background:#F0F4FA;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;letter-spacing:.03em;white-space:nowrap;transition:.15s;}
 .dl-btn:hover{background:rgba(0,71,200,0.1);border-color:#0047C8;color:#003087;}
 .expand-btn{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:6px;border:1px solid rgba(0,48,135,0.18);background:#F0F4FA;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;letter-spacing:.03em;white-space:nowrap;transition:.15s;}
@@ -1431,6 +1686,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 .vit-resultado{font-size:11px;color:#16a34a;margin-top:2px;}
 .vit-empty{text-align:center;padding:48px;color:rgba(0,30,98,.3);font-size:14px;}
 #vit-list-container{margin-top:4px;}
+
 </style>
 
 <!-- ══ FIREBASE SDK ══ -->
@@ -1575,39 +1831,85 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   });
 </script>
 
+<script>
+/* Mobile chart scroll enhancement */
+(function(){
+  if(window.innerWidth > 768) return;
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){
+      document.querySelectorAll('canvas').forEach(function(canvas){
+        if(canvas.parentElement && !canvas.parentElement.classList.contains('chart-scroll-wrap')){
+          var wrapper = document.createElement('div');
+          wrapper.className = 'chart-scroll-wrap';
+          wrapper.style.overflowX = 'auto';
+          wrapper.style.webkitOverflowScrolling = 'touch';
+          canvas.parentNode.insertBefore(wrapper, canvas);
+          wrapper.appendChild(canvas);
+        }
+      });
+    }, 2000);
+  });
+})();
+</script>
+
+<script>
+// Warn user if opening from local file (Firebase won't work)
+(function() {
+  if (window.location.protocol === 'file:') {
+    document.addEventListener('DOMContentLoaded', function() {
+      var warn = document.createElement('div');
+      warn.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#f59e0b;color:#000;' +
+        'padding:10px 16px;font-size:12px;font-weight:700;z-index:9999;text-align:center;' +
+        'display:flex;align-items:center;justify-content:center;gap:8px;';
+      warn.innerHTML = '⚠️ Abre este dashboard desde la URL de Netlify para que Firebase funcione. ' +
+        'Los datos no cargarán desde un archivo local.' +
+        '<button onclick="this.parentElement.remove()" style="margin-left:12px;padding:2px 8px;' +
+        'border:1px solid #000;border-radius:4px;background:transparent;cursor:pointer;font-weight:700;">✕</button>';
+      document.body.insertBefore(warn, document.body.firstChild);
+    });
+  }
+})();
+</script>
+
 </head>
 <body>
 <!-- ══ TOPBAR ══ -->
-<div class="topbar">
-  <div id="fb-status" style="position:fixed;bottom:14px;right:14px;z-index:9999;background:rgba(0,20,60,.82);color:#fff;font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;display:flex;align-items:center;gap:6px;backdrop-filter:blur(6px);transition:.5s;pointer-events:none;">
-    <span id="fb-dot" style="width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;animation:pulse 1.5s infinite;"></span>
-    <span id="fb-txt">☁ Conectando a Firebase...</span>
-  </div>
+<div class="topbar" id="main-topbar" style="display:block">
+  <!-- Logo + title (siempre visible) -->
   <div class="topbar-left">
-    <a style="display:flex;align-items:center;gap:12px;text-decoration:none;" href="#">
-      <img src="data:image/png;base64,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" alt="Farmatodo" style="height:40px;width:auto;display:block;flex-shrink:0;">
+    <a style="display:flex;align-items:center;gap:10px;text-decoration:none;" href="#">
+      <img src="data:image/png;base64,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" alt="Farmatodo" style="height:36px;width:auto;display:block;flex-shrink:0;">
       <div>
         <div class="brand" style="font-size:13px;letter-spacing:.08em;">PRODUCTIVIDAD REPOSICION NOCTURNA 2026</div>
         <div class="brand-sub">Farmatodo · Centro de Distribución · Turno NOC</div>
       </div>
     </a>
-    <!-- ── Módulos principales ── -->
-    <div class="mod-tabs">
+    <!-- Módulos — visible solo en desktop -->
+    <div class="mod-tabs mod-tabs-desktop">
       <button id="mbtn-noc"   class="mod-tab active" onclick="switchMod('noc')">🛒 REPOSICIÓN</button>
       <button id="mbtn-v22"   class="mod-tab"        onclick="switchMod('v22')">🏗 ALMACENAJE</button>
       <button id="mbtn-monta" class="mod-tab"        onclick="switchMod('monta')">👷 OPERADORES</button>
       <button id="mbtn-vit"   class="mod-tab"        onclick="switchMod('vit')">📋 VITÁCORA</button>
     </div>
-
   </div>
-  <div style="display:flex;gap:6px;">
-    <button class="tbtn" onclick="importarDatos()" title="Importar datos desde JSON">⬆ Importar</button>
-    <button class="tbtn" style="background:rgba(27,79,168,.15);border:1px solid rgba(27,79,168,.3);" onclick="abrirCargaHistorica()" title="Cargar datos de un día anterior">📥 Día anterior</button>
+  <!-- Botones acción — visible solo en desktop -->
+  <div class="topbar-actions-desktop" style="display:flex;gap:6px;">
+    <button class="tbtn" onclick="importarDatos()" title="Importar">⬆ Importar</button>
+    <button class="tbtn" style="background:rgba(27,79,168,.15);border:1px solid rgba(27,79,168,.3);" onclick="abrirCargaHistorica()">📥 Día anterior</button>
     <button class="tbtn dl-btn primary" onclick="abrirModalDescarga()">📷 Gráficas</button>
-    <button class="tbtn" onclick="descargarHTML()" style="background:#1E8449;border-color:#1E8449;color:#fff;font-weight:700;" title="Descarga el HTML con TODOS tus datos incluidos">💾 Guardar con datos</button>
+    <button class="tbtn" onclick="descargarHTML()" style="background:#1E8449;border-color:#1E8449;color:#fff;font-weight:700;">💾 Guardar con datos</button>
     <button class="tbtn tbtn-p" onclick="window.print()">🖨 Imprimir</button>
     <input type="file" id="fileInput" accept=".json,text/html" style="display:none" onchange="importarArchivo(event)">
   </div>
+  <!-- Badge Firebase (siempre visible) -->
+  <div id="fb-status" style="display:none;"></div>
+</div>
+
+
+<!-- Firebase status badge — posición fija -->
+<div id="fb-status" style="position:fixed;bottom:70px;right:10px;z-index:999;background:rgba(0,20,60,.82);color:#fff;font-size:9px;font-weight:700;padding:4px 10px;border-radius:12px;display:flex;align-items:center;gap:5px;pointer-events:none;">
+  <span id="fb-dot" style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+  <span id="fb-txt">☁ Conectando...</span>
 </div>
 
 <!-- ══ SUBBAR ══ -->
@@ -1675,7 +1977,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         <div style="position:relative;flex-shrink:0;">
           <canvas id="donutMes" width="130" height="130" style="flex-shrink:0;display:block;"></canvas>
           <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
-            <div style="font-family:var(--font);font-size:18px;font-weight:900;color:#fff;" id="donutTotal">—</div>
+            <div style="font-family:var(--font);font-size:18px;font-weight:900;color:var(--navy);" id="donutTotal">—</div>
             <div style="font-size:8px;color:var(--muted);font-family:var(--font);">BULTOS</div>
           </div>
         </div>
@@ -1720,7 +2022,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         <div class="ccard-title">&#x1F4E6; ROP Ejecutado — Paletas bajadas por noche</div>
         <div class="ccard-sub" id="rop_stats_sub">Excel ROP_EJECUTADOS + formulario del turno · Oct 2025 – en curso</div>
       </div>
-      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="rop_chart"><button class="chart-type-btn active" data-type="line" onclick="setRVType('rop_chart','line',this)" title="Línea">📈</button><button class="chart-type-btn" data-type="bar" onclick="setRVType('rop_chart','bar',this)" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setRVPeriod('rop_chart','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setRVPeriod('rop_chart','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setRVPeriod('rop_chart','mes',this)">M</button><span class="ctrl-divider"></span></div><button class="dl-btn" onclick="dlCardImagen('card_rop','ROP_Ejecutado')">⬇ PNG</button><button class="dl-btn" onclick="exportRopXLS()">⬇ XLS</button>
+      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="rop_chart"><button class="chart-type-btn active" data-type="line" onclick="setRVType('rop_chart','line',this)" title="Línea">📈</button><button class="chart-type-btn" data-type="bar" onclick="setRVType('rop_chart','bar',this)" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setRVPeriod('rop_chart','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setRVPeriod('rop_chart','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setRVPeriod('rop_chart','mes',this)">M</button><span class="ctrl-divider"></span><button class="period-btn rop-area-btn active" data-area="all" onclick="setRopArea('all',this)" title="Total ROP">TODO</button><button class="period-btn rop-area-btn" data-area="bo" onclick="setRopArea('bo',this)" title="Solo ROP de BO">BO</button><button class="period-btn rop-area-btn" data-area="dym" onclick="setRopArea('dym',this)" title="Solo ROP de DYM">DYM</button><span class="ctrl-divider"></span></div><button class="dl-btn" onclick="dlCardImagen('card_rop','ROP_Ejecutado')">⬇ PNG</button><button class="dl-btn" onclick="exportRopXLS()">⬇ XLS</button>
         <select id="rop_mes_filter" onchange="renderROP()" style="background:#F0F4FA;border:1px solid rgba(0,48,135,0.18);border-radius:6px;padding:3px 8px;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;outline:none;letter-spacing:.02em;">
           <option value="ALL">📅 Vista mensual (todos)</option>
         </select></div>
@@ -1731,15 +2033,15 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         <div id="rop_kpi_total" style="font-size:20px;font-weight:900;color:#8B5CF6;font-family:var(--font);">—</div>
       </div>
       <div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:6px;padding:6px 14px;">
-        <div style="font-size:9px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.06em;">Prom. noches activas</div>
+        <div id="rop_kpi_avg_lbl" style="font-size:9px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.06em;">Prom. por noche activa</div>
         <div id="rop_kpi_avg" style="font-size:20px;font-weight:900;color:#8B5CF6;font-family:var(--font);">—</div>
       </div>
       <div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:6px;padding:6px 14px;">
-        <div style="font-size:9px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.06em;">Máx. en una noche</div>
+        <div id="rop_kpi_max_lbl" style="font-size:9px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.06em;">Máx. en una noche</div>
         <div id="rop_kpi_max" style="font-size:20px;font-weight:900;color:#8B5CF6;font-family:var(--font);">—</div>
       </div>
       <div style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:6px;padding:6px 14px;">
-        <div style="font-size:9px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.06em;">Noches con ROP</div>
+        <div id="rop_kpi_dias_lbl" style="font-size:9px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.06em;">Noches con ROP</div>
         <div id="rop_kpi_dias" style="font-size:20px;font-weight:900;color:#8B5CF6;font-family:var(--font);">—</div>
       </div>
     </div>
@@ -1776,12 +2078,46 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     <div style="position:relative;height:260px;"><canvas id="ax_vent_chart"></canvas></div>
   </div>
 
+  <!-- GRÁFICA 3: PR ALMACENADOS POR DÍA -->
+  <div class="ccard" id="card_almacenado" style="margin-top:12px;">
+    <div class="ccard-hdr">
+      <div>
+        <div class="ccard-title">&#x1F4E5; PR Almacenados — por jornada</div>
+        <div class="ccard-sub" id="alm_stats_sub">Contenedores PR almacenados por noche · formulario del turno</div>
+      </div>
+      <div class="ccard-actions">
+        <select id="alm_mes_filter" onchange="renderAlmacenado()" style="background:#F0F4FA;border:1px solid rgba(0,48,135,0.18);border-radius:6px;padding:3px 8px;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;outline:none;letter-spacing:.02em;">
+          <option value="ALL">📅 Todos los meses</option>
+        </select>
+        <button class="dl-btn" onclick="dlCardImagen('card_almacenado','PR_Almacenados')">⬇ PNG</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
+      <div style="background:rgba(20,153,128,.08);border:1px solid rgba(20,153,128,.25);border-radius:6px;padding:6px 14px;">
+        <div style="font-size:9px;font-weight:700;color:#149980;text-transform:uppercase;letter-spacing:.06em;">Promedio</div>
+        <div id="alm_kpi_avg" style="font-size:20px;font-weight:900;color:#149980;font-family:var(--font);">—</div>
+      </div>
+      <div style="background:rgba(20,153,128,.08);border:1px solid rgba(20,153,128,.25);border-radius:6px;padding:6px 14px;">
+        <div style="font-size:9px;font-weight:700;color:#149980;text-transform:uppercase;letter-spacing:.06em;">Máximo</div>
+        <div id="alm_kpi_max" style="font-size:20px;font-weight:900;color:#149980;font-family:var(--font);">—</div>
+      </div>
+      <div style="background:rgba(20,153,128,.08);border:1px solid rgba(20,153,128,.25);border-radius:6px;padding:6px 14px;">
+        <div style="font-size:9px;font-weight:700;color:#149980;text-transform:uppercase;letter-spacing:.06em;">Mínimo (sin ceros)</div>
+        <div id="alm_kpi_min" style="font-size:20px;font-weight:900;color:#149980;font-family:var(--font);">—</div>
+      </div>
+      <div style="background:rgba(20,153,128,.08);border:1px solid rgba(20,153,128,.25);border-radius:6px;padding:6px 14px;">
+        <div style="font-size:9px;font-weight:700;color:#149980;text-transform:uppercase;letter-spacing:.06em;">Jornadas</div>
+        <div id="alm_kpi_dias" style="font-size:20px;font-weight:900;color:#149980;font-family:var(--font);">—</div>
+      </div>
+    </div>
+    <div style="position:relative;height:260px;"><canvas id="ax_alm_chart"></canvas></div>
+  </div>
+
 </div>
 </div>
 </div>
 
 <!-- ════ CARGA ════ -->
-<div 
 <!-- ════════════════════════════════════════════════
      HOJA DE CARGA UNIFICADA — Alimenta NOC + Analytics
 ════════════════════════════════════════════════ -->
@@ -1794,11 +2130,13 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   <!-- ── Opción A: Pegar datos del Excel ── -->
   <div class="fsec" style="border-left:3px solid #0047C8;">
     <div class="fsec-title" style="color:#0047C8;">&#x1F4CB; Opci&#xF3;n A &#x2014; Pegar datos del cuadro Excel</div>
-    <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Copia el cuadro completo "CONTENEDORES EN PR" desde el Excel y p&#xE9;galo aqu&#xED;. Se extraen autom&#xE1;ticamente todos los campos.</p>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Copia el cuadro completo desde el Excel (Contenedores en PR, Personal Nocturno, Zonas, Intransit por hora y/o REPOSICIÓN) y pégalo aquí — puedes pegar uno o todos juntos. Se extraen automáticamente todos los campos, incluida la sección REPOSICIÓN (Tareas/Bultos manuales, Fill Rate, etc.).</p>
     <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;">
       <textarea id="u_paste" rows="12" placeholder="FECHA : 11-06-2026&#10;CONTENEDORES EN PR&#10;QUEDAN&#9;280&#10;PR EN EL TURNO&#9;565&#10;PR ALMACENADO&#9;285&#10;CONTENEDORES POST 4PM&#9;213&#10;...&#10;ROP&#9;144&#10;DEMANDA BO&#9;506&#10;DEMANDA DYM&#9;607&#10;ALMACENADO&#9;285&#10;TOTAL&#9;1542" style="width:100%;padding:10px;border:1px solid rgba(0,71,200,0.25);border-radius:8px;font-size:11px;font-family:'Inter',monospace;resize:vertical;background:#F8FAFF;color:#001F60;"></textarea>
       <div style="display:flex;flex-direction:column;gap:8px;min-width:140px;">
         <button onclick="unifiedPaste()" class="btn btn-primary" style="padding:10px 14px;font-size:12px;font-weight:800;background:#0047C8;border:none;color:#fff;border-radius:8px;cursor:pointer;">&#x25BA; Aplicar datos</button>
+        <button onclick="reloadHist()" class="btn" style="padding:8px 14px;font-size:11px;border:1px solid rgba(27,79,168,0.3);border-radius:8px;cursor:pointer;color:#1A5CA8;background:rgba(27,79,168,.06);" title="Recarga el último registro guardado">&#x21A9; Histórico</button>
+        <button onclick="openWA()" class="btn" style="padding:8px 14px;font-size:11px;font-weight:800;border:none;border-radius:8px;cursor:pointer;color:#fff;background:#25D366;" title="Descargar las 4 tarjetas con los datos actuales">&#x1F4F2; Compartir</button>
         <button onclick="document.getElementById('u_paste').value=''" class="btn" style="padding:8px 14px;font-size:11px;border:1px solid rgba(0,71,200,0.2);border-radius:8px;cursor:pointer;color:#0047C8;">&#x2715; Limpiar</button>
         <div id="u_paste_msg" style="font-size:10px;color:#00875A;font-weight:700;min-height:14px;"></div>
       </div>
@@ -1881,9 +2219,11 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     </div>
 
     <!-- Botón guardar -->
-    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:8px;">
+    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:8px;flex-wrap:wrap;">
       <div id="u_save_msg" style="font-size:11px;color:#00875A;font-weight:700;"></div>
       <button onclick="limpiarUnified()" class="btn btn-danger" style="padding:8px 16px;font-size:11px;">&#x21BA; Limpiar</button>
+      <button onclick="reloadHist()" class="btn" style="padding:8px 16px;font-size:11px;background:rgba(27,79,168,.1);border:1px solid rgba(27,79,168,.3);color:#1A5CA8;border-radius:8px;cursor:pointer;" title="Recarga el último registro guardado (descarta cambios sin guardar)">&#x21A9; Histórico</button>
+      <button onclick="openWA()" class="btn" style="padding:8px 16px;font-size:11px;font-weight:800;background:#25D366;border:none;color:#fff;border-radius:8px;cursor:pointer;" title="Descargar las 4 tarjetas con los datos actuales">&#x1F4F2; Compartir tarjetas</button>
       <button onclick="guardarUnified()" class="btn btn-primary" style="padding:10px 22px;font-size:13px;font-weight:800;background:#0047C8;border:none;color:#fff;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,71,200,0.3);">&#x1F4BE; Guardar en ambos sistemas</button>
     </div>
   </div>
@@ -2426,25 +2766,6 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 </div>
 
 </div>
-<!-- MODAL WA -->
-<div class="wao" id="wao" onclick="if(event.target===this)closeWA()">
-  <div class="wam">
-    <div class="wamh">
-      <div class="wamt">📲 COMPARTIR — 4 TARJETAS</div>
-      <button class="wamc" onclick="closeWA()">✕</button>
-    </div>
-    <div class="wab">
-      <div class="wacards">
-        <div class="waw"><div class="wawl">📊 T1 — Resumen</div><canvas id="waC1"></canvas><button class="wadl" style="background:#003087" onclick="dlCard(1)">⬇ Descargar T1</button></div>
-        <div class="waw"><div class="wawl">📍 T2 — Zonas</div><canvas id="waC2"></canvas><button class="wadl" style="background:#16a34a" onclick="dlCard(2)">⬇ Descargar T2</button></div>
-        <div class="waw"><div class="wawl">🏢 T3 — Pisos</div><canvas id="waC3"></canvas><button class="wadl" style="background:#d97706" onclick="dlCard(3)">⬇ Descargar T3</button></div>
-        <div class="waw"><div class="wawl">👥 T4 — Personal</div><canvas id="waC4"></canvas><button class="wadl" style="background:#7c3aed" onclick="dlCard(4)">⬇ Descargar T4</button></div>
-      </div>
-      <button class="wall" onclick="dlAll()">📲 Descargar las 4 tarjetas</button>
-      <div class="wahi">Adjunta directamente en WhatsApp como fotos</div>
-    </div>
-  </div>
-</div></div>
 <div id="mod-monta"><div class="tabs" id="tabs-bar">
   <div class="tab on"  onclick="goTab('r105')">R105</div>
   <div class="tab" onclick="goTab('entry')">Entrada Manual</div>
@@ -2912,6 +3233,7 @@ function guardarRegistro() {
   setTimeout(function(){ 
     if(typeof renderROP==='function') renderROP();
     if(typeof renderVentanas==='function') renderVentanas();
+    if(typeof renderAlmacenado==='function') renderAlmacenado();
   }, 100);
 }
 
@@ -3277,7 +3599,7 @@ async function descargarTodas(){
 // DASHBOARD
 // ═══════════════════════════════════════════════════
 function renderDashboard(){
-  setTimeout(function(){ renderROP(); renderVentanas(); }, 200);
+  setTimeout(function(){ renderROP(); renderVentanas(); if(typeof renderAlmacenado==='function') renderAlmacenado(); }, 200);
   setChartDefaults();
   const dd=filtroDatos();
   if(!dd.length){(document.getElementById('kpiDash')||{innerHTML:''}).innerHTML=emptyMsg();return;}
@@ -3347,22 +3669,24 @@ function renderDashboard(){
   });
 
   // Leyenda donut
-  (document.getElementById('donutLegend')||{innerHTML:'',textContent:''}).innerHTML=meses.map((m,i)=>{
+  (document.getElementById('donutLegend')||{innerHTML:'',textContent:''}).innerHTML=
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px 10px;">'+
+    meses.map((m,i)=>{
     const avgOM=avg(dd.filter(d=>d.mes===m),'O');
     const avgLM=avg(dd.filter(d=>d.mes===m),'L')*100;
-    return `<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:8px;">
+    return `<div style="display:flex;align-items:flex-start;gap:7px;">
       <div style="width:9px;height:9px;border-radius:50%;background:${colors[i%colors.length]};flex-shrink:0;margin-top:2px;"></div>
-      <div><div style="font-weight:700;color:#fff;font-size:11px;font-family:var(--font);">${MNOM[m]||m}</div>
-      <div style="font-size:10px;color:var(--muted);">${avgOM.toFixed(1)} B×H/h · ${avgLM.toFixed(1)}% cumplim.</div></div>
+      <div><div style="font-weight:700;color:var(--navy);font-size:11px;font-family:var(--font);">${MNOM[m]||m}</div>
+      <div style="font-size:10px;color:var(--muted);white-space:nowrap;">${avgOM.toFixed(1)} B×H/h · ${avgLM.toFixed(1)}%</div></div>
     </div>`;
-  }).join('');
+  }).join('')+'</div>';
 
   // Mini KPIs por mes
   (document.getElementById('miniKpisMes')||{innerHTML:'',textContent:''}).innerHTML=meses.map((m,i)=>{
     const avgOM=avg(dd.filter(d=>d.mes===m),'O');
-    return `<div style="padding:7px;background:rgba(255,255,255,.04);border-radius:6px;border-top:2px solid ${colors[i%colors.length]};text-align:center;">
+    return `<div style="padding:7px;background:rgba(13,45,107,.05);border-radius:6px;border-top:2px solid ${colors[i%colors.length]};text-align:center;">
       <div style="font-size:9px;color:var(--muted);font-family:var(--font);margin-bottom:3px;">${m}</div>
-      <div style="font-size:16px;font-weight:900;color:#fff;font-family:var(--font);">${avgOM.toFixed(0)}</div>
+      <div style="font-size:16px;font-weight:900;color:var(--navy);font-family:var(--font);">${avgOM.toFixed(0)}</div>
       <div style="font-size:9px;color:var(--muted);">B×H/h</div>
     </div>`;
   }).join('');
@@ -3424,6 +3748,9 @@ function renderDashboard(){
         y2:{position:'right',grid:{color:'rgba(0,48,135,0.06)',drawTicks:false},ticks:{callback:v=>v.toLocaleString()}}
       }}
   });
+
+  // ── Tendencia + leyenda en las gráficas de este dashboard (Reposición NOC) ──
+  if(typeof _applyTrendAndLegend==='function') setTimeout(_applyTrendAndLegend, 200);
 }
 
 // ═══════════════════════════════════════════════════
@@ -4439,6 +4766,132 @@ function cargarHistorico(){
 // ════════════════════════════════════════
 var _ropChart = null;
 var _ventChart = null;
+var _almChart = null;
+
+// ── Regresión lineal simple: devuelve la serie de la línea de tendencia ──
+function _linearTrend(vals) {
+  var pts=[];
+  vals.forEach(function(v,i){ if(v!==null&&v!==undefined&&v>0) pts.push([i,v]); });
+  if(pts.length<2) return Array(vals.length).fill(null);
+  var n=pts.length, sx=0, sy=0, sxy=0, sxx=0;
+  pts.forEach(function(p){ sx+=p[0]; sy+=p[1]; sxy+=p[0]*p[1]; sxx+=p[0]*p[0]; });
+  var m=(n*sxy-sx*sy)/(n*sxx-sx*sx||1), b=(sy-m*sx)/n;
+  return vals.map(function(v,i){ return Math.round((m*i+b)*10)/10; });
+}
+
+// ── Datos combinados de PR Almacenados por día ──
+function almDataCombined() {
+  var map = {};
+  // HIST (Almacenaje V22): alm_pr por jornada
+  if(typeof HIST!=='undefined'){
+    HIST.forEach(function(h){
+      if(!h.date) return;
+      var iso=h.fecha||_histToISO(h.date);
+      if(!iso) return;
+      var v=h.alm_pr||h.alm_real||0;
+      if(v>0) map[iso]={f:iso,v:v,src:'hist'};
+    });
+  }
+  // datos[] (registros del formulario, más recientes)
+  if(typeof datos!=='undefined'){
+    datos.forEach(function(d){
+      if(d.fecha&&d.pr_alm>0) map[d.fecha]={f:d.fecha,v:d.pr_alm,src:'formulario'};
+    });
+  }
+  return Object.values(map).sort(function(a,b){return a.f.localeCompare(b.f);});
+}
+
+function renderAlmacenado() {
+  var cv = document.getElementById('ax_alm_chart');
+  if(!cv) return;
+  if(_almChart) { try{_almChart.destroy();}catch(e){} }
+
+  var mes = (document.getElementById('alm_mes_filter')||{value:'ALL'}).value || 'ALL';
+  var all = almDataCombined();
+  var dd  = mes === 'ALL' ? all : all.filter(function(d){ return d.f.slice(0,7) === mes; });
+
+  // Poblar el selector de meses dinámicamente
+  var sel = document.getElementById('alm_mes_filter');
+  if(sel){
+    var mesesDisp = {};
+    all.forEach(function(d){ mesesDisp[d.f.slice(0,7)]=1; });
+    var opts = Object.keys(mesesDisp).sort();
+    var MN=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    var want = '<option value="ALL">📅 Todos los meses</option>'+opts.map(function(m){
+      return '<option value="'+m+'">'+MN[parseInt(m.slice(5,7))]+' '+m.slice(2,4)+'</option>';
+    }).join('');
+    if(sel.dataset.opts!==want){ var v=sel.value; sel.innerHTML=want; sel.dataset.opts=want;
+      if([].some.call(sel.options,function(o){return o.value===v;})) sel.value=v; }
+  }
+
+  var labels = dd.map(function(d){ return d.f.slice(5); });
+  var vals   = dd.map(function(d){ return d.v || 0; });
+
+  var active = dd.filter(function(d){ return d.v > 0; });
+  var avg    = active.length>0 ? Math.round(active.reduce(function(s,d){return s+d.v;},0)/active.length) : 0;
+  var maxV   = active.length>0 ? Math.max.apply(null,active.map(function(d){return d.v;})) : 0;
+  var minV   = active.length>0 ? Math.min.apply(null,active.map(function(d){return d.v;})) : 0;
+
+  var el = function(id){ return document.getElementById(id); };
+  if(el('alm_kpi_avg'))  el('alm_kpi_avg').textContent  = avg;
+  if(el('alm_kpi_max'))  el('alm_kpi_max').textContent  = maxV;
+  if(el('alm_kpi_min'))  el('alm_kpi_min').textContent  = minV;
+  if(el('alm_kpi_dias')) el('alm_kpi_dias').textContent = dd.length;
+  if(el('alm_stats_sub'))
+    el('alm_stats_sub').textContent = 'Contenedores PR almacenados por noche · '+active.length+' jornadas · Prom: '+avg+'/noche';
+
+  var ptColors = vals.map(function(v){
+    if(v === 0) return 'rgba(148,163,184,0.3)';
+    if(v >= avg) return '#00875A';
+    if(v >= avg*0.6) return '#E8A000';
+    return '#D63B2F';
+  });
+
+  var trend = _linearTrend(vals);
+
+  _almChart = new Chart(cv, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'PR almacenados',
+          data: vals,
+          borderColor: '#149980',
+          backgroundColor: 'rgba(20,153,128,0.10)',
+          borderWidth: 2.5, fill:false, tension: 0.4, spanGaps:false,
+          pointRadius: vals.map(function(v){ return v>0?5:2; }),
+          pointHoverRadius: 8,
+          pointBackgroundColor: ptColors, pointBorderColor: ptColors, pointBorderWidth: 1.5
+        },
+        {
+          label: 'Promedio ('+avg+')',
+          data: Array(vals.length).fill(avg),
+          borderColor: 'rgba(20,153,128,0.45)', borderWidth: 1.5, borderDash: [6,4],
+          pointRadius: 0, fill: false, tension: 0
+        },
+        {
+          label: 'Tendencia',
+          data: trend,
+          borderColor: 'rgba(0,48,135,0.5)', borderWidth: 1.5, borderDash: [3,3],
+          pointRadius: 0, fill: false, tension: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display:true, position:'bottom', labels:{ usePointStyle:true, pointStyle:'circle', boxWidth:7, boxHeight:7, font:{size:10, family:'Montserrat'}, color:'rgba(0,48,135,0.7)' } },
+        tooltip: { callbacks: { label: function(ctx){ return ' '+ctx.dataset.label+': '+ctx.parsed.y; } } }
+      },
+      scales: {
+        y: { beginAtZero:true, ticks:{ font:{size:10}, color:'rgba(0,48,135,0.55)' }, grid:{ color:'rgba(0,48,135,0.06)' } },
+        x: { ticks:{ font:{size:9}, color:'rgba(0,48,135,0.55)', maxTicksLimit: 15 }, grid:{ display:false } }
+      }
+    }
+  });
+}
 var RV_KEY = 'ftd_rv_data';
 
 // Cargar datos guardados por el usuario (se suman a los de Excel)
@@ -4477,14 +4930,14 @@ function ropDataCombined() {
   try {
     JSON.parse(localStorage.getItem('ftd_noc_v5')||'[]').forEach(function(d){
       if(d.fecha&&d.rop_paletas>0)
-        map[d.fecha]={f:d.fecha,c:d.rop_paletas,a:d.rop_area||'BO',src:'formulario'};
+        map[d.fecha]={f:d.fecha,c:d.rop_paletas,bo:d.rop_bo||0,dym:d.rop_dym||0,a:d.rop_area||'BO',src:'formulario'};
     });
   } catch(e){}
   // Prioridad 2: datos en memoria (datos[] — más reciente)
   if(typeof datos!=='undefined'){
     datos.forEach(function(d){
       if(d.fecha&&d.rop_paletas>0)
-        map[d.fecha]={f:d.fecha,c:d.rop_paletas,a:d.rop_area||'BO',src:'formulario_mem'};
+        map[d.fecha]={f:d.fecha,c:d.rop_paletas,bo:d.rop_bo||0,dym:d.rop_dym||0,a:d.rop_area||'BO',src:'formulario_mem'};
     });
   }
   // Prioridad 3: datos rv (compatibilidad hacia atrás)
@@ -4562,6 +5015,16 @@ function exportVentXLS() {
 }
 // rvGuardar() removed — datos now captured in guardarRegistro()
 
+// ── Filtro de área para la gráfica ROP (TODO / BO / DYM) ──
+window._ropArea = 'all';
+function setRopArea(area, btnEl) {
+  window._ropArea = area;
+  document.querySelectorAll('.rop-area-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.area===area);
+  });
+  renderROP();
+}
+
 function renderROP() {
   var cv = document.getElementById('ax_rop_chart');
   if(!cv) return;
@@ -4569,6 +5032,14 @@ function renderROP() {
 
   var mes = (document.getElementById('rop_mes_filter')||{value:'ALL'}).value||'ALL';
   var all = ropDataCombined();
+
+  // ── Filtro de área: TODO / BO / DYM (botones sobre la gráfica) ──
+  var area = (typeof window._ropArea!=='undefined') ? window._ropArea : 'all';
+  function _valOf(d){
+    if(area==='bo')  return d.bo||0;
+    if(area==='dym') return d.dym||0;
+    return d.c||0;
+  }
 
   var labels, vals, tooltipExtras;
   var isMonthly = (mes==='ALL');
@@ -4580,10 +5051,11 @@ function renderROP() {
                '2026-09':'Sep 26','2026-10':'Oct 26','2026-11':'Nov 26','2026-12':'Dic 26'};
     var mmap={};
     all.forEach(function(d){
-      if(!d.c) return;
+      var v=_valOf(d);
+      if(!v) return;
       var m=d.f.slice(0,7);
       if(!mmap[m]) mmap[m]={m:m,total:0,days:0,max:0};
-      mmap[m].total+=d.c; mmap[m].days++; mmap[m].max=Math.max(mmap[m].max,d.c);
+      mmap[m].total+=v; mmap[m].days++; mmap[m].max=Math.max(mmap[m].max,v);
     });
     var activeMonths=Object.values(mmap).filter(function(m){return m.total>0;})
       .sort(function(a,b){return a.m.localeCompare(b.m);});
@@ -4596,7 +5068,7 @@ function renderROP() {
     // ── Vista diaria del mes ──
     var dd = all.filter(function(d){ return d.f.slice(0,7)===mes; });
     labels = dd.map(function(d){ return d.f.slice(5); });
-    vals   = dd.map(function(d){ return d.c||0; });
+    vals   = dd.map(function(d){ return _valOf(d); });
     tooltipExtras = dd.map(function(d){ return 'Área: '+(d.a||'BO')+(d.src?' · Fuente: '+d.src:''); });
   }
 
@@ -4607,9 +5079,13 @@ function renderROP() {
   var maxV   = active.length>0?Math.max.apply(null,active):0;
   var el=function(id){return document.getElementById(id);};
   if(el('rop_kpi_total')) el('rop_kpi_total').textContent = total.toLocaleString();
-  if(el('rop_kpi_avg'))   el('rop_kpi_avg').textContent   = avg;
+  if(el('rop_kpi_avg'))   el('rop_kpi_avg').textContent   = avg.toLocaleString();
   if(el('rop_kpi_max'))   el('rop_kpi_max').textContent   = maxV.toLocaleString();
-  if(el('rop_kpi_dias'))  el('rop_kpi_dias').textContent  = active.length+(isMonthly?' meses':' noches');
+  if(el('rop_kpi_dias'))  el('rop_kpi_dias').textContent  = active.length;
+  // Etiquetas coherentes con la vista: en mensual los valores son totales por MES
+  if(el('rop_kpi_avg_lbl'))  el('rop_kpi_avg_lbl').textContent  = isMonthly?'Prom. por mes':'Prom. por noche activa';
+  if(el('rop_kpi_max_lbl'))  el('rop_kpi_max_lbl').textContent  = isMonthly?'Máx. en un mes':'Máx. en una noche';
+  if(el('rop_kpi_dias_lbl')) el('rop_kpi_dias_lbl').textContent = isMonthly?'Meses con ROP':'Noches con ROP';
   if(el('rop_stats_sub')){
     var grand=all.reduce(function(s,d){return s+d.c;},0);
     el('rop_stats_sub').textContent='Excel ROP_EJECUTADOS + Tareas_Ejecutadas · '+all.length+' días en base · Total acumulado: '+grand.toLocaleString()+' paletas';
@@ -5127,7 +5603,9 @@ function parsePaste(raw) {
   }
 
   /* ── Tareas realizadas ── */
-  nd.rop      = getFirst('ROP');
+  nd.rop_bo   = getFirst(['ROP BO','ROP - BO','ROP — BO']);
+  nd.rop_dym  = getFirst(['ROP DYM','ROP - DYM','ROP — DYM']);
+  nd.rop      = getFirst('ROP') || ((nd.rop_bo||0)+(nd.rop_dym||0));
   nd.topoff   = getFirst('TOP OFF');
   nd.dbo      = getFirst('DEMANDA BO');
   nd.ddym     = getFirst('DEMANDA DYM');
@@ -5156,23 +5634,77 @@ function parsePaste(raw) {
   }
 
   /* ── Personal ── */
+  /* "PERSONAL NOCTURNO" trae dos secciones (MONTACARGUISTA / REPOSITORES)
+     que repiten las mismas etiquetas (LIBRE, VACACIONES, REPOSO). Si hay
+     encabezados de sección, se ubican por rango; si no, se cae al modo
+     anterior de "primera ocurrencia" (compatibilidad con pegados viejos). */
   var np = Object.assign({}, D.personal || {});
-  var pmap = {
-    monta_alta:   ['ESTANTERIA ALTA','ESTANTERÍA ALTA'],
-    monta_tras:   ['TRASPALETA FIJO','TRASPALETA'],
-    monta_libre:  ['LIBRE'],
-    monta_repos:  ['REPOSO'],
-    monta_ausent: ['AUSENCIA FTD'],
-    monta_vac:    ['VACACIONES'],
-    monta_actv:   ['ACTIVOS'],
-    repo_apoyo:   ['APOYO ALM'],
-    ftd:          ['PERSONAL FTD','FTD'],
-    servix:       ['SERVIEXPRESS'],
-  };
-  Object.keys(pmap).forEach(function(field) {
-    var v = getFirst(pmap[field]);
-    if (v > 0) np[field] = v;
-  });
+  var montaSecIdx = -1, repoSecIdx = -1;
+  for (var psi = 0; psi < all.length; psi++) {
+    if (all[psi].label === 'MONTACARGUISTA' || all[psi].label === 'MONTACARGUISTA NOCTURNO') montaSecIdx = psi;
+    if (all[psi].label === 'REPOSITORES') repoSecIdx = psi;
+  }
+  function _findInRange(label, startIdx, endIdx) {
+    if (startIdx < 0) return null;
+    var end = endIdx >= 0 ? endIdx : all.length;
+    for (var x = startIdx + 1; x < end; x++) {
+      if (all[x].label === label) {
+        var v = rowVals(all[x]);
+        return v[0];
+      }
+    }
+    return null;
+  }
+  if (montaSecIdx >= 0 || repoSecIdx >= 0) {
+    if (montaSecIdx >= 0) {
+      var vAlta   = _findInRange('ESTANTERIA ALTA', montaSecIdx, repoSecIdx); if (vAlta===null) vAlta=_findInRange('ESTANTERÍA ALTA', montaSecIdx, repoSecIdx);
+      var vTras   = _findInRange('TRASPALETA FIJO', montaSecIdx, repoSecIdx); if (vTras===null) vTras=_findInRange('TRASPALETA', montaSecIdx, repoSecIdx);
+      var vMLibre = _findInRange('LIBRE', montaSecIdx, repoSecIdx);
+      var vMRepos = _findInRange('REPOSO', montaSecIdx, repoSecIdx);
+      var vMAusen = _findInRange('AUSENCIA FTD', montaSecIdx, repoSecIdx);
+      var vMVac   = _findInRange('VACACIONES', montaSecIdx, repoSecIdx);
+      var vMActv  = _findInRange('ACTIVOS', montaSecIdx, repoSecIdx);
+      if (vAlta!==null)   np.monta_alta   = vAlta;
+      if (vTras!==null)   np.monta_tras   = vTras;
+      if (vMLibre!==null) np.monta_libre  = vMLibre;
+      if (vMRepos!==null) np.monta_repos  = vMRepos;
+      if (vMAusen!==null) np.monta_ausent = vMAusen;
+      if (vMVac!==null)   np.monta_vac    = vMVac;
+      if (vMActv!==null)  np.monta_actv   = vMActv;
+    }
+    if (repoSecIdx >= 0) {
+      var vRLibre = _findInRange('LIBRE', repoSecIdx, -1);
+      var vRVac   = _findInRange('VACACIONES', repoSecIdx, -1);
+      var vRRepos = _findInRange('REPOSO', repoSecIdx, -1);
+      var vApoyo  = _findInRange('APOYO ALM', repoSecIdx, -1);
+      var vFtd    = _findInRange('PERSONAL FTD', repoSecIdx, -1); if (vFtd===null) vFtd=_findInRange('FTD', repoSecIdx, -1);
+      var vServix = _findInRange('SERVIEXPRESS', repoSecIdx, -1);
+      if (vRLibre!==null) np.repo_libre  = vRLibre;
+      if (vRVac!==null)   np.repo_vac    = vRVac;
+      if (vRRepos!==null) np.repo_reposo = vRRepos;
+      if (vApoyo!==null)  np.repo_apoyo  = vApoyo;
+      if (vFtd!==null)    np.ftd         = vFtd;
+      if (vServix!==null) np.servix      = vServix;
+    }
+  } else {
+    /* Fallback: sin encabezados de sección — comportamiento anterior */
+    var pmap = {
+      monta_alta:   ['ESTANTERIA ALTA','ESTANTERÍA ALTA'],
+      monta_tras:   ['TRASPALETA FIJO','TRASPALETA'],
+      monta_libre:  ['LIBRE'],
+      monta_repos:  ['REPOSO'],
+      monta_ausent: ['AUSENCIA FTD'],
+      monta_vac:    ['VACACIONES'],
+      monta_actv:   ['ACTIVOS'],
+      repo_apoyo:   ['APOYO ALM'],
+      ftd:          ['PERSONAL FTD','FTD'],
+      servix:       ['SERVIEXPRESS'],
+    };
+    Object.keys(pmap).forEach(function(field) {
+      var v = getFirst(pmap[field]);
+      if (v > 0) np[field] = v;
+    });
+  }
   nd.personal = np;
 
   /* ── Pisos ── */
@@ -6027,6 +6559,89 @@ function buildAnalytics() {
       }
     })
   });
+
+  // ── Post-proceso global: tendencia lineal + leyenda en todas las gráficas de línea ──
+  setTimeout(_applyTrendAndLegend, 150);
+}
+
+// Recorre las gráficas del registro AX y les añade línea de tendencia + leyenda inferior.
+// Aplica solo a gráficas de tipo line/bar con eje temporal (más de 4 puntos) y evita duplicar.
+function _applyTrendAndLegend() {
+  if (typeof AX === 'undefined' || typeof _linearTrend !== 'function') return;
+  Object.keys(AX).forEach(function(k){
+    var ch = AX[k];
+    if (!ch || !ch.config) return;
+    var t = ch.config.type;
+    if (t !== 'line' && t !== 'bar') return;
+    if (!ch.data || !ch.data.datasets || !ch.data.datasets.length) return;
+    // evitar duplicar si ya tiene tendencia
+    if (ch.data.datasets.some(function(d){ return d._isTrend; })) return;
+    var base = ch.data.datasets[0];
+    if (!base || !Array.isArray(base.data) || base.data.length < 5) return;
+    var nums = base.data.map(function(v){ return (typeof v === 'number') ? v : (v && v.y != null ? v.y : null); });
+    if (nums.filter(function(v){ return v !== null && v > 0; }).length < 3) return;
+    ch.data.datasets.push({
+      label: 'Tendencia',
+      data: _linearTrend(nums),
+      borderColor: 'rgba(0,48,135,0.45)',
+      borderWidth: 1.5, borderDash: [3,3],
+      pointRadius: 0, fill: false, tension: 0,
+      type: 'line',
+      _isTrend: true
+    });
+    // Leyenda inferior con puntos de color
+    if (ch.options && ch.options.plugins) {
+      ch.options.plugins.legend = {
+        display: true, position: 'bottom',
+        labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 7, boxHeight: 7,
+                  font: { size: 10, family: 'Montserrat' }, color: 'rgba(0,48,135,0.7)' }
+      };
+    }
+    try { ch.update('none'); } catch(e) {}
+  });
+  _injectRepStats();
+}
+
+// ── Franja Máx/Prom/Mín/umbral en las gráficas del dashboard de Reposición ──
+var _REP_STATS_CFG = [
+  { card:'card_bxhh',      chart:'ax_bxhh',      fmt:function(v){return Math.round(v).toLocaleString('es-VE');}, thr:150,  thrLbl:'≥ 150',  thrTest:function(v){return v>=150;} },
+  { card:'card_cumpl',     chart:'ax_cumpl',     fmt:function(v){return Math.round(v)+'%';},                     thr:95,   thrLbl:'≥ 95%',  thrTest:function(v){return v>=95;} },
+  { card:'card_intransit', chart:'ax_intransit', fmt:function(v){return Math.round(v).toLocaleString('es-VE');}, thr:40,   thrLbl:'≤ 40',   thrTest:function(v){return v<=40;} },
+  { card:'card_tareas',    chart:'ax_tareas',    fmt:function(v){return Math.round(v).toLocaleString('es-VE');}, thr:2000, thrLbl:'≥ 2000', thrTest:function(v){return v>=2000;} },
+  { card:'card_pers',      chart:'ax_pers',      fmt:function(v){return Math.round(v).toLocaleString('es-VE');}, thr:16,   thrLbl:'≥ 16',   thrTest:function(v){return v>=16;} }
+];
+
+function _injectRepStats() {
+  if (typeof AX === 'undefined') return;
+  _REP_STATS_CFG.forEach(function(cfg){
+    var ch = AX[cfg.chart];
+    var card = document.getElementById(cfg.card);
+    if (!ch || !card || !ch.data || !ch.data.datasets || !ch.data.datasets.length) return;
+    var base = ch.data.datasets[0];
+    if (!base || !Array.isArray(base.data)) return;
+    var nums = base.data.map(function(v){ return (typeof v==='number') ? v : (v && v.y!=null ? v.y : null); })
+                        .filter(function(v){ return v!==null && !isNaN(v); });
+    var activos = nums.filter(function(v){ return v>0; });
+    if (!activos.length) return;
+    var maxV = Math.max.apply(null, activos);
+    var minV = Math.min.apply(null, activos);
+    var avgV = activos.reduce(function(s,v){return s+v;},0)/activos.length;
+    var cnt  = activos.filter(cfg.thrTest).length;
+
+    var row = card.querySelector('.rep-stat-row');
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'rep-stat-row';
+      var canvasWrap = card.querySelector('canvas');
+      if (canvasWrap && canvasWrap.parentElement) card.insertBefore(row, canvasWrap.parentElement);
+      else card.appendChild(row);
+    }
+    row.innerHTML =
+      '<div class="rep-stat"><div class="rep-stat-v" style="color:#0891b2">'+cfg.fmt(maxV)+'</div><div class="rep-stat-l">Máximo</div></div>'+
+      '<div class="rep-stat"><div class="rep-stat-v" style="color:#16a34a">'+cfg.fmt(avgV)+'</div><div class="rep-stat-l">Promedio</div></div>'+
+      '<div class="rep-stat"><div class="rep-stat-v" style="color:#dc2626">'+cfg.fmt(minV)+'</div><div class="rep-stat-l">Mínimo</div></div>'+
+      '<div class="rep-stat"><div class="rep-stat-v" style="color:#d97706">'+cnt+'</div><div class="rep-stat-l">'+cfg.thrLbl+'</div></div>';
+  });
 }
 
 /* ═══ ONE PAGE ═══ */
@@ -6781,7 +7396,7 @@ const OPS=[
   {p:"A",n:"JEFFERSON PERDOMO"},{p:"A",n:"OCTAVIO ENRIQUE PADILLA V"},{p:"A",n:"JOSE GOMEZ"},
   {p:"A",n:"VICTOR GUZMAN"},{p:"A",n:"FRANK VARELA"},{p:"A",n:"JIRMEN MENDEZ"},
   {p:"A",n:"JOSE CARABALLO"},{p:"A",n:"DARWIN MORENO"},{p:"A",n:"LUIS MALAGUERA"},
-  {p:"A",n:"NICOLAS RAVELO"},{p:"A",n:"DANIEL URBANEJA"},
+  {p:"A",n:"NICOLAS RAVELO"},{p:"A",n:"DANIEL URBANEJA"},{p:"A",n:"ARISTIDEZ RON"},
   {p:"B",n:"LUINGI SEIJAS"},{p:"B",n:"JOSE GONZALEZ"},{p:"B",n:"YORDDY TORO"},
   {p:"B",n:"JULIO ARRAEZ"},{p:"B",n:"RAMON GONZALEZ"},
   {p:"C",n:"JEFFERSON SANCHEZ"},{p:"C",n:"FREDDY REQUENA"},
@@ -6797,7 +7412,7 @@ const R105_MAP={
   "VAGUZMAN":"VICTOR GUZMAN","FVARELA":"FRANK VARELA","RDGONZALEZ":"RAMON GONZALEZ",
   "JIRMENMENDEZ":"JIRMEN MENDEZ","JRMENDEZJ":"JIRMEN MENDEZ","JGCARABALLO":"JOSE CARABALLO",
   "DJMORENO":"DARWIN MORENO","LAMALAGUERA":"LUIS MALAGUERA","NARAVELO":"NICOLAS RAVELO",
-  "DURBANEJA":"DANIEL URBANEJA","LASEIJAS":"LUINGI SEIJAS","AJGONZALEZH":"JOSE GONZALEZ",
+  "DURBANEJA":"DANIEL URBANEJA","LASEIJAS":"LUINGI SEIJAS","AJRON":"ARISTIDEZ RON","AJGONZALEZH":"JOSE GONZALEZ",
   "YLTORO":"YORDDY TORO","JCARRAEZ":"JULIO ARRAEZ","JASANCHEZ":"JEFFERSON SANCHEZ",
   "FRREQUENA":"FREDDY REQUENA",
 };
@@ -9066,6 +9681,8 @@ document.addEventListener('DOMContentLoaded',function(){
   // Expand buttons setup
   setTimeout(addExpandButtons, 800);
   setInterval(addExpandButtons, 3000);
+  // Reaplicar tendencia+leyenda a gráficas reconstruidas (idempotente: salta las que ya la tienen)
+  if(typeof _applyTrendAndLegend==='function') setInterval(_applyTrendAndLegend, 3000);
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -9106,6 +9723,35 @@ function calcNOC(){
 })();
 
 // ── PASTE PARSER — uses V22's parsePaste + feeds both systems ──
+// ── Extrae un campo puntual del texto pegado (para el bloque REPOSICIÓN) ──
+// Devuelve null si la etiqueta no aparece (para distinguir "no viene en el pegado"
+// de "viene con valor 0"), a diferencia de parsePaste() que siempre devuelve 0.
+// IMPORTANTE: si existe la línea de encabezado "REPOSICION", busca SOLO a partir
+// de ella — así "INTRANSIT" del bloque Reposición no se confunde con el
+// "INTRANSIT" de Temporales/Almacenaje que aparece antes en el mismo pegado.
+function _extractRepField(raw, labels) {
+  var lines = raw.split(/\r?\n/);
+  var ks = (typeof labels === 'string') ? [labels] : labels;
+  var wanted = ks.map(function(k){ return k.toUpperCase().replace(/\s+/g,' '); });
+  var startIdx = 0;
+  for (var s0 = 0; s0 < lines.length; s0++) {
+    var hdr = (lines[s0].split('\t')[0] || '').trim().toUpperCase().replace(/\s+/g,' ');
+    if (hdr === 'REPOSICION' || hdr === 'REPOSICIÓN') { startIdx = s0 + 1; break; }
+  }
+  for (var i = startIdx; i < lines.length; i++) {
+    var parts = lines[i].split('\t');
+    var label = (parts[0] || '').trim().toUpperCase().replace(/\s+/g,' ');
+    if (wanted.indexOf(label) === -1) continue;
+    for (var j = 1; j < parts.length; j++) {
+      var s = (parts[j] || '').trim();
+      if (s === '') continue;
+      var n = parseFloat(s.replace(/[^0-9.\-]/g,''));
+      if (!isNaN(n)) return n;
+    }
+  }
+  return null;
+}
+
 function unifiedPaste(){
   var raw=document.getElementById('u_paste').value.trim();
   if(!raw){ alert('Pega primero los datos del Excel.'); return; }
@@ -9138,21 +9784,50 @@ function unifiedPaste(){
   // Also save to NOC datos[] if we have reposición fields
   if(fechaISO){
     var mes_abbr=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'][new Date(fechaISO).getMonth()];
-    // Try to extract NOC fields from paste (B=tareas manuales not in V22 paste usually)
-    // If NOC fields missing, derive from V22 data
-    var B_noc = 0, C_noc = nd.rop||0, E_noc=0, F_noc=0, M_noc=0, S_noc=0, T_noc=nd.canceladas||0;
-    // Personal total
-    if(nd.personal) M_noc=(nd.personal.ftd||0)+(nd.personal.servix||0)+(nd.personal.monta_actv||0);
-    
+    // Buscar el bloque "REPOSICIÓN" dentro del mismo texto pegado.
+    // Si no viene (pegado solo con el cuadro de Almacenaje), se preserva
+    // lo que ya existía guardado para esa fecha en vez de borrarlo con 0.
+    var _existingNoc = (typeof datos!=='undefined') ? datos.find(function(d){return d.fecha===fechaISO;}) : null;
+    var _repB = _extractRepField(raw, 'TAREAS MANUALES');
+    var _repC = _extractRepField(raw, ['TAREAS DE ROP','TAREAS ROP']);
+    var _repE = _extractRepField(raw, 'BULTOS MANUALES');
+    var _repF = _extractRepField(raw, ['BULTOS ROP','BULTOS DE ROP']);
+    var _repH = _extractRepField(raw, ['INCORPORADOS SLOT','INCORP. SLOT','INCORP SLOT']);
+    var _repJ = _extractRepField(raw, ['INTRANSIT','INTRANSIT REPOS','INTRANSIT REPOS.']);
+    var _repU = _extractRepField(raw, ['CANCELADAS 3ER LOTE','CANCEL. 3ER LOTE','CANCEL 3ER LOTE']);
+    var _repS = _extractRepField(raw, 'FILL RATE');
+    var _repM = _extractRepField(raw, 'PERSONAL NOCTURNO');
+
+    var B_noc = (_repB!==null) ? _repB : (_existingNoc ? (_existingNoc.B||0) : 0);
+    var C_noc = (_repC!==null) ? _repC : (nd.rop||0);
+    var E_noc = (_repE!==null) ? _repE : (_existingNoc ? (_existingNoc.E||0) : 0);
+    var F_noc = (_repF!==null) ? _repF : (_existingNoc ? (_existingNoc.F||0) : 0);
+    var H_noc = (_repH!==null) ? _repH : (_existingNoc ? (_existingNoc.H||0) : 0);
+    var U_noc = (_repU!==null) ? _repU : (_existingNoc ? (_existingNoc.U||0) : 0);
+    var _S_raw = (_repS!==null) ? _repS : (_existingNoc ? (_existingNoc.S||0) : 0);
+    var S_noc = (_S_raw>1) ? _S_raw/100 : _S_raw;
+    var M_noc = (_repM!==null) ? _repM
+              : (nd.personal && nd.personal.ftd!=null) ? ((nd.personal.ftd||0)+(nd.personal.servix||0))
+              : (_existingNoc ? (_existingNoc.M||0) : 0);
+    var T_noc = nd.canceladas||0;
+    // "Personal Nocturno" para el KPI de Reposición = Repositores (FTD + Servix),
+    // NO incluye Montacarguistas (esos se miden aparte en MontaTrack).
+    // Prioridad: 1) valor explícito del bloque REPOSICIÓN, 2) FTD+Servix del
+    // desglose de Personal Nocturno, 3) lo que ya existía guardado.
+
     // Always save a NOC record (at minimum fecha+mes for filters to work)
     if(typeof datos!=='undefined'){
-      var D_noc=B_noc+C_noc, G_noc=E_noc+F_noc, I_noc=D_noc, J_noc=nd.intransit||0, K_noc=I_noc-J_noc;
+      // Col J (Intransit Reposición) = INTRANSIT del bloque REPOSICIÓN.
+      // NO usar nd.intransit (ese es el de Temporales/Almacenaje, otro dato).
+      var J_noc = (_repJ!==null) ? _repJ : (_existingNoc ? (_existingNoc.J||0) : 0);
+      var D_noc=B_noc+C_noc, G_noc=E_noc+F_noc, I_noc=D_noc+H_noc, K_noc=I_noc-J_noc;
       var L_noc=I_noc>0?K_noc/I_noc:0, N_noc=M_noc>0?G_noc/M_noc:0, O_noc=N_noc/7;
       datos=datos.filter(function(d){return d.fecha!==fechaISO;});
       datos.push({fecha:fechaISO,mes:mes_abbr,B:B_noc,C:C_noc,D:D_noc,E:E_noc,F:F_noc,G:G_noc,
-                  H:0,I:I_noc,J:J_noc,K:K_noc,L:L_noc,M:M_noc,N:N_noc,O:O_noc,P:0,Q:0,R:0,
-                  S:S_noc,T:T_noc,U:0,
-                  rop_paletas:nd.rop||0, ventanas:nd.ventanas||0, rop_area:'BO',
+                  H:H_noc,I:I_noc,J:J_noc,K:K_noc,L:L_noc,M:M_noc,N:N_noc,O:O_noc,P:0,Q:0,R:0,
+                  S:S_noc,T:T_noc,U:U_noc,
+                  rop_paletas:nd.rop||0, rop_bo:nd.rop_bo||0, rop_dym:nd.rop_dym||0,
+                  ventanas:nd.ventanas||0, rop_area:'BO',
                   quedan:nd.quedan||0, pr_turno:nd.turno||0, pr_alm:nd.alm_pr||0,
                   v22_ventanas:nd.ventanas||0, v22_rop:nd.rop||0, v22_total:nd.total||0});
       datos.sort(function(a,b){return a.fecha.localeCompare(b.fecha);});
@@ -9191,6 +9866,13 @@ function unifiedPaste(){
   _sf('u_almacenado',nd.alm_real);
   _sf('u_rop_bo', nd.rop_bo||0);
   _sf('u_rop_dym', nd.rop_dym||0);
+  // Campos del bloque REPOSICIÓN (si vinieron en el mismo pegado)
+  if(typeof B_noc!=='undefined'){
+    _sf('u_B', B_noc); _sf('u_C', C_noc); _sf('u_E', E_noc); _sf('u_F', F_noc);
+    _sf('u_H', H_noc); _sf('u_T', T_noc); _sf('u_U', U_noc); _sf('u_M', M_noc);
+    if(_repJ!==null) _sf('u_J', _repJ);
+    var _uS=document.getElementById('u_S'); if(_uS) _uS.value=(S_noc||0);
+  }
   if(fechaISO){
     _sf('u_fecha', fechaISO);
     var _mo=document.getElementById('u_mes');
@@ -9255,16 +9937,23 @@ function guardarUnified(){
   var meses_v22=['','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
                  'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
   var date_v22=meses_v22[parseInt(pts[1])]+' '+parseInt(pts[2]);
-  
+
+  // Preservar campos que este formulario no captura (vienen del Excel pegado)
+  // en vez de sobrescribirlos con 0 y perder datos ya cargados para esa fecha.
+  var _existing = (typeof HIST!=='undefined') ? HIST.find(function(r){return r.date===date_v22;}) : null;
+  var _base = _existing || (typeof D!=='undefined' ? D : {}) || {};
+
   var nd_v22={
     date:date_v22, quedan:quedan, turno:turno, alm_pr:alm_pr, alm_real:almacenado,
     post4pm:post4pm, may3d:may3d, unidades:unidades, afect:0,
     ventanas:ventanas, mm:mm, intransit:intransit, canceladas:canceladas, unloc:unloc, pd:pd,
-    items:0, items_cero:0, bo_pend:0, bo_cero:0, dym_pend:0, dym_cero:0,
-    rop:rop, rop_bo:rop_bo, rop_dym:rop_dym, topoff:0, dbo:dbo, ddym:ddym, total:total,
-    zones:(typeof D!=='undefined'&&D.zones?D.zones:[]),
-    doors:(typeof D!=='undefined'&&D.doors?D.doors:{}),
-    personal:(typeof D!=='undefined'&&D.personal?Object.assign({},D.personal):{})
+    items:_base.items||0, items_cero:_base.items_cero||0,
+    bo_pend:_base.bo_pend||0, bo_cero:_base.bo_cero||0,
+    dym_pend:_base.dym_pend||0, dym_cero:_base.dym_cero||0,
+    rop:rop, rop_bo:rop_bo, rop_dym:rop_dym, topoff:_base.topoff||0, dbo:dbo, ddym:ddym, total:total,
+    zones:(_base.zones?_base.zones:[]),
+    doors:(_base.doors?_base.doors:{}),
+    personal:(_base.personal?Object.assign({},_base.personal):{})
   };
   
   if(typeof HIST!=='undefined'){
@@ -9867,6 +10556,180 @@ function initRopMesFilter() {
     }).join('');
 }
 </script>
+
+<script>
+function toggleMobileMenu() {
+  var menu = document.getElementById('mobile-action-menu');
+  if (!menu) return;
+  menu.style.display = menu.style.display === 'none' || !menu.style.display ? 'block' : 'none';
+}
+
+function mbnActive(btn) {
+  document.querySelectorAll('.mbn-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// Sync bottom nav when module changes from desktop tabs
+var _origSwitchMod = typeof switchMod === 'function' ? switchMod : null;
+document.addEventListener('DOMContentLoaded', function() {
+  // Override switchMod to also update bottom nav
+  var origSwitch = window.switchMod;
+  if (origSwitch) {
+    window.switchMod = function(mod) {
+      origSwitch(mod);
+      var btn = document.getElementById('mbn-' + mod);
+      if (btn) mbnActive(btn);
+      // Close action menu if open
+      var menu = document.getElementById('mobile-action-menu');
+      if (menu) menu.style.display = 'none';
+    };
+  }
+});
+</script>
+
+<script>
+// ══════════════════════════════════════
+// MOBILE LAYOUT FIXER — ejecuta post-render
+// ══════════════════════════════════════
+(function() {
+  if (window.innerWidth > 768) return; // Solo móvil
+
+  var IS_MOBILE = true;
+
+  // Fix inline grid styles after any render
+  function fixMobileLayouts() {
+    if (!IS_MOBILE) return;
+
+    // 1. SINGLE COLUMN for all grid containers
+    document.querySelectorAll('[style]').forEach(function(el) {
+      var s = el.getAttribute('style') || '';
+      // Charts and section grids → single column
+      if (s.includes('grid-template-columns') &&
+          (s.includes('1fr 1fr') || s.includes('repeat(2') || s.includes('repeat(3') ||
+           s.includes('repeat(4') || s.includes('repeat(5') || s.includes('repeat(6'))) {
+        // Check if it's a chart/content grid (not a form field grid)
+        var isChartGrid = el.classList.contains('dash-grid') ||
+                          el.querySelector('canvas') ||
+                          el.querySelector('.chart-wrap') ||
+                          el.children.length <= 4;
+        if (isChartGrid) {
+          el.style.gridTemplateColumns = '1fr';
+          el.style.gap = '10px';
+        }
+      }
+    });
+
+    // 2. KPI STRIP — horizontal scroll instead of wrapping
+    var kpiStrips = document.querySelectorAll('.dash-kpi-strip, .kpi-strip');
+    kpiStrips.forEach(function(strip) {
+      strip.style.display = 'flex';
+      strip.style.overflowX = 'auto';
+      strip.style.flexWrap = 'nowrap';
+      strip.style.gap = '8px';
+      strip.style.paddingBottom = '6px';
+      strip.style.webkitOverflowScrolling = 'touch';
+      strip.style.scrollbarWidth = 'none';
+      // Each KPI card: fixed min-width
+      strip.querySelectorAll('div, .kpi-card').forEach(function(card) {
+        if (card.parentElement === strip) {
+          card.style.minWidth = '130px';
+          card.style.flexShrink = '0';
+        }
+      });
+    });
+
+    // 3. CHARTS — single column, full width
+    document.querySelectorAll('.dash-grid').forEach(function(grid) {
+      grid.style.gridTemplateColumns = '1fr';
+      grid.style.display = 'grid';
+    });
+
+    // 4. Canvas charts — limit height
+    document.querySelectorAll('canvas').forEach(function(c) {
+      if (c.style.height && parseInt(c.style.height) > 220) {
+        c.style.height = '200px';
+        c.style.maxHeight = '200px';
+      }
+    });
+
+    // 5. Chart containers — ensure no overflow
+    document.querySelectorAll('.chart-wrap, [style*="height:32"], [style*="height:26"]').forEach(function(wrap) {
+      wrap.style.overflowX = 'auto';
+      wrap.style.webkitOverflowScrolling = 'touch';
+    });
+
+    // 6. Tables — horizontal scroll
+    document.querySelectorAll('table').forEach(function(t) {
+      if (t.parentElement && !t.parentElement.classList.contains('table-scroll')) {
+        t.style.display = 'block';
+        t.style.overflowX = 'auto';
+        t.style.webkitOverflowScrolling = 'touch';
+      }
+    });
+
+    // 7. Wide inline-flex rows → wrap
+    document.querySelectorAll('[style*="display:flex"], [style*="display: flex"]').forEach(function(el) {
+      var s = el.getAttribute('style') || '';
+      if (!s.includes('flex-wrap') && !s.includes('overflow') &&
+          el.scrollWidth > window.innerWidth) {
+        el.style.flexWrap = 'wrap';
+      }
+    });
+  }
+
+  // Run immediately and after any dynamic render
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(fixMobileLayouts, 500);
+    setTimeout(fixMobileLayouts, 1500);
+    setTimeout(fixMobileLayouts, 3000);
+  });
+
+  // Re-run when tabs switch
+  document.addEventListener('click', function(e) {
+    if (e.target.matches('.ntab, .mod-tab, .mbn-btn')) {
+      setTimeout(fixMobileLayouts, 300);
+    }
+  });
+
+  // MutationObserver to catch dynamic renders
+  var observer = new MutationObserver(function(mutations) {
+    var hasSignificantChange = mutations.some(function(m) {
+      return m.addedNodes.length > 2;
+    });
+    if (hasSignificantChange) {
+      clearTimeout(window._mobileFixTimer);
+      window._mobileFixTimer = setTimeout(fixMobileLayouts, 200);
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+
+  // Expose for manual call
+  window.fixMobileLayouts = fixMobileLayouts;
+})();
+</script>
+
+<!-- MODAL WA — global, accesible desde cualquier módulo (NOC / V22 / MontaTrack / Vitácora) -->
+<div class="wao" id="wao" onclick="if(event.target===this)closeWA()">
+  <div class="wam">
+    <div class="wamh">
+      <div class="wamt">📲 COMPARTIR — 4 TARJETAS</div>
+      <button class="wamc" onclick="closeWA()">✕</button>
+    </div>
+    <div class="wab">
+      <div class="wacards">
+        <div class="waw"><div class="wawl">📊 T1 — Resumen</div><canvas id="waC1"></canvas><button class="wadl" style="background:#003087" onclick="dlCard(1)">⬇ Descargar T1</button></div>
+        <div class="waw"><div class="wawl">📍 T2 — Zonas</div><canvas id="waC2"></canvas><button class="wadl" style="background:#16a34a" onclick="dlCard(2)">⬇ Descargar T2</button></div>
+        <div class="waw"><div class="wawl">🏢 T3 — Pisos</div><canvas id="waC3"></canvas><button class="wadl" style="background:#d97706" onclick="dlCard(3)">⬇ Descargar T3</button></div>
+        <div class="waw"><div class="wawl">👥 T4 — Personal</div><canvas id="waC4"></canvas><button class="wadl" style="background:#7c3aed" onclick="dlCard(4)">⬇ Descargar T4</button></div>
+      </div>
+      <button class="wall" onclick="dlAll()">📲 Descargar las 4 tarjetas</button>
+      <div class="wahi">Adjunta directamente en WhatsApp como fotos</div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
