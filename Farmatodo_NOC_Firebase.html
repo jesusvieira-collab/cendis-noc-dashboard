@@ -1766,6 +1766,8 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         histData.forEach(h => HIST.push(h));
         CUR = HIST.length - 1;
         if (CUR >= 0) D = Object.assign({}, HIST[CUR]);
+        try { if (typeof anPopulateMeses === 'function') anPopulateMeses(); } catch(e) {}
+        try { if (typeof buildAnalytics === 'function') buildAnalytics(); } catch(e) {}
         console.log('[Firebase] HIST cargado:', histData.length, 'registros');
       }
     }
@@ -1811,6 +1813,8 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       CUR = HIST.length - 1;
       if (CUR >= 0) D = Object.assign({}, HIST[CUR]);
       try { if (typeof render === 'function') render(); } catch(e) {}
+      try { if (typeof anPopulateMeses === 'function') anPopulateMeses(); } catch(e) {}
+      try { if (typeof buildAnalytics === 'function') buildAnalytics(); } catch(e) {}
       console.log('[Firebase] HIST actualizado en tiempo real');
     });
 
@@ -6144,18 +6148,24 @@ async function _autoSeedJulio2026() {
       }
       if (!fechaISO) return;
 
-      // Ya existe este día en datos[] → no volver a insertar (idempotente)
-      var yaExiste = datos.some(function(d){ return d.fecha === fechaISO; });
-      if (yaExiste) return;
-
       var nd = parsePaste(raw);
 
-      // ── Actualizar HIST (sistema V22 / Almacenaje) ──
+      // ── Actualizar HIST (sistema V22 / Almacenaje) — idempotente por su cuenta,
+      //     SIN depender de si el día ya existe en datos[] (NOC). Antes ambos
+      //     arreglos compartían el mismo "yaExiste" y, si NOC ya tenía el día
+      //     (por ejemplo cargado manualmente), HIST se quedaba sin ese día para
+      //     siempre → el selector de "Período" en Almacenaje/Analytics nunca
+      //     mostraba julio aunque Reposición sí lo tuviera. ──
       var pts = fechaISO.split('-');
       nd.date = meses[parseInt(pts[1])] + ' ' + parseInt(pts[2]);
       var ei = HIST.findIndex(function(r){ return r.date === nd.date; });
       if (ei >= 0) HIST[ei] = Object.assign({}, nd);
-      else HIST.push(Object.assign({}, nd));
+      else { HIST.push(Object.assign({}, nd)); changed = true; }
+
+      // Ya existe este día en datos[] (NOC) → no duplicar Reposición
+      // (HIST/Almacenaje ya quedó actualizado arriba, independientemente)
+      var yaExisteNOC = datos.some(function(d){ return d.fecha === fechaISO; });
+      if (yaExisteNOC) return;
 
       // ── Construir registro NOC (Reposición) — misma fórmula que unifiedPaste() ──
       var _repB = _extractRepField(raw, 'TAREAS MANUALES');
