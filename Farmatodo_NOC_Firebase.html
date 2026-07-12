@@ -1163,6 +1163,12 @@ canvas { filter: none !important; }
 #card_rop    .km-val, #card_rop    div[style*="font-size:20px"] { color: #6A3FD1 !important; }
 #card_ventanas div[style*="font-size:20px"] { color: #B87800 !important; }
 
+/* ── KPI strip de Analytics Operativo: texto/fondo del tema oscuro original,
+      invisible sobre el tema claro actual (blanco sobre blanco) ── */
+.dash-kpi-strip .dash-kpi, .dash-kpi { background: #F0F4FA !important; border: 1px solid rgba(0,48,135,0.12) !important; }
+.dash-kpi-val { color: #001E62 !important; }
+.dash-kpi-lbl { color: rgba(0,48,135,0.5) !important; }
+
 /* ── Page background stays white ── */
 #mod-noc { background: #F2F5FA; min-height:100vh; }
 .main { background: transparent; }
@@ -2060,7 +2066,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         <div class="ccard-title">&#x1FA9F; Ventanas pendientes al cierre — por jornada</div>
         <div class="ccard-sub" id="vent_stats_sub">Excel Tareas_Ejecutadas + formulario del turno · Ene 2025 – en curso</div>
       </div>
-      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="vent_chart"><button class="chart-type-btn active" data-type="line" onclick="setRVType('vent_chart','line',this)" title="Línea">📈</button><button class="chart-type-btn" data-type="bar" onclick="setRVType('vent_chart','bar',this)" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setRVPeriod('vent_chart','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setRVPeriod('vent_chart','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setRVPeriod('vent_chart','mes',this)">M</button><span class="ctrl-divider"></span></div><button class="dl-btn" onclick="dlCardImagen('card_ventanas','Ventanas_Pendientes')">⬇ PNG</button><button class="dl-btn" onclick="exportVentXLS()">⬇ XLS</button></div>
+      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="vent_chart"><button class="chart-type-btn active" data-type="line" onclick="setRVType('vent_chart','line',this)" title="Línea">📈</button><button class="chart-type-btn" data-type="bar" onclick="setRVType('vent_chart','bar',this)" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setRVPeriod('vent_chart','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setRVPeriod('vent_chart','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setRVPeriod('vent_chart','mes',this)">M</button><span class="ctrl-divider"></span></div><select id="vent_mes_filter" onchange="renderVentanas()" style="background:#F0F4FA;border:1px solid rgba(0,48,135,0.18);border-radius:6px;padding:3px 8px;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;outline:none;letter-spacing:.02em;"><option value="ALL">📅 Todos los meses</option></select><button class="dl-btn" onclick="dlCardImagen('card_ventanas','Ventanas_Pendientes')">⬇ PNG</button><button class="dl-btn" onclick="exportVentXLS()">⬇ XLS</button></div>
     </div>
     <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
       <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:6px;padding:6px 14px;">
@@ -5249,6 +5255,20 @@ function renderVentanas() {
   var mes = (document.getElementById('vent_mes_filter')||{value:'ALL'}).value || 'ALL';
   var all = ventDataCombined();
   var dd  = mes === 'ALL' ? all : all.filter(function(d){ return d.f.slice(0,7) === mes; });
+
+  // Poblar el selector de meses dinámicamente (mismo patrón que Almacenado/ROP)
+  var selVent = document.getElementById('vent_mes_filter');
+  if(selVent){
+    var mesesVentDisp = {};
+    all.forEach(function(d){ mesesVentDisp[d.f.slice(0,7)]=1; });
+    var optsVent = Object.keys(mesesVentDisp).sort();
+    var MNv=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    var wantVent = '<option value="ALL">📅 Todos los meses</option>'+optsVent.map(function(m){
+      return '<option value="'+m+'">'+MNv[parseInt(m.slice(5,7))]+' '+m.slice(2,4)+'</option>';
+    }).join('');
+    if(selVent.dataset.opts!==wantVent){ var vVent=selVent.value; selVent.innerHTML=wantVent; selVent.dataset.opts=wantVent;
+      if([].some.call(selVent.options,function(o){return o.value===vVent;})) selVent.value=vVent; }
+  }
   
   var labels = dd.map(function(d){ return d.f.slice(5); });
   var vals   = dd.map(function(d){ return d.v || 0; });
@@ -5298,7 +5318,11 @@ function renderVentanas() {
           pointHoverRadius: 8,
           pointBackgroundColor: ptColors,
           pointBorderColor: ptColors,
-          pointBorderWidth: 1.5
+          pointBorderWidth: 1.5,
+          showValueLabels: true,
+          valueLabelFormat: function(v){ return v>0?v.toLocaleString():''; },
+          valueLabelColor: '#B87800',
+          valueLabelOffset: 14
         },
         {
           label: 'Promedio (' + avg + ')',
