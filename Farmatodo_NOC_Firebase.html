@@ -11475,5 +11475,55 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
+
+<!-- ══ MODO EJECUTIVO — botón flotante: oculta filtros/controles y resalta KPIs + leyenda ══ -->
+<style>
+body.exec-mode .ccard-actions,
+body.exec-mode .dash-card-actions { display:none !important; }
+
+#execModeToggle{
+  position:fixed; top:66px; right:12px; z-index:650;
+  display:flex; align-items:center; gap:6px;
+  background:#fff; border:1px solid rgba(0,48,135,.18);
+  border-radius:20px; padding:7px 14px;
+  box-shadow:0 2px 10px rgba(0,30,90,.15);
+  font-family:'Montserrat',sans-serif; font-size:11px; font-weight:800;
+  color:#0D2D6B; cursor:pointer; user-select:none; letter-spacing:.02em;
+  transition:background .15s,color .15s;
+}
+#execModeToggle:hover{ background:#F0F4FA; }
+#execModeToggle .em-chev{ display:inline-block; transition:transform .2s; font-size:9px; }
+body.exec-mode #execModeToggle{ background:#0D2D6B; color:#fff; border-color:#0D2D6B; }
+body.exec-mode #execModeToggle .em-chev{ transform:rotate(180deg); }
+@media (max-width:768px){
+  #execModeToggle{ top:60px; right:8px; padding:6px 10px; font-size:10px; }
+}
+</style>
+<script>
+(function(){
+  function applyExecMode(on){
+    document.body.classList.toggle('exec-mode', on);
+    var lbl = document.getElementById('execModeLabel');
+    if(lbl) lbl.textContent = on ? 'Ver filtros' : 'Vista ejecutiva';
+  }
+  window.toggleExecMode = function(){
+    var on = !document.body.classList.contains('exec-mode');
+    applyExecMode(on);
+    try{ localStorage.setItem('noc_exec_mode', on ? '1' : '0'); }catch(e){}
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    var btn = document.createElement('div');
+    btn.id = 'execModeToggle';
+    btn.title = 'Ocultar filtros y controles — vista limpia para gerencia';
+    btn.onclick = window.toggleExecMode;
+    btn.innerHTML = '<span id="execModeLabel">Vista ejecutiva</span><span class="em-chev">▾</span>';
+    document.body.appendChild(btn);
+    var saved = '0';
+    try{ saved = localStorage.getItem('noc_exec_mode') || '0'; }catch(e){}
+    applyExecMode(saved === '1');
+  });
+})();
+</script>
+
 </body>
 </html>
