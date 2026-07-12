@@ -3395,9 +3395,8 @@ function setChartDefaults(){
           if(meta.hidden) return;
           ctx.save();
           // Clip al área del gráfico — los labels nunca salen del card
-          if(ca){ctx.beginPath();ctx.rect(ca.left-2,ca.top-fs-4,ca.right-ca.left+4,ca.bottom-ca.top+fs+6);ctx.clip();}
+          if(ca){ctx.beginPath();ctx.rect(ca.left-6,ca.top-fs-4,ca.right-ca.left+12,ca.bottom-ca.top+fs+6);ctx.clip();}
           ctx.font='700 '+fs+"px 'Inter',sans-serif";
-          ctx.textAlign='center';
           ctx.textBaseline='bottom';
           meta.data.forEach(function(pt,i){
             if(i%showEvery!==0) return;
@@ -3410,10 +3409,19 @@ function setChartDefaults(){
             var drawY=pt.y-offset;
             if(ca&&drawY<ca.top+4) drawY=pt.y+offset+fs+2;
             var tw=ctx.measureText(label).width;
+            // Evitar recorte en los extremos: si el punto está pegado al borde,
+            // alinear el texto hacia adentro en vez de centrarlo sobre el punto
+            var align='center', drawX=pt.x;
+            if(ca){
+              if(pt.x-tw/2<ca.left){ align='left'; drawX=ca.left+1; }
+              else if(pt.x+tw/2>ca.right){ align='right'; drawX=ca.right-1; }
+            }
+            ctx.textAlign=align;
+            var rectX = align==='left' ? drawX-2 : align==='right' ? drawX-tw-2 : drawX-tw/2-2;
             ctx.fillStyle='rgba(255,255,255,0.85)';
-            ctx.fillRect(pt.x-tw/2-2,drawY-fs+1,tw+4,fs+1);
+            ctx.fillRect(rectX,drawY-fs+1,tw+4,fs+1);
             ctx.fillStyle=ds.valueLabelColor||ds.borderColor||'#003087';
-            ctx.fillText(label,pt.x,drawY);
+            ctx.fillText(label,drawX,drawY);
           });
           ctx.restore();
         });
