@@ -1814,6 +1814,11 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       try { if (typeof render === 'function') render(); } catch(e) {}
     }, 500);
 
+    // Auto-carga de julio 2026 (idempotente: solo agrega los días que falten)
+    setTimeout(function() {
+      try { if (typeof _autoSeedJulio2026 === 'function') _autoSeedJulio2026(); } catch(e) { console.error(e); }
+    }, 800);
+
     console.log('[Firebase] ✅ Sincronización activa');
     var dot=document.getElementById('fb-dot');
     var ftxt=document.getElementById('fb-txt');
@@ -5480,6 +5485,700 @@ let CHARTS = {};
 let CUR_MON = 'MARZO'; /* Se actualiza al init después de cargar localStorage */
 
 /* ─── PARSER ─── */
+const _JULIO_2026_SEED = [
+`FECHA : 01-07-2026
+CONTENEDORES EN PR
+QUEDAN	434
+PR EN EL TURNO	698
+PR ALMACENADO	264
+CONTENEDORES POST 4PM	376
+PR > A 3 DIAS	3
+UNIDADES EN PR	361012
+UNID. EN PR AFECTANDO	0
+TEMPORALES
+P&D	0
+VENTANAS	255
+MM	50
+INTRANSIT	4
+UNID CANCELADAS	2221
+UNLOCATELOD	4
+TAREAS PENDIENTES / PUESTOS EN 0
+ITEMS	25	1
+BO	8	0
+DYM	17	1
+TAREAS REALIZADAS EN EL TURNO
+ROP BO	256
+ROP DYM	109
+DEMANDA BO	422
+DEMANDA DYM	666
+ALMACENADO	264
+TOTAL	1717
+PERSONAL NOCTURNO
+MONTACARGUISTA
+ESTANTERIA ALTA	3
+TRASPALETA FIJO	4
+LIBRE	2
+REPOSO	0
+AUSENCIA FTD	0
+VACACIONES	2
+ACTIVOS	10
+REPOSITORES
+LIBRE	2
+VACACIONES	0
+REPOSO	2
+APOYO ALM	1
+PERSONAL FTD	11
+SERVIEXPRESS	5
+TOTAL	16
+INTRANSIT A LA HORA
+E	0
+F	0
+G	2
+H	0
+I	1
+J	0
+K	0
+L	0
+M	0
+O	0
+P	1
+TOTAL:	4
+ZONA	LIBRE	TOTAL DE UBICACIONES	%
+BO	754	3528	21.4%
+BO / DYM	908	2910	31.2%
+DYM	1064	4033	26.4%
+EA	5222	10200	51.2%
+O/S	285	2135	13.3%
+TOTAL	8233	22806	36.1%
+REPOSICION
+TAREAS MANUALES	576
+TAREAS DE ROP	109
+BULTOS MANUALES	11598
+BULTOS ROP	2187
+INCORPORADOS SLOT	45
+INTRANSIT	4
+UNIDADES CANCELADAS	2221
+CANCELADAS 3ER LOTE	145
+FILL RATE	99.57
+PERSONAL NOCTURNO	16`,
+`FECHA : 02-07-2026
+CONTENEDORES EN PR
+QUEDAN	318
+PR EN EL TURNO	602
+PR ALMACENADO	284
+CONTENEDORES POST 4PM	315
+PR > A 3 DIAS	7
+UNIDADES EN PR	289885
+UNID. EN PR AFECTANDO	0
+TEMPORALES
+P&D	0
+VENTANAS	276
+MM	52
+INTRANSIT	72
+UNID CANCELADAS	708
+UNLOCATELOD	10
+TAREAS PENDIENTES / PUESTOS EN 0
+ITEMS	57	4
+BO	18	3
+DYM	39	1
+TAREAS REALIZADAS EN EL TURNO
+ROP BO	117
+ROP DYM	46
+DEMANDA BO	366
+DEMANDA DYM	902
+ALMACENADO	284
+TOTAL	1715
+PERSONAL NOCTURNO
+MONTACARGUISTA
+ESTANTERIA ALTA	3
+TRASPALETA FIJO	4
+LIBRE	2
+REPOSO	0
+AUSENCIA FTD	0
+VACACIONES	2
+ACTIVOS	10
+REPOSITORES
+LIBRE	2
+VACACIONES	0
+REPOSO	2
+APOYO ALM	1
+PERSONAL FTD	11
+SERVIEXPRESS	5
+TOTAL	16
+INTRANSIT A LA HORA
+E	2
+F	7
+G	7
+H	7
+I	7
+J	2
+K	8
+L	13
+M	7
+O	0
+P	12
+TOTAL:	72
+ZONA	LIBRE	TOTAL DE UBICACIONES	%
+BO	505	3528	14.3%
+BO / DYM	920	2910	31.6%
+DYM	1037	4033	25.7%
+EA	5050	10200	49.5%
+O/S	297	2135	13.9%
+TOTAL	7809	22806	34.2%
+REPOSICION
+TAREAS MANUALES	868
+TAREAS DE ROP	46
+BULTOS MANUALES	21225
+BULTOS ROP	587
+INCORPORADOS SLOT	33
+INTRANSIT	72
+UNIDADES CANCELADAS	708
+CANCELADAS 3ER LOTE	231
+FILL RATE	99.92
+PERSONAL NOCTURNO	16`,
+`FECHA : 03-07-2026
+CONTENEDORES EN PR
+QUEDAN	195
+PR EN EL TURNO	890
+PR ALMACENADO	695
+CONTENEDORES POST 4PM	339
+PR > A 3 DIAS	7
+UNIDADES EN PR	82374
+UNID. EN PR AFECTANDO	0
+TEMPORALES
+P&D	0
+VENTANAS	151
+MM	55
+INTRANSIT	0
+UNID CANCELADAS	745
+UNLOCATELOD	12
+TAREAS PENDIENTES / PUESTOS EN 0
+ITEMS	34	3
+BO	19	0
+DYM	15	3
+TAREAS REALIZADAS EN EL TURNO
+ROP BO	0
+ROP DYM	0
+DEMANDA BO	554
+DEMANDA DYM	901
+ALMACENADO	695
+TOTAL	2150
+PERSONAL NOCTURNO
+MONTACARGUISTA
+ESTANTERIA ALTA	3
+TRASPALETA FIJO	4
+LIBRE	3
+REPOSO	0
+AUSENCIA FTD	0
+VACACIONES	2
+ACTIVOS	9
+REPOSITORES
+LIBRE	2
+VACACIONES	0
+REPOSO	2
+APOYO ALM	1
+PERSONAL FTD	11
+SERVIEXPRESS	5
+TOTAL	16
+INTRANSIT A LA HORA
+E	0
+F	0
+G	0
+H	0
+I	0
+J	0
+K	0
+L	0
+M	0
+O	0
+P	0
+TOTAL:	0
+ZONA	LIBRE	TOTAL DE UBICACIONES	%
+BO	283	3528	8.0%
+BO / DYM	762	2910	26.2%
+DYM	1018	4033	25.2%
+EA	5038	10200	49.4%
+O/S	430	2135	20.1%
+TOTAL	7531	22806	33.0%
+REPOSICION
+TAREAS MANUALES	846
+TAREAS DE ROP	0
+BULTOS MANUALES	20912
+BULTOS ROP	0
+INCORPORADOS SLOT	42
+INTRANSIT	0
+UNIDADES CANCELADAS	745
+CANCELADAS 3ER LOTE	193
+FILL RATE	99.88
+PERSONAL NOCTURNO	16`,
+`FECHA : 06-07-2026
+CONTENEDORES EN PR
+QUEDAN	723
+PR EN EL TURNO	1055
+PR ALMACENADO	332
+CONTENEDORES POST 4PM	331
+PR > A 3 DIAS	63
+UNIDADES EN PR	939192
+UNID. EN PR AFECTANDO	0
+TEMPORALES
+P&D	0
+VENTANAS	83
+MM	37
+INTRANSIT	2
+UNID CANCELADAS	343
+UNLOCATELOD	17
+TAREAS PENDIENTES / PUESTOS EN 0
+ITEMS	31	4
+BO	12	2
+DYM	19	2
+TAREAS REALIZADAS EN EL TURNO
+ROP BO	256
+ROP DYM	109
+DEMANDA BO	413
+DEMANDA DYM	686
+ALMACENADO	332
+TOTAL	1796
+PERSONAL NOCTURNO
+MONTACARGUISTA
+ESTANTERIA ALTA	3
+TRASPALETA FIJO	4
+LIBRE	3
+REPOSO	0
+AUSENCIA FTD	0
+VACACIONES	2
+ACTIVOS	9
+REPOSITORES
+LIBRE	2
+VACACIONES	0
+REPOSO	2
+APOYO ALM	1
+PERSONAL FTD	11
+SERVIEXPRESS	5
+TOTAL	16
+INTRANSIT A LA HORA
+E	0
+F	0
+G	0
+H	0
+I	0
+J	0
+K	0
+L	2
+M	0
+O	0
+P	0
+TOTAL:	2
+ZONA	LIBRE	TOTAL DE UBICACIONES	%
+BO	594	3528	16.8%
+BO / DYM	819	2910	28.1%
+DYM	1234	4033	30.6%
+EA	4934	10200	48.4%
+O/S	309	2135	14.5%
+TOTAL	7890	22806	34.6%
+REPOSICION
+TAREAS MANUALES	659
+TAREAS DE ROP	109
+BULTOS MANUALES	13695
+BULTOS ROP	325
+INCORPORADOS SLOT	46
+INTRANSIT	2
+UNIDADES CANCELADAS	847
+CANCELADAS 3ER LOTE	68
+FILL RATE	99.89
+PERSONAL NOCTURNO	16`,
+`FECHA : 07-07-2026
+CONTENEDORES EN PR
+QUEDAN	44
+PR EN EL TURNO	555
+PR ALMACENADO	511
+CONTENEDORES POST 4PM	143
+PR > A 3 DIAS	6
+UNIDADES EN PR	106262
+UNID. EN PR AFECTANDO	0
+TEMPORALES
+P&D	0
+VENTANAS	106
+MM	46
+INTRANSIT	0
+UNID CANCELADAS	675
+UNLOCATELOD	16
+TAREAS PENDIENTES / PUESTOS EN 0
+ITEMS	0	0
+BO	0	0
+DYM	0	0
+TAREAS REALIZADAS EN EL TURNO
+ROP BO	363
+ROP DYM	167
+DEMANDA BO	269
+DEMANDA DYM	647
+ALMACENADO	511
+TOTAL	1957
+PERSONAL NOCTURNO
+MONTACARGUISTA
+ESTANTERIA ALTA	4
+TRASPALETA FIJO	4
+LIBRE	1
+REPOSO	0
+AUSENCIA FTD	0
+VACACIONES	2
+ACTIVOS	11
+REPOSITORES
+LIBRE	2
+VACACIONES	0
+REPOSO	2
+APOYO ALM	1
+PERSONAL FTD	11
+SERVIEXPRESS	5
+TOTAL	16
+INTRANSIT A LA HORA
+E	0
+F	0
+G	0
+H	0
+I	0
+J	0
+K	0
+L	0
+M	0
+O	0
+P	0
+TOTAL:	0
+ZONA	LIBRE	TOTAL DE UBICACIONES	%
+BO	480	3528	13.6%
+BO / DYM	563	2910	19.3%
+DYM	1106	4033	27.4%
+EA	4722	10200	46.3%
+O/S	278	2135	13.0%
+TOTAL	7149	22806	31.3%
+REPOSICION
+TAREAS MANUALES	660
+TAREAS DE ROP	167
+BULTOS MANUALES	13695
+BULTOS ROP	3211
+INCORPORADOS SLOT	42
+INTRANSIT	0
+UNIDADES CANCELADAS	675
+CANCELADAS 3ER LOTE	111
+FILL RATE	99.93
+PERSONAL NOCTURNO	16`,
+`FECHA : 08-07-2026
+CONTENEDORES EN PR
+QUEDAN	624
+PR EN EL TURNO	1059
+PR ALMACENADO	435
+CONTENEDORES POST 4PM	394
+PR > A 3 DIAS	5
+UNIDADES EN PR	453386
+UNID. EN PR AFECTANDO	0
+TEMPORALES
+P&D	0
+VENTANAS	88
+MM	55
+INTRANSIT	10
+UNID CANCELADAS	1894
+UNLOCATELOD	9
+TAREAS PENDIENTES / PUESTOS EN 0
+ITEMS	15	1
+BO	4	0
+DYM	11	1
+TAREAS REALIZADAS EN EL TURNO
+ROP BO	128
+ROP DYM	174
+DEMANDA BO	327
+DEMANDA DYM	659
+ALMACENADO	435
+TOTAL	1723
+PERSONAL NOCTURNO
+MONTACARGUISTA
+ESTANTERIA ALTA	4
+TRASPALETA FIJO	4
+LIBRE	2
+REPOSO	0
+AUSENCIA FTD	0
+VACACIONES	2
+ACTIVOS	10
+REPOSITORES
+LIBRE	2
+VACACIONES	0
+REPOSO	2
+APOYO ALM	1
+PERSONAL FTD	11
+SERVIEXPRESS	5
+TOTAL	16
+INTRANSIT A LA HORA
+E	3
+F	2
+G	1
+H	0
+I	0
+J	0
+K	0
+L	4
+M	0
+O	0
+P	0
+TOTAL:	10
+ZONA	LIBRE	TOTAL DE UBICACIONES	%
+BO	167	3528	4.7%
+BO / DYM	525	2910	18.0%
+DYM	1171	4033	29.0%
+EA	4648	10200	45.6%
+O/S	312	2135	14.6%
+TOTAL	6823	22806	29.9%
+REPOSICION
+TAREAS MANUALES	641
+TAREAS DE ROP	174
+BULTOS MANUALES	15465
+BULTOS ROP	1567
+INCORPORADOS SLOT	61
+INTRANSIT	10
+UNIDADES CANCELADAS	1894
+CANCELADAS 3ER LOTE	322
+FILL RATE	99.77
+PERSONAL NOCTURNO	16`,
+`FECHA : 09-07-2026
+CONTENEDORES EN PR
+QUEDAN	855
+PR EN EL TURNO	1242
+PR ALMACENADO	387
+CONTENEDORES POST 4PM	396
+PR > A 3 DIAS	15
+UNIDADES EN PR	418815
+UNID. EN PR AFECTANDO	0
+TEMPORALES
+P&D	0
+VENTANAS	85
+MM	34
+INTRANSIT	34
+UNID CANCELADAS	587
+UNLOCATELOD	5
+TAREAS PENDIENTES / PUESTOS EN 0
+ITEMS	18	4
+BO	4	0
+DYM	14	4
+TAREAS REALIZADAS EN EL TURNO
+ROP BO	150
+ROP DYM	181
+DEMANDA BO	293
+DEMANDA DYM	570
+ALMACENADO	387
+TOTAL	1581
+PERSONAL NOCTURNO
+MONTACARGUISTA
+ESTANTERIA ALTA	4
+TRASPALETA FIJO	4
+LIBRE	2
+REPOSO	0
+AUSENCIA FTD	0
+VACACIONES	2
+ACTIVOS	10
+REPOSITORES
+LIBRE	2
+VACACIONES	0
+REPOSO	2
+APOYO ALM	1
+PERSONAL FTD	11
+SERVIEXPRESS	5
+TOTAL	16
+INTRANSIT A LA HORA
+E	0
+F	1
+G	7
+H	8
+I	0
+J	3
+K	2
+L	4
+M	9
+O	0
+P	0
+TOTAL:	34
+ZONA	LIBRE	TOTAL DE UBICACIONES	%
+BO	489	3528	13.9%
+BO / DYM	462	2910	15.9%
+DYM	977	4033	24.2%
+EA	4431	10200	43.4%
+O/S	268	2135	12.6%
+TOTAL	6627	22806	29.1%
+REPOSICION
+TAREAS MANUALES	515
+TAREAS DE ROP	188
+BULTOS MANUALES	10529
+BULTOS ROP	3211
+INCORPORADOS SLOT	32
+INTRANSIT	34
+UNIDADES CANCELADAS	587
+CANCELADAS 3ER LOTE	88
+FILL RATE	99.91
+PERSONAL NOCTURNO	16`,
+`FECHA : 10-07-2026
+CONTENEDORES EN PR
+QUEDAN	523
+PR EN EL TURNO	1408
+PR ALMACENADO	885
+CONTENEDORES POST 4PM	536
+PR > A 3 DIAS	11
+UNIDADES EN PR	242827
+UNID. EN PR AFECTANDO	0
+TEMPORALES
+P&D	0
+VENTANAS	612
+MM	21
+INTRANSIT	0
+UNID CANCELADAS	765
+UNLOCATELOD	8
+TAREAS PENDIENTES / PUESTOS EN 0
+ITEMS	13	3
+BO	1	0
+DYM	12	3
+TAREAS REALIZADAS EN EL TURNO
+ROP BO	0
+ROP DYM	0
+DEMANDA BO	547
+DEMANDA DYM	592
+ALMACENADO	885
+TOTAL	2024
+PERSONAL NOCTURNO
+MONTACARGUISTA
+ESTANTERIA ALTA	4
+TRASPALETA FIJO	4
+LIBRE	2
+REPOSO	0
+AUSENCIA FTD	0
+VACACIONES	2
+ACTIVOS	10
+REPOSITORES
+LIBRE	2
+VACACIONES	0
+REPOSO	2
+APOYO ALM	1
+PERSONAL FTD	11
+SERVIEXPRESS	5
+TOTAL	16
+INTRANSIT A LA HORA
+E	0
+F	0
+G	0
+H	0
+I	0
+J	0
+K	0
+L	0
+M	0
+O	0
+P	0
+TOTAL:	0
+ZONA	LIBRE	TOTAL DE UBICACIONES	%
+BO	462	3528	13.1%
+BO / DYM	414	2910	14.2%
+DYM	845	4033	21.0%
+EA	4348	10200	42.6%
+O/S	129	2135	6.0%
+TOTAL	6198	22806	27.2%
+REPOSICION
+TAREAS MANUALES	550
+TAREAS DE ROP	0
+BULTOS MANUALES	12561
+BULTOS ROP	0
+INCORPORADOS SLOT	31
+INTRANSIT	0
+UNIDADES CANCELADAS	765
+CANCELADAS 3ER LOTE	225
+FILL RATE	99.88
+PERSONAL NOCTURNO	16`,
+];
+
+
+// ═══════════════════════════════════════════════════
+// AUTO-CARGA JULIO 2026 (una sola vez, idempotente)
+// Ejecuta el mismo cálculo de unifiedPaste() para los días de julio
+// que falten en Firebase, y los sincroniza automáticamente.
+// ═══════════════════════════════════════════════════
+async function _autoSeedJulio2026() {
+  try {
+    if (typeof _JULIO_2026_SEED === 'undefined' || typeof datos === 'undefined') return;
+    var meses = ['','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+                 'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+    var mesAbbr = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+    var changed = false;
+
+    _JULIO_2026_SEED.forEach(function(raw) {
+      var rawLines = raw.split(/\r?\n/);
+      var fechaISO = '';
+      for (var i = 0; i < rawLines.length; i++) {
+        var clean = rawLines[i].replace(/\t/g,' ').trim();
+        var dm = clean.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+        if (dm) { fechaISO = dm[3]+'-'+dm[2].padStart(2,'0')+'-'+dm[1].padStart(2,'0'); break; }
+      }
+      if (!fechaISO) return;
+
+      // Ya existe este día en datos[] → no volver a insertar (idempotente)
+      var yaExiste = datos.some(function(d){ return d.fecha === fechaISO; });
+      if (yaExiste) return;
+
+      var nd = parsePaste(raw);
+
+      // ── Actualizar HIST (sistema V22 / Almacenaje) ──
+      var pts = fechaISO.split('-');
+      nd.date = meses[parseInt(pts[1])] + ' ' + parseInt(pts[2]);
+      var ei = HIST.findIndex(function(r){ return r.date === nd.date; });
+      if (ei >= 0) HIST[ei] = Object.assign({}, nd);
+      else HIST.push(Object.assign({}, nd));
+
+      // ── Construir registro NOC (Reposición) — misma fórmula que unifiedPaste() ──
+      var _repB = _extractRepField(raw, 'TAREAS MANUALES');
+      var _repC = _extractRepField(raw, ['TAREAS DE ROP','TAREAS ROP']);
+      var _repE = _extractRepField(raw, 'BULTOS MANUALES');
+      var _repF = _extractRepField(raw, ['BULTOS ROP','BULTOS DE ROP']);
+      var _repH = _extractRepField(raw, ['INCORPORADOS SLOT','INCORP. SLOT','INCORP SLOT']);
+      var _repJ = _extractRepField(raw, ['INTRANSIT','INTRANSIT REPOS','INTRANSIT REPOS.']);
+      var _repU = _extractRepField(raw, ['CANCELADAS 3ER LOTE','CANCEL. 3ER LOTE','CANCEL 3ER LOTE']);
+      var _repS = _extractRepField(raw, 'FILL RATE');
+      var _repM = _extractRepField(raw, 'PERSONAL NOCTURNO');
+
+      var B_noc = (_repB!==null) ? _repB : 0;
+      var C_noc = (_repC!==null) ? _repC : (nd.rop||0);
+      var E_noc = (_repE!==null) ? _repE : 0;
+      var F_noc = (_repF!==null) ? _repF : 0;
+      var H_noc = (_repH!==null) ? _repH : 0;
+      var U_noc = (_repU!==null) ? _repU : 0;
+      var _S_raw = (_repS!==null) ? _repS : 0;
+      var S_noc = (_S_raw>1) ? _S_raw/100 : _S_raw;
+      var M_noc = (_repM!==null) ? _repM
+                : (nd.personal && nd.personal.ftd!=null) ? ((nd.personal.ftd||0)+(nd.personal.servix||0)) : 0;
+      var T_noc = nd.canceladas||0;
+      var J_noc = (_repJ!==null) ? _repJ : 0;
+      var D_noc = B_noc+C_noc, G_noc = E_noc+F_noc, I_noc = D_noc+H_noc, K_noc = I_noc-J_noc;
+      var L_noc = I_noc>0 ? K_noc/I_noc : 0, N_noc = M_noc>0 ? G_noc/M_noc : 0, O_noc = N_noc/7;
+
+      datos.push({
+        fecha: fechaISO, mes: mesAbbr[parseInt(pts[1])-1],
+        B:B_noc,C:C_noc,D:D_noc,E:E_noc,F:F_noc,G:G_noc,H:H_noc,I:I_noc,J:J_noc,K:K_noc,
+        L:L_noc,M:M_noc,N:N_noc,O:O_noc,P:0,Q:0,R:0,S:S_noc,T:T_noc,U:U_noc,
+        rop_paletas: nd.rop||0, rop_bo: nd.rop_bo||0, rop_dym: nd.rop_dym||0,
+        ventanas: nd.ventanas||0, rop_area:'BO',
+        quedan: nd.quedan||0, pr_turno: nd.turno||0, pr_alm: nd.alm_pr||0,
+        v22_ventanas: nd.ventanas||0, v22_rop: nd.rop||0, v22_total: nd.total||0
+      });
+      changed = true;
+    });
+
+    if (changed) {
+      datos.sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
+      if (typeof save === 'function') save();  // → localStorage + Firebase (noc_datos + v22_hist)
+      try { if (typeof actualizarMeses==='function') actualizarMeses(); } catch(e){}
+      try { if (typeof render==='function') render(); } catch(e){}
+      try { if (typeof buildAnalytics==='function') buildAnalytics(); } catch(e){}
+      try { if (typeof renderDashboard==='function') renderDashboard(); } catch(e){}
+      try { if (typeof renderTablaUnificada==='function') renderTablaUnificada(); } catch(e){}
+      console.log('[Auto-carga] Julio 2026 sincronizado con Firebase.');
+    }
+  } catch(e) {
+    console.error('[Auto-carga] Error:', e);
+  }
+}
+
+
 function parsePaste(raw) {
   var lines = raw.split(/\r?\n/);
 
@@ -5628,9 +6327,22 @@ function parsePaste(raw) {
     if (total > 500) zonaData[mapped] = { l: libre, t: total };
   });
   if (Object.keys(zonaData).length > 0) {
-    nd.zones = (nd.zones || []).map(function(z) {
-      return zonaData[z.z] ? Object.assign({}, z, zonaData[z.z]) : z;
-    });
+    var _ZORDER = ['BO','BO/DYM','DYM','EA','O/S'];
+    if (nd.zones && nd.zones.length > 0) {
+      /* Actualizar zonas existentes con los nuevos valores */
+      nd.zones = nd.zones.map(function(z) {
+        return zonaData[z.z] ? Object.assign({}, z, zonaData[z.z]) : z;
+      });
+      /* Agregar zonas del pegado que no existían aún */
+      _ZORDER.forEach(function(zn) {
+        if (zonaData[zn] && !nd.zones.some(function(z){ return z.z===zn; }))
+          nd.zones.push({ z: zn, l: zonaData[zn].l, t: zonaData[zn].t });
+      });
+    } else {
+      /* Sin zonas previas (navegador limpio): construirlas desde el pegado */
+      nd.zones = _ZORDER.filter(function(zn){ return zonaData[zn]; })
+                        .map(function(zn){ return { z: zn, l: zonaData[zn].l, t: zonaData[zn].t }; });
+    }
   }
 
   /* ── Personal ── */
