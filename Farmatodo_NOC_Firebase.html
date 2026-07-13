@@ -4885,7 +4885,8 @@ function renderAlmacenado() {
           borderWidth: 2.5, fill:false, tension: 0.4, spanGaps:false,
           pointRadius: vals.map(function(v){ return v>0?5:2; }),
           pointHoverRadius: 8,
-          pointBackgroundColor: ptColors, pointBorderColor: ptColors, pointBorderWidth: 1.5
+          pointBackgroundColor: ptColors, pointBorderColor: ptColors, pointBorderWidth: 1.5,
+          showValueLabels: true, valueLabelColor: '#0D7A66'
         },
         {
           label: 'Promedio ('+avg+')',
