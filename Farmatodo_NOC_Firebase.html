@@ -3155,12 +3155,49 @@ const VENT_DATA=[{"f":"2025-01-05","v":154,"r":0},{"f":"2025-01-06","v":258,"r":
 const KEY = 'ftd_noc_v5';  // v5: incluye datos Abril 2026
 let datos = JSON.parse(localStorage.getItem(KEY) || '[]');
 let mesFiltro = 'ALL';
-function save() {
+// Combina el arreglo local con la ultima copia de Firebase antes de guardar,
+// tomando como base TODAS las fechas que existan en cualquiera de los dos
+// (Firebase gana para fechas que este dispositivo no tiene localmente; el
+// dispositivo local gana para la fecha que se acaba de editar). Sin esto,
+// dos dispositivos/pestanas guardando en momentos distintos podian pisarse
+// el uno al otro y borrar jornadas ya guardadas por el otro (ej. un celular
+// con una copia local vieja de 8 dias sobreescribiendo los 9 dias que la PC
+// acababa de guardar).
+function _mergePorFecha(local, remoto, key){
+  var map = {};
+  (remoto||[]).forEach(function(r){ if(r && r[key]!=null) map[r[key]] = r; });
+  (local ||[]).forEach(function(r){ if(r && r[key]!=null) map[r[key]] = r; });
+  var out = [];
+  for (var k in map) out.push(map[k]);
+  return out;
+}
+async function save() {
   localStorage.setItem(KEY, JSON.stringify(datos));
-  try{if(typeof window.fbSave==='function'){
-    window.fbSave('noc_datos','main',datos);
-    window.fbSave('v22_hist','main',HIST);
-  }}catch(e){}
+  try{
+    if(typeof window.fbSave==='function'){
+      if(typeof window.fbLoad==='function'){
+        try{
+          var remoteNoc = await window.fbLoad('noc_datos','main');
+          var mergedNoc = _mergePorFecha(datos, remoteNoc, 'fecha');
+          mergedNoc.sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');});
+          datos.length = 0; mergedNoc.forEach(function(d){datos.push(d);});
+        }catch(e){ console.warn('[save] No se pudo fusionar noc_datos con Firebase, se guarda solo lo local:', e); }
+        try{
+          var remoteHist = await window.fbLoad('v22_hist','main');
+          var mergedHist = _mergePorFecha(HIST, remoteHist, 'date');
+          HIST.length = 0; mergedHist.forEach(function(h){HIST.push(h);});
+        }catch(e){ console.warn('[save] No se pudo fusionar v22_hist con Firebase, se guarda solo lo local:', e); }
+        // Refrescar la UI con el resultado real de la fusion (puede incluir
+        // fechas que este dispositivo no tenia localmente).
+        try{ if(typeof actualizarMeses==='function') actualizarMeses(); }catch(e){}
+        try{ if(typeof anPopulateMeses==='function') anPopulateMeses(); }catch(e){}
+        try{ if(typeof buildAnalytics==='function') buildAnalytics(); }catch(e){}
+        try{ if(typeof renderDashboard==='function') renderDashboard(); }catch(e){}
+      }
+      window.fbSave('noc_datos','main',datos);
+      window.fbSave('v22_hist','main',HIST);
+    }
+  }catch(e){}
 }
 
 // ═══════════════════════════════════════════════════
