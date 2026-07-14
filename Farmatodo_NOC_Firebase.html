@@ -7364,7 +7364,9 @@ function _applyTrendAndLegend() {
 var _REP_STATS_CFG = [
   { card:'card_bxhh',      chart:'ax_bxhh',      fmt:function(v){return Math.round(v).toLocaleString('es-VE');}, thr:150,  thrLbl:'≥ 150',  thrTest:function(v){return v>=150;} },
   { card:'card_cumpl',     chart:'ax_cumpl',     fmt:function(v){return Math.round(v)+'%';},                     thr:95,   thrLbl:'≥ 95%',  thrTest:function(v){return v>=95;} },
-  { card:'card_intransit', chart:'ax_intransit', fmt:function(v){return Math.round(v).toLocaleString('es-VE');}, thr:40,   thrLbl:'≤ 40',   thrTest:function(v){return v<=40;} },
+  // Intransit: el 0 es un valor legítimo (jornada al 100%, sin tareas pendientes),
+  // no "sin datos" — por eso NO se excluye de Máx/Prom/Mín (a diferencia de las demás).
+  { card:'card_intransit', chart:'ax_intransit', fmt:function(v){return Math.round(v).toLocaleString('es-VE');}, thr:40,   thrLbl:'≤ 40',   thrTest:function(v){return v<=40;}, excludeZeros:false },
   { card:'card_tareas',    chart:'ax_tareas',    fmt:function(v){return Math.round(v).toLocaleString('es-VE');}, thr:2000, thrLbl:'≥ 2000', thrTest:function(v){return v>=2000;} },
   { card:'card_pers',      chart:'ax_pers',      fmt:function(v){return Math.round(v).toLocaleString('es-VE');}, thr:16,   thrLbl:'≥ 16',   thrTest:function(v){return v>=16;} }
 ];
@@ -7379,7 +7381,9 @@ function _injectRepStats() {
     if (!base || !Array.isArray(base.data)) return;
     var nums = base.data.map(function(v){ return (typeof v==='number') ? v : (v && v.y!=null ? v.y : null); })
                         .filter(function(v){ return v!==null && !isNaN(v); });
-    var activos = nums.filter(function(v){ return v>0; });
+    // Por defecto se excluyen los ceros (noches sin turno). Si cfg.excludeZeros===false,
+    // el 0 se conserva porque es un resultado real (p.ej. Intransit en 0 = jornada al 100%).
+    var activos = cfg.excludeZeros===false ? nums : nums.filter(function(v){ return v>0; });
     if (!activos.length) return;
     var maxV = Math.max.apply(null, activos);
     var minV = Math.min.apply(null, activos);
