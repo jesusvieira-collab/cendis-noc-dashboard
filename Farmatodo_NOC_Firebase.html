@@ -1754,6 +1754,11 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       if (typeof datos !== 'undefined') {
         datos.length = 0;
         nocData.forEach(d => datos.push(d));
+        // El selector "Filtrar periodo" (mesSelect) se construye una sola vez al
+        // cargar la pagina (antes de que llegaran estos datos de Firebase), asi
+        // que sin esta llamada se queda desactualizado (ej. "Julio (8 dias)")
+        // aunque las graficas ya muestren la jornada mas reciente.
+        try { if (typeof actualizarMeses === 'function') actualizarMeses(); } catch(e) {}
         console.log('[Firebase] NOC datos cargados:', nocData.length, 'registros');
       }
     }
@@ -1801,6 +1806,10 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       if (typeof datos === 'undefined') return;
       datos.length = 0;
       newData.forEach(d => datos.push(d));
+      // Mismo motivo que en la carga inicial: sin esto, el selector de periodo
+      // (mesSelect) y su badge se quedan mostrando el conteo de dias viejo
+      // cuando otro dispositivo agrega una jornada nueva en tiempo real.
+      try { if (typeof actualizarMeses === 'function') actualizarMeses(); } catch(e) {}
       try { if (typeof renderDashboard === 'function') renderDashboard(); } catch(e) {}
       console.log('[Firebase] NOC datos actualizados en tiempo real');
     });
