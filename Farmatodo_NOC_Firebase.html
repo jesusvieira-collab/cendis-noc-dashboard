@@ -6865,8 +6865,15 @@ function anPopulateMeses() {
   var sel = document.getElementById('an-mes-sel');
   if (!sel) return;
   var seen = {};
+  // Mismo criterio que anGetData(): un dia cuenta si tiene CUALQUIER campo
+  // con datos, no solo si total>0 (ver nota en anGetData).
   HIST.forEach(function(r) {
-    if (r.total > 0) { var m = r.date.split(' ')[0]; if (m) seen[m] = true; }
+    if (!r || !r.date) return;
+    var tieneDatos = (r.total||0) > 0 || (r.turno||0) > 0 || (r.quedan||0) > 0 ||
+           (r.ventanas||0) > 0 || (r.intransit||0) > 0 || (r.alm_pr||0) > 0 ||
+           (r.alm_real||0) > 0 || (r.canceladas||0) > 0 || (r.rop||0) > 0 ||
+           (r.dbo||0) > 0 || (r.ddym||0) > 0;
+    if (tieneDatos) { var m = r.date.split(' ')[0]; if (m) seen[m] = true; }
   });
   var mesNames = { ENERO:'Enero', FEBRERO:'Febrero', MARZO:'Marzo', ABRIL:'Abril',
     MAYO:'Mayo', JUNIO:'Junio', JULIO:'Julio', AGOSTO:'Agosto',
@@ -6927,7 +6934,21 @@ function anExportChart(canvasId, filename) {
 }
 
 function anGetData() {
-  var v = HIST.filter(function(r) { return r.total > 0; });
+  // Antes se exigia r.total > 0 para considerar el dia "con datos". Eso hacia
+  // que una jornada real quedara excluida de Analytics (invisible en el
+  // selector de Julio, en el conteo de turnos, etc.) si por alguna razon el
+  // campo TOTAL no se pudo calcular desde el pegado (aunque el resto de la
+  // jornada si tuviera datos reales). Ahora se acepta el dia si CUALQUIER
+  // campo numerico tiene informacion — el mismo criterio que ya usamos para
+  // Intransit: un valor en 0 es un dato legitimo, lo que NO es legitimo es
+  // un dia que nunca se llego a guardar.
+  var v = HIST.filter(function(r) {
+    if (!r || !r.date) return false;
+    return (r.total||0) > 0 || (r.turno||0) > 0 || (r.quedan||0) > 0 ||
+           (r.ventanas||0) > 0 || (r.intransit||0) > 0 || (r.alm_pr||0) > 0 ||
+           (r.alm_real||0) > 0 || (r.canceladas||0) > 0 || (r.rop||0) > 0 ||
+           (r.dbo||0) > 0 || (r.ddym||0) > 0;
+  });
   if (AN_FILTER !== 'ALL') {
     v = v.filter(function(r) { return r.date.startsWith(AN_FILTER); });
   }
@@ -10517,10 +10538,10 @@ function _extractRepField(raw, labels) {
 function unifiedPaste(){
   var raw=document.getElementById('u_paste').value.trim();
   if(!raw){ alert('Pega primero los datos del Excel.'); return; }
-  
+
   // Parse V22 fields
   var nd = parsePaste(raw);
-  
+
   // Extract date
   var fechaISO='';
   var rawLines=raw.split(/\r?\n/);
@@ -10528,8 +10549,22 @@ function unifiedPaste(){
     var clean=rawLines[i].replace(/\t/g,' ').trim();
     var dm=clean.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
     if(dm){ fechaISO=dm[3]+'-'+dm[2].padStart(2,'0')+'-'+dm[1].padStart(2,'0'); break; }
+    // Fallback: ano de 2 digitos (ej. 09-07-26) - evita que el pegado se pierda
+    // silenciosamente en Almacenaje si el reporte no trae el ano completo.
+    var dm2=clean.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})(?!\d)/);
+    if(dm2){ fechaISO='20'+dm2[3]+'-'+dm2[2].padStart(2,'0')+'-'+dm2[1].padStart(2,'0'); break; }
   }
-  
+
+  // Si no se pudo detectar ninguna fecha en el texto pegado, avisar de inmediato
+  // en vez de fallar en silencio (antes esto dejaba el pegado sin guardar y sin
+  // avisar, provocando jornadas "perdidas" que nunca llegaban a Firebase/al equipo).
+  if(!fechaISO){
+    toast('No se detecto una fecha valida en el texto pegado - este pegado NO se guardo. Revisa que incluya la fecha (DD-MM-AAAA) y vuelve a pegar.','err');
+    var msgErr=document.getElementById('u_paste_msg');
+    if(msgErr){ msgErr.textContent='X No se detecto fecha - nada fue guardado'; setTimeout(function(){msgErr.textContent='';},6000); }
+    return;
+  }
+
   // Update D and HIST (V22 system)
   D = nd;
   if(fechaISO){
@@ -10541,6 +10576,11 @@ function unifiedPaste(){
     if(ei>=0){HIST[ei]=Object.assign({},nd);CUR=ei;}
     else{HIST.push(Object.assign({},nd));CUR=HIST.length-1;}
     try{localStorage.setItem('fcd_hist',JSON.stringify(HIST));}catch(e){}
+    // Sincronizar con Firebase de inmediato - antes esto solo ocurria mas abajo,
+    // condicionado a que tambien se detectaran campos de Reposicion en el mismo
+    // texto pegado; si esa parte fallaba, Almacenaje se quedaba SOLO en este
+    // dispositivo y nunca llegaba al resto del equipo.
+    if(typeof save==='function') save();
   }
   
   // Also save to NOC datos[] if we have reposición fields
