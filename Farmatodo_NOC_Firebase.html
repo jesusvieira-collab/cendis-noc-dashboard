@@ -3735,7 +3735,7 @@ function renderDashboard(){
     data:{labels:lbl,datasets:[{data:dd.map(d=>d.J),
       label:'Intransit',
       showValueLabels:true,valueLabelColor:'#C87000',valueLabelFormat:function(v){return Math.round(v);},valueLabelOffset:13,
-      borderColor:"#E8A000",pointBackgroundColor:dd.map(d=>d.J>100?'#E74C3C':d.J>40?'#D68910':'#1A5CA8'),pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.3,cubicInterpolationMode:'monotone',fill:false,pointRadius:5,pointHoverRadius:9}]},
+      borderColor:"#E8A000",pointBackgroundColor:dd.map(d=>d.J>100?'#E74C3C':d.J>40?'#D68910':'#1A5CA8'),pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.3,cubicInterpolationMode:'monotone',fill:false,pointRadius:5,pointHoverRadius:9,clip:{left:0,right:0,top:0,bottom:15}}]},
     options:{_showAvgLine:true,responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Intransit: ${ctx.raw} tareas`}}},
       scales:{x:{grid:{color:'rgba(0,48,135,0.06)',drawTicks:false},ticks:{maxRotation:45,maxTicksLimit:20}},y:{beginAtZero:true,grid:{color:'rgba(13,45,107,.07)'}}}}
