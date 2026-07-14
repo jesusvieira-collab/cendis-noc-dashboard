@@ -3718,9 +3718,9 @@ function renderDashboard(){
   killAx('ax_cumpl');
   AX['ax_cumpl']=new Chart(document.getElementById('ax_cumpl'),{
     type:'line',
-    data:{labels:lbl,datasets:[{data:dd.map(d=>+(d.L*100).toFixed(1)),showValueLabels:true,valueLabelFormat:function(v){return Math.round(v)+'%';},valueLabelColor:'#0047C8',showTrendline:true,trendlineColor:'rgba(0,71,200,0.45)',
+    data:{labels:lbl,datasets:[{data:dd.map(d=>+(d.L*100).toFixed(1)),label:'Cumplimiento',showValueLabels:true,valueLabelFormat:function(v){return Math.round(v)+'%';},valueLabelColor:'#0047C8',showTrendline:true,trendlineColor:'rgba(0,71,200,0.45)',
       borderColor:"#0047C8",pointBackgroundColor:dd.map(d=>d.L>=0.95?'#27AE60':d.L>=0.90?'#F39C12':'#E74C3C'),pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.4,fill:false,pointRadius:5,pointHoverRadius:9},
-      {type:'line',data:Array(dd.length).fill(100),borderColor:'rgba(0,135,90,0.4)',borderDash:[5,4],pointRadius:0,borderWidth:1.5}
+      {type:'line',label:'Meta 100%',data:Array(dd.length).fill(100),borderColor:'rgba(0,135,90,0.4)',borderDash:[5,4],pointRadius:0,borderWidth:1.5}
     ]},
     options:{_showAvgLine:true,responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Cumplim: ${ctx.raw}%`}}},
@@ -3733,6 +3733,7 @@ function renderDashboard(){
   AX['ax_intransit']=new Chart(document.getElementById('ax_intransit'),{
     type:'line',
     data:{labels:lbl,datasets:[{data:dd.map(d=>d.J),
+      label:'Intransit',
       showValueLabels:true,valueLabelColor:'#C87000',valueLabelFormat:function(v){return Math.round(v);},valueLabelOffset:13,
       borderColor:"#E8A000",pointBackgroundColor:dd.map(d=>d.J>100?'#E74C3C':d.J>40?'#D68910':'#1A5CA8'),pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.4,fill:false,pointRadius:5,pointHoverRadius:9}]},
     options:{_showAvgLine:true,responsive:true,maintainAspectRatio:false,
@@ -3804,6 +3805,7 @@ function renderDemanda(){
   AX['ax_diasem']=new Chart(document.getElementById('ax_diasem'),{
     type:'line',
     data:{labels:DIAS.slice(1,6),datasets:[{data:semDat,
+      label:'Bultos promedio',
       showValueLabels:true,valueLabelColor:'#003087',valueLabelFormat:function(v){return (v/1000).toFixed(1)+'K';},valueLabelOffset:13,
       borderColor:"#003087",pointBackgroundColor:semDat.map(v=>v===maxBDS?'#E74C3C':v>maxBDS*.88?'#F39C12':'#1A5CA8'),pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.4,fill:false,pointRadius:5,pointHoverRadius:9}]},
     options:{_showAvgLine:true,responsive:true,maintainAspectRatio:false,
@@ -3819,7 +3821,7 @@ function renderDemanda(){
   AX['ax_top10b']=new Chart(document.getElementById('ax_top10b'),{
     type:'line',
     data:{labels:top10b.map(d=>ff(d.fecha)+' '+DIAS[ds(d.fecha)]),
-      datasets:[{data:top10b.map(d=>d.G),showValueLabels:true,valueLabelColor:'#003087',showTrendline:true,trendlineColor:'rgba(0,48,135,0.4)',borderColor:"#003087",pointBackgroundColor:t10c,pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.4,fill:false,pointRadius:5,pointHoverRadius:9}]},
+      datasets:[{data:top10b.map(d=>d.G),label:'Bultos',showValueLabels:true,valueLabelColor:'#003087',showTrendline:true,trendlineColor:'rgba(0,48,135,0.4)',borderColor:"#003087",pointBackgroundColor:t10c,pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.4,fill:false,pointRadius:5,pointHoverRadius:9}]},
     options:{_showAvgLine:true,responsive:true,maintainAspectRatio:false,indexAxis:'y',
       plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw.toLocaleString()} bultos`}}},
       scales:{x:{grid:{color:'rgba(13,45,107,.07)'},ticks:{callback:v=>(v/1000).toFixed(0)+'K'}},y:{grid:{color:'rgba(0,48,135,0.06)',drawTicks:false}}}}
@@ -3929,7 +3931,7 @@ function renderCanceladas(){
   killAx('ax_cancel_mes');
   AX['ax_cancel_mes']=new Chart(document.getElementById('ax_cancel_mes'),{
     type:'line',
-    data:{labels:meses.map(m=>MNOM[m]||m),datasets:[{data:cancelMes,showValueLabels:true,valueLabelColor:'#D63B2F',showTrendline:true,trendlineColor:'rgba(214,59,47,0.4)',
+    data:{labels:meses.map(m=>MNOM[m]||m),datasets:[{data:cancelMes,label:'Canceladas',showValueLabels:true,valueLabelColor:'#D63B2F',showTrendline:true,trendlineColor:'rgba(214,59,47,0.4)',
       borderColor:"#D63B2F",pointBackgroundColor:meses.map((_,i)=>mesColors[i%mesColors.length]),pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.4,fill:false,pointRadius:5,pointHoverRadius:9}]},
     options:{_showAvgLine:true,responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},
@@ -3949,6 +3951,7 @@ function renderCanceladas(){
   AX['ax_cancel_diasem']=new Chart(document.getElementById('ax_cancel_diasem'),{
     type:'line',
     data:{labels:semLbl,datasets:[{data:semDat,
+      label:'Canceladas',
       showValueLabels:true,valueLabelColor:'#D63B2F',valueLabelFormat:function(v){return v.toLocaleString();},valueLabelOffset:13,
       borderColor:"#D63B2F",pointBackgroundColor:semDat.map(v=>v===maxCDS?'#E74C3C':v>maxCDS*.80?'#F39C12':'rgba(78,159,209,0.65)'),pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.4,fill:false,pointRadius:5,pointHoverRadius:9}]},
     options:{_showAvgLine:true,responsive:true,maintainAspectRatio:false,
@@ -3965,7 +3968,7 @@ function renderCanceladas(){
   AX['ax_cancel_top10']=new Chart(document.getElementById('ax_cancel_top10'),{
     type:'line',
     data:{labels:top10c.map(d=>ff(d.fecha)+' '+DIAS[ds(d.fecha)]),
-      datasets:[{data:top10c.map(d=>d.T),borderColor:"#D63B2F",pointBackgroundColor:t10cc,pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.4,fill:false,pointRadius:5,pointHoverRadius:9}]},
+      datasets:[{data:top10c.map(d=>d.T),label:'Canceladas',borderColor:"#D63B2F",pointBackgroundColor:t10cc,pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.4,fill:false,pointRadius:5,pointHoverRadius:9}]},
     options:{_showAvgLine:true,responsive:true,maintainAspectRatio:false,indexAxis:'y',
       plugins:{legend:{display:false},
         tooltip:{callbacks:{label:ctx=>` ${ctx.raw.toLocaleString()} uds canceladas`}}},
@@ -4127,7 +4130,7 @@ function renderPersonal(){
   AX['ax_efic']=new Chart(document.getElementById('ax_efic'),{
     type:'line',
     data:{labels:meses.map(m=>MNOM[m]||m),
-      datasets:[{data:meses.map(m=>+avg(datos.filter(d=>d.mes===m),'O').toFixed(1)),showValueLabels:true,valueLabelFormat:function(v){return v.toFixed(1);},valueLabelColor:'#0097A7',showTrendline:true,trendlineColor:'rgba(0,151,167,0.4)',
+      datasets:[{data:meses.map(m=>+avg(datos.filter(d=>d.mes===m),'O').toFixed(1)),label:'B×H/h',showValueLabels:true,valueLabelFormat:function(v){return v.toFixed(1);},valueLabelColor:'#0097A7',showTrendline:true,trendlineColor:'rgba(0,151,167,0.4)',
         borderColor:"#0097A7",pointBackgroundColor:meses.map((_,i)=>mc[i%mc.length]),pointBorderWidth:2,pointBorderColor:"#ffffff",backgroundColor:"rgba(26,92,168,0.07)",borderWidth:2.5,tension:0.4,fill:false,pointRadius:5,pointHoverRadius:9}]},
     options:{_showAvgLine:true,responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw} B×H/h`}}},
