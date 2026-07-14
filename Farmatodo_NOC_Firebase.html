@@ -6698,23 +6698,37 @@ function applyPaste() {
     var dm = clean.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
     if (dm) {
       parsedFechaISO = dm[3]+'-'+dm[2].padStart(2,'0')+'-'+dm[1].padStart(2,'0');
-      /* actualizar selFecha si existe */
       var _sf = document.getElementById('selFecha');
       if (_sf) _sf.value = parsedFechaISO;
       break;
     }
+    // Fallback: ano de 2 digitos (ej. 09-07-26)
+    var dm2 = clean.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})(?!\d)/);
+    if (dm2) {
+      parsedFechaISO = '20'+dm2[3]+'-'+dm2[2].padStart(2,'0')+'-'+dm2[1].padStart(2,'0');
+      var _sf2 = document.getElementById('selFecha');
+      if (_sf2) _sf2.value = parsedFechaISO;
+      break;
+    }
+  }
+
+  // Si no se detecto ninguna fecha, NO seguir: antes esto silenciosamente
+  // fusionaba los datos pegados dentro de la jornada anterior (D.date),
+  // corrompiendola, y ademas nunca avisaba al usuario.
+  if (!parsedFechaISO) {
+    if (typeof toast === 'function') toast('No se detecto una fecha valida en el texto pegado - este pegado NO se aplico. Revisa que incluya la fecha (DD-MM-AAAA) y vuelve a pegar.', 'err');
+    else alert('No se detecto una fecha valida en el texto pegado. Revisa que incluya la fecha (DD-MM-AAAA) y vuelve a pegar.');
+    return;
   }
 
   /* Parsear */
   var nd = parsePaste(raw);
 
   /* Asignar fecha desde texto (no desde DOM) */
-  if (parsedFechaISO) {
-    var pts = parsedFechaISO.split('-');
-    var meses = ['','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
-                 'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-    nd.date = meses[parseInt(pts[1])] + ' ' + parseInt(pts[2]);
-  }
+  var pts = parsedFechaISO.split('-');
+  var meses = ['','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+               'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  nd.date = meses[parseInt(pts[1])] + ' ' + parseInt(pts[2]);
 
   /* Actualizar D y HIST */
   D = nd;
@@ -6724,6 +6738,12 @@ function applyPaste() {
 
   /* Guardar */
   try { localStorage.setItem('fcd_hist', JSON.stringify(HIST.filter(function(r){return r.total>0;}).slice(-60))); } catch(e){}
+  // CRITICO: este boton ("Datos del turno" en Almacenaje) antes SOLO guardaba
+  // en localStorage de este navegador y jamas sincronizaba con Firebase, por
+  // lo que cualquier jornada cargada aqui nunca llegaba al resto del equipo
+  // ni sobrevivia a un cambio de dispositivo/navegador. save() sincroniza
+  // HIST (y datos) con Firebase (colecciones noc_datos + v22_hist).
+  try { if (typeof save === 'function') save(); } catch(e){ console.error('[applyPaste] Error guardando en Firebase:', e); }
 
   /* Mostrar */
   if(document.getElementById('mod-v22')&&document.getElementById('mod-v22').style.display!=='none'){
@@ -10440,6 +10460,13 @@ function ejecutarCargaHistorica() {
       VENT_DATA.sort(function(a,b){return a.f.localeCompare(b.f);});
     }
   }
+
+  // Sincronizar con Firebase — este modal ("Carga historica") solo tocaba el
+  // arreglo HIST en memoria y nunca llamaba a save(), por lo que el dia
+  // cargado aqui parecia guardado (el mensaje decia "cargado correctamente")
+  // pero desaparecia al recargar la pagina o nunca llegaba a otros
+  // dispositivos/al equipo.
+  try{ if(typeof save==='function') save(); }catch(e){ console.error('[ejecutarCargaHistorica] Error guardando en Firebase:', e); }
 
   // Refresh displays
   try{ if(typeof render==='function') render(); }catch(e){}
