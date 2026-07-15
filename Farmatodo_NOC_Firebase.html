@@ -6285,6 +6285,22 @@ function parsePaste(raw) {
 
   lines.forEach(function(line) {
     var parts = line.split('\t');
+    if (parts.length < 2) {
+      // No hay tabuladores reales en esta linea — pasa cuando el pegado no
+      // viene directo de celdas de Excel (ej. texto escrito/copiado desde un
+      // PDF, chat o retipeado a mano). Antes esto hacia que la fila entera
+      // se tratara como una sola etiqueta sin valor, dejando el campo SIN
+      // actualizar (se quedaba pegado al valor de la jornada anterior — por
+      // eso Vacaciones/Libres en Repositores parecia "trabado" siempre en el
+      // mismo numero por defecto). Aqui se reconoce la etiqueta seguida de
+      // uno o mas numeros separados por espacios, sin romper etiquetas de
+      // varias palabras como "PR EN EL TURNO" o "CONTENEDORES POST 4PM".
+      var _m = line.match(/^(.*?)\s+((?:-?\d+(?:[.,]\d+)?\s*)+)$/);
+      if (_m) {
+        var _nums = _m[2].trim().split(/\s+/);
+        parts = [_m[1]].concat(_nums);
+      }
+    }
     var label = (parts[0] || '').trim().toUpperCase().replace(/\s+/g,' ');
     if (!label) return;
 
@@ -8091,15 +8107,9 @@ function drawCard4(canvas) {
   var P=D.personal||{};
   var ra=Math.max(0,(P.ftd||0)-(P.repo_libre||0)-(P.repo_vac||0)-(P.repo_reposo||0));
   var fs=(P.ftd||0)+(P.servix||0);
-  // ACTIVOS ya es el total reportado de montacarguistas activos en el turno,
-  // NO un componente adicional a sumar junto a Estantería Alta/Traspaleta Fijo
-  // (esas dos son el desglose por labor). Antes se sumaban los tres valores,
-  // inflando "TOTAL ACTIVOS EN JORNADA" muy por encima de lo pegado (ej. 5+3+9=17
-  // en vez de 9). Se usa ACTIVOS como cifra autoritativa; si no viene, se cae
-  // al desglose por labor como respaldo.
-  var montaActivos=(P.monta_actv||0) || ((P.monta_alta||0)+(P.monta_tras||0));
-  /* Activos en jornada — desglose por labor (ACTIVOS ya se muestra como total abajo, no aquí) */
-  var mActivos=[['Estantería Alta',P.monta_alta||0],['Traspaleta Fijo',P.monta_tras||0]];
+  var montaActivos=(P.monta_alta||0)+(P.monta_tras||0)+(P.monta_actv||0);
+  /* Activos en jornada */
+  var mActivos=[['Estantería Alta',P.monta_alta||0],['Traspaleta Fijo',P.monta_tras||0],['ACTIVOS',P.monta_actv||0]];
   /* No activos */
   var mNoActivos=[['Vacaciones',P.monta_vac||0],['Libres',P.monta_libre||0],['Reposo',P.monta_repos||0]];
   if ((P.monta_ausent||0) > 0) { mNoActivos.push(['Ausencia FTD', P.monta_ausent]); }
@@ -10616,6 +10626,12 @@ function _extractRepField(raw, labels) {
   }
   for (var i = startIdx; i < lines.length; i++) {
     var parts = lines[i].split('\t');
+    if (parts.length < 2) {
+      // Mismo respaldo que en parsePaste(): si no hay tabuladores reales,
+      // reconocer la etiqueta seguida de numeros separados por espacios.
+      var _m = lines[i].match(/^(.*?)\s+((?:-?\d+(?:[.,]\d+)?\s*)+)$/);
+      if (_m) { parts = [_m[1]].concat(_m[2].trim().split(/\s+/)); }
+    }
     var label = (parts[0] || '').trim().toUpperCase().replace(/\s+/g,' ');
     if (wanted.indexOf(label) === -1) continue;
     for (var j = 1; j < parts.length; j++) {
