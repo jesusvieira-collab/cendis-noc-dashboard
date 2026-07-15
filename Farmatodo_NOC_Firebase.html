@@ -6301,7 +6301,7 @@ function parsePaste(raw) {
         parts = [_m[1]].concat(_nums);
       }
     }
-    var label = (parts[0] || '').trim().toUpperCase().replace(/\s+/g,' ');
+    var label = (parts[0] || '').trim().toUpperCase().replace(/\s+/g,' ').replace(/[:.]+$/,'');
     if (!label) return;
 
     var nums = [];
@@ -6501,7 +6501,7 @@ function parsePaste(raw) {
       var vRLibre = _findInRange('LIBRE', repoSecIdx, -1);
       var vRVac   = _findInRange('VACACIONES', repoSecIdx, -1);
       var vRRepos = _findInRange('REPOSO', repoSecIdx, -1);
-      var vApoyo  = _findInRange('APOYO ALM', repoSecIdx, -1);
+      var vApoyo  = _findInRange('APOYO ALM', repoSecIdx, -1); if (vApoyo===null) vApoyo=_findInRange('APOYO RECEPCION', repoSecIdx, -1);
       var vFtd    = _findInRange('PERSONAL FTD', repoSecIdx, -1); if (vFtd===null) vFtd=_findInRange('FTD', repoSecIdx, -1);
       var vServix = _findInRange('SERVIEXPRESS', repoSecIdx, -1);
       if (vRLibre!==null) np.repo_libre  = vRLibre;
