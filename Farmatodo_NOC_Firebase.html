@@ -1735,6 +1735,18 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     return null;
   };
 
+  // ── LOAD ESTRICTO: usado por save() antes de fusionar/escribir. A diferencia
+  // de fbLoad, RELANZA el error si la lectura falla (red caída, Firestore no
+  // disponible). Así save() sabe distinguir "el documento está vacío de verdad"
+  // (devuelve null) de "no pude leerlo" (lanza) — y en ese último caso NO debe
+  // sobrescribir el remoto con el estado local reducido, o borraría jornadas
+  // que otro dispositivo ya había guardado. Devuelve {ok, data}.
+  window.fbLoadStrict = async function(collection_name, docId) {
+    const snap = await getDoc(doc(db_fb, collection_name, docId)); // puede lanzar
+    if (snap.exists()) return JSON.parse(snap.data().payload);
+    return null; // documento inexistente = vacío legítimo
+  };
+
   // ── SYNC en tiempo real (escucha cambios) ──
   window.fbListen = function(collection_name, docId, callback) {
     return onSnapshot(doc(db_fb, collection_name, docId), (snap) => {
@@ -3174,29 +3186,42 @@ function _mergePorFecha(local, remoto, key){
 async function save() {
   localStorage.setItem(KEY, JSON.stringify(datos));
   try{
-    if(typeof window.fbSave==='function'){
-      if(typeof window.fbLoad==='function'){
-        try{
-          var remoteNoc = await window.fbLoad('noc_datos','main');
-          var mergedNoc = _mergePorFecha(datos, remoteNoc, 'fecha');
-          mergedNoc.sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');});
-          datos.length = 0; mergedNoc.forEach(function(d){datos.push(d);});
-        }catch(e){ console.warn('[save] No se pudo fusionar noc_datos con Firebase, se guarda solo lo local:', e); }
-        try{
-          var remoteHist = await window.fbLoad('v22_hist','main');
-          var mergedHist = _mergePorFecha(HIST, remoteHist, 'date');
-          HIST.length = 0; mergedHist.forEach(function(h){HIST.push(h);});
-        }catch(e){ console.warn('[save] No se pudo fusionar v22_hist con Firebase, se guarda solo lo local:', e); }
-        // Refrescar la UI con el resultado real de la fusion (puede incluir
-        // fechas que este dispositivo no tenia localmente).
-        try{ if(typeof actualizarMeses==='function') actualizarMeses(); }catch(e){}
-        try{ if(typeof anPopulateMeses==='function') anPopulateMeses(); }catch(e){}
-        try{ if(typeof buildAnalytics==='function') buildAnalytics(); }catch(e){}
-        try{ if(typeof renderDashboard==='function') renderDashboard(); }catch(e){}
-      }
-      window.fbSave('noc_datos','main',datos);
-      window.fbSave('v22_hist','main',HIST);
-    }
+    if(typeof window.fbSave!=='function') return;
+    // Cargador estricto: si no existe fbLoadStrict, caer a fbLoad.
+    var _load = (typeof window.fbLoadStrict==='function') ? window.fbLoadStrict : window.fbLoad;
+
+    // Cada coleccion se marca como "lista para escribir" SOLO si su lectura
+    // remota tuvo exito (o el documento estaba vacio de verdad). Si la lectura
+    // FALLA (red caida), NO escribimos esa coleccion — de lo contrario
+    // sobreescribiriamos el remoto con el estado local reducido y borrariamos
+    // jornadas que otro dispositivo ya guardo (este fue el bug que borro
+    // Almacenaje del 13 y 14 de julio).
+    var nocOk = false, histOk = false;
+
+    try{
+      var remoteNoc = await _load('noc_datos','main');
+      var mergedNoc = _mergePorFecha(datos, remoteNoc, 'fecha');
+      mergedNoc.sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');});
+      datos.length = 0; mergedNoc.forEach(function(d){datos.push(d);});
+      nocOk = true;
+    }catch(e){ console.warn('[save] Lectura de noc_datos fallo — NO se sobreescribe para no perder datos:', e); }
+
+    try{
+      var remoteHist = await _load('v22_hist','main');
+      var mergedHist = _mergePorFecha(HIST, remoteHist, 'date');
+      HIST.length = 0; mergedHist.forEach(function(h){HIST.push(h);});
+      histOk = true;
+    }catch(e){ console.warn('[save] Lectura de v22_hist fallo — NO se sobreescribe para no perder datos:', e); }
+
+    // Refrescar la UI con el resultado real de la fusion.
+    try{ if(typeof actualizarMeses==='function') actualizarMeses(); }catch(e){}
+    try{ if(typeof anPopulateMeses==='function') anPopulateMeses(); }catch(e){}
+    try{ if(typeof buildAnalytics==='function') buildAnalytics(); }catch(e){}
+    try{ if(typeof renderDashboard==='function') renderDashboard(); }catch(e){}
+
+    // Escribir SOLO las colecciones cuya lectura remota fue exitosa.
+    if(nocOk)  window.fbSave('noc_datos','main',datos);
+    if(histOk) window.fbSave('v22_hist','main',HIST);
   }catch(e){}
 }
 
@@ -6262,13 +6287,17 @@ async function _autoSeedJulio2026() {
 
     if (changed) {
       datos.sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
-      if (typeof save === 'function') save();  // → localStorage + Firebase (noc_datos + v22_hist)
+      // IMPORTANTE: el seed ya NO escribe en Firebase. Julio 1-10 vive de forma
+      // permanente en la nube; escribir en cada carga era el disparador que,
+      // combinado con un fallo de lectura, borraba jornadas nuevas (13/14).
+      // El seed ahora solo completa la memoria local para visualizacion.
+      try { localStorage.setItem(KEY, JSON.stringify(datos)); } catch(e){}
       try { if (typeof actualizarMeses==='function') actualizarMeses(); } catch(e){}
       try { if (typeof render==='function') render(); } catch(e){}
       try { if (typeof buildAnalytics==='function') buildAnalytics(); } catch(e){}
       try { if (typeof renderDashboard==='function') renderDashboard(); } catch(e){}
       try { if (typeof renderTablaUnificada==='function') renderTablaUnificada(); } catch(e){}
-      console.log('[Auto-carga] Julio 2026 sincronizado con Firebase.');
+      console.log('[Auto-carga] Julio 2026 completado en memoria (sin escribir en la nube).');
     }
   } catch(e) {
     console.error('[Auto-carga] Error:', e);
