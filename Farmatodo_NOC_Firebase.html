@@ -2290,7 +2290,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   </div>
   <div class="ccard" id="card_paletas_dem" style="margin-top:12px;">
     <div class="ccard-hdr">
-      <div><div class="ccard-title">&#x1F9F1; Paletas por repositor &mdash; jornada y hora</div><div class="ccard-sub">Paletas (Manuales + ROP DYM) &divide; repositores (FTD+Servix) &divide; 7 h</div></div>
+      <div><div class="ccard-title">&#x1F9F1; Paletas por repositor &mdash; jornada y hora</div><div class="ccard-sub">Paletas (Manuales + ROP DYM) &divide; repositores (FTD+Servix) &divide; 5,5 h</div></div>
       <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_paletas_dem','Paletas_repositor')">&#x2B07; PNG</button></div>
     </div>
     <div class="kpi-strip" id="kpiPaletasDem" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px;"></div>
@@ -2311,7 +2311,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   </div>
   <div class="ccard" style="margin-bottom:12px;" id="card_paletas_pers">
     <div class="ccard-hdr">
-      <div><div class="ccard-title">&#x1F9F1; Paletas movidas por repositor &mdash; jornada y hora</div><div class="ccard-sub">Paletas (Manuales + ROP DYM) &divide; repositores (FTD+Servix) &divide; 7 h de jornada</div></div>
+      <div><div class="ccard-title">&#x1F9F1; Paletas movidas por repositor &mdash; jornada y hora</div><div class="ccard-sub">Paletas (Manuales + ROP DYM) &divide; repositores (FTD+Servix) &divide; 5,5 h de jornada efectiva</div></div>
       <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_paletas_pers','Paletas_repositor_personal')">&#x2B07; PNG</button></div>
     </div>
     <div class="kpi-strip" id="kpiPaletasPers" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px;"></div>
@@ -3874,7 +3874,11 @@ function renderDashboard(){
 // (campo rop_dym). El rendimiento por repositor se obtiene dividiendo entre el
 // numero de repositores nocturnos (campo M = FTD + Servix) y entre 7 h de
 // jornada (mismo criterio que el KPI B×H/h existente).
-var PALETAS_HORAS_JORNADA = 7;
+// Jornada EFECTIVA de reposicion = 5,5 h (no 7): en dias de despacho el turno
+// arranca a las 4pm pero durante las primeras horas se reponen puestos de
+// mercancia bajada previamente mientras se vacian, asi que el tiempo neto de
+// movimiento de paletas es menor. El KPI B×H/h sigue usando 7 h aparte.
+var PALETAS_HORAS_JORNADA = 5.5;
 function _paletasMetric(d){
   var paletas = (d.B||0) + (d.rop_dym||0);       // Manuales + ROP DYM
   var rep     = d.M||0;                           // Repositores (FTD+Servix)
@@ -3907,7 +3911,7 @@ function renderPaletas(canvasId, kpiId){
   if(kpiEl){
     kpiEl.innerHTML =
       '<div class="kpi k1"><div class="kpi-label">Paletas/hora prom.</div><div class="kpi-val">'+avgH.toFixed(1)+'</div><div class="kpi-delta neu">por repositor</div></div>'+
-      '<div class="kpi k3"><div class="kpi-label">Paletas/jornada prom.</div><div class="kpi-val">'+avgJ.toFixed(1)+'</div><div class="kpi-delta neu">por repositor · 7 h</div></div>'+
+      '<div class="kpi k3"><div class="kpi-label">Paletas/jornada prom.</div><div class="kpi-val">'+avgJ.toFixed(1)+'</div><div class="kpi-delta neu">por repositor · 5,5 h</div></div>'+
       '<div class="kpi k5"><div class="kpi-label">Mejor jornada</div><div class="kpi-val">'+maxJ.toFixed(1)+'</div><div class="kpi-delta neu">'+(maxJd?ff(maxJd.fecha)+' '+DIAS[ds(maxJd.fecha)]:'')+'</div></div>'+
       '<div class="kpi k2"><div class="kpi-label">Paletas totales</div><div class="kpi-val">'+totalPaletas.toLocaleString()+'</div><div class="kpi-delta neu">'+dd.length+' jornadas</div></div>';
   }
