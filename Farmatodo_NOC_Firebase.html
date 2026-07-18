@@ -2288,6 +2288,14 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     </div>
     <div id="heatmapDemanda" style="padding:6px 0;"></div>
   </div>
+  <div class="ccard" id="card_paletas_dem" style="margin-top:12px;">
+    <div class="ccard-hdr">
+      <div><div class="ccard-title">&#x1F9F1; Paletas por repositor &mdash; jornada y hora</div><div class="ccard-sub">Paletas (Manuales + ROP DYM) &divide; repositores (FTD+Servix) &divide; 7 h</div></div>
+      <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_paletas_dem','Paletas_repositor')">&#x2B07; PNG</button></div>
+    </div>
+    <div class="kpi-strip" id="kpiPaletasDem" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px;"></div>
+    <div style="position:relative;height:260px;"><canvas id="ax_paletas_dem" role="img" aria-label="Paletas por repositor (Demanda)"></canvas></div>
+  </div>
 </div>
 
 <!-- ════ PERSONAL ════ -->
@@ -2300,6 +2308,14 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_pers"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_pers')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_pers')" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setChartPeriod('ax_pers','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setChartPeriod('ax_pers','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setChartPeriod('ax_pers','mes',this)">M</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_pers','Personal','Repositores','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_pers','Personal')">⬇ PNG</button></div>
     </div>
     <div style="position:relative;height:270px;"><canvas id="ax_pers" role="img" aria-label="Gráfico ax_pers"></canvas></div>
+  </div>
+  <div class="ccard" style="margin-bottom:12px;" id="card_paletas_pers">
+    <div class="ccard-hdr">
+      <div><div class="ccard-title">&#x1F9F1; Paletas movidas por repositor &mdash; jornada y hora</div><div class="ccard-sub">Paletas (Manuales + ROP DYM) &divide; repositores (FTD+Servix) &divide; 7 h de jornada</div></div>
+      <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_paletas_pers','Paletas_repositor_personal')">&#x2B07; PNG</button></div>
+    </div>
+    <div class="kpi-strip" id="kpiPaletasPers" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px;"></div>
+    <div style="position:relative;height:260px;"><canvas id="ax_paletas_pers" role="img" aria-label="Paletas por repositor (Personal)"></canvas></div>
   </div>
   <div class="grid-2">
     <div class="ccard" id="card_prodobj">
@@ -3851,6 +3867,85 @@ function renderDashboard(){
 // ═══════════════════════════════════════════════════
 // DEMANDA
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+// PALETAS POR REPOSITOR (Manuales + ROP DYM) — jornada y hora
+// ═══════════════════════════════════════════════════
+// El usuario cuenta "paletas movidas" = tareas manuales (campo B) + ROP DYM
+// (campo rop_dym). El rendimiento por repositor se obtiene dividiendo entre el
+// numero de repositores nocturnos (campo M = FTD + Servix) y entre 7 h de
+// jornada (mismo criterio que el KPI B×H/h existente).
+var PALETAS_HORAS_JORNADA = 7;
+function _paletasMetric(d){
+  var paletas = (d.B||0) + (d.rop_dym||0);       // Manuales + ROP DYM
+  var rep     = d.M||0;                           // Repositores (FTD+Servix)
+  var porJornada = rep>0 ? paletas/rep : 0;       // paletas por repositor / noche
+  var porHora    = porJornada/PALETAS_HORAS_JORNADA;
+  return { paletas:paletas, rep:rep, porJornada:porJornada, porHora:porHora };
+}
+
+function renderPaletas(canvasId, kpiId){
+  var cv = document.getElementById(canvasId);
+  if(!cv) return;
+  var dd = (typeof filtroDatos==='function') ? filtroDatos() : [];
+  var kpiEl = document.getElementById(kpiId);
+  if(!dd.length){
+    if(kpiEl) kpiEl.innerHTML = (typeof emptyMsg==='function') ? emptyMsg() : '';
+    if(typeof killAx==='function') killAx(canvasId);
+    return;
+  }
+
+  var lbl  = dd.map(function(d){ return ff(d.fecha); });
+  var perJ = dd.map(function(d){ return +_paletasMetric(d).porJornada.toFixed(1); });
+  var perH = dd.map(function(d){ return +_paletasMetric(d).porHora.toFixed(2); });
+
+  var avgJ = perJ.reduce(function(s,v){return s+v;},0)/perJ.length;
+  var avgH = perH.reduce(function(s,v){return s+v;},0)/perH.length;
+  var maxJ = Math.max.apply(null, perJ);
+  var maxJd = dd[perJ.indexOf(maxJ)];
+  var totalPaletas = dd.reduce(function(s,d){return s+_paletasMetric(d).paletas;},0);
+
+  if(kpiEl){
+    kpiEl.innerHTML =
+      '<div class="kpi k1"><div class="kpi-label">Paletas/hora prom.</div><div class="kpi-val">'+avgH.toFixed(1)+'</div><div class="kpi-delta neu">por repositor</div></div>'+
+      '<div class="kpi k3"><div class="kpi-label">Paletas/jornada prom.</div><div class="kpi-val">'+avgJ.toFixed(1)+'</div><div class="kpi-delta neu">por repositor · 7 h</div></div>'+
+      '<div class="kpi k5"><div class="kpi-label">Mejor jornada</div><div class="kpi-val">'+maxJ.toFixed(1)+'</div><div class="kpi-delta neu">'+(maxJd?ff(maxJd.fecha)+' '+DIAS[ds(maxJd.fecha)]:'')+'</div></div>'+
+      '<div class="kpi k2"><div class="kpi-label">Paletas totales</div><div class="kpi-val">'+totalPaletas.toLocaleString()+'</div><div class="kpi-delta neu">'+dd.length+' jornadas</div></div>';
+  }
+
+  if(typeof killAx==='function') killAx(canvasId);
+  AX[canvasId] = new Chart(cv,{
+    type:'line',
+    data:{labels:lbl,datasets:[
+      {label:'Paletas / jornada (por repositor)',data:perJ,yAxisID:'yJ',
+       borderColor:'#6A3FD1',backgroundColor:'rgba(106,63,209,0.08)',
+       borderWidth:2.5,tension:0.35,cubicInterpolationMode:'monotone',fill:false,
+       pointRadius:5,pointHoverRadius:9,pointBackgroundColor:'#6A3FD1',pointBorderColor:'#ffffff',pointBorderWidth:2,
+       showValueLabels:true,valueLabelColor:'#6A3FD1',valueLabelFormat:function(v){return v.toFixed(1);},valueLabelOffset:13},
+      {label:'Paletas / hora (por repositor)',data:perH,yAxisID:'yH',
+       borderColor:'#00875A',backgroundColor:'transparent',borderDash:[5,4],
+       borderWidth:2,tension:0.35,cubicInterpolationMode:'monotone',fill:false,
+       pointRadius:3,pointHoverRadius:7,pointBackgroundColor:'#00875A',pointBorderColor:'#ffffff',pointBorderWidth:1.5}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,labels:{color:'rgba(0,48,135,0.6)',boxWidth:10,boxHeight:10,font:{size:10}}},
+        tooltip:{callbacks:{label:function(ctx){
+          var d=dd[ctx.dataIndex], m=_paletasMetric(d);
+          if(ctx.datasetIndex===0) return ' Jornada: '+ctx.parsed.y.toFixed(1)+' pal/rep  ('+m.paletas+' pal ÷ '+m.rep+' rep)';
+          return ' Hora: '+ctx.parsed.y.toFixed(2)+' pal/rep/h';
+        }}}},
+      scales:{
+        x:{grid:{color:'rgba(0,48,135,0.06)',drawTicks:false},ticks:{maxRotation:45,maxTicksLimit:20,color:'rgba(13,45,107,.5)'}},
+        yJ:{position:'left',beginAtZero:true,grid:{color:'rgba(13,45,107,.07)'},
+            ticks:{color:'rgba(106,63,209,0.7)'},
+            title:{display:true,text:'Paletas / jornada',color:'rgba(106,63,209,0.7)',font:{size:9,weight:'600'}}},
+        yH:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},
+            ticks:{color:'rgba(0,135,90,0.7)'},
+            title:{display:true,text:'Paletas / hora',color:'rgba(0,135,90,0.7)',font:{size:9,weight:'600'}}}
+      }}
+  });
+}
+
 function renderDemanda(){
   setChartDefaults();
   const dd=filtroDatos();
@@ -3899,6 +3994,7 @@ function renderDemanda(){
   });
 
   renderHeatmapDemanda(dd);
+  renderPaletas('ax_paletas_dem','kpiPaletasDem');
 }
 
 function renderHeatmapDemanda(dd){
@@ -4218,6 +4314,8 @@ function renderPersonal(){
     <td class="num" style="color:${d.L<1?'var(--danger)':'var(--success)'}">${(d.L*100-100).toFixed(1)}%</td>
     <td><span class="badge ${d.diff>=0?'b-green':'b-red'}">${d.diff>=0?'OK':Math.abs(d.diff)+' menos'}</span></td>
   </tr>`).join('');
+
+  renderPaletas('ax_paletas_pers','kpiPaletasPers');
 }
 
 // ═══════════════════════════════════════════════════
