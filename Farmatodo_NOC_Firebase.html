@@ -10263,6 +10263,82 @@ function setExpandPeriod(period) {
   renderExpandChart(period);
 }
 
+// ── Estado del modal de expandir (antes no existia → expandChart fallaba) ──
+var _expandState = { allLabels:[], allDatasets:[], period:'all', title:'', sub:'' };
+
+// Crea el modal de expandir una sola vez (no existia en el HTML).
+function _ensureExpandModal(){
+  if(document.getElementById('expand-modal')) return;
+  var ov = document.createElement('div');
+  ov.id = 'expand-modal';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,15,45,0.55);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;padding:2vh 2vw;';
+  ov.innerHTML =
+    '<div id="expand-box" style="background:#fff;border-radius:14px;width:96vw;max-width:1200px;height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,15,60,0.35);overflow:hidden;">'+
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:16px 20px 10px;border-bottom:1px solid rgba(0,48,135,0.08);">'+
+        '<div>'+
+          '<div id="expand-title" style="font-family:\'Inter\',sans-serif;font-weight:800;font-size:18px;color:#0D2D6B;"></div>'+
+          '<div id="expand-sub" style="font-size:12px;color:rgba(13,45,107,0.55);margin-top:2px;"></div>'+
+          '<div id="expand-legend" style="font-size:11px;margin-top:6px;"></div>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">'+
+          '<button onclick="dlExpandChart()" style="padding:7px 12px;border:1px solid rgba(0,71,200,0.2);border-radius:7px;background:rgba(0,71,200,0.06);color:#0047C8;font-size:11px;font-weight:700;cursor:pointer;">&#x2B07; PNG</button>'+
+          '<button onclick="closeExpand()" style="padding:7px 14px;border:none;border-radius:7px;background:#0D2D6B;color:#fff;font-size:14px;font-weight:800;cursor:pointer;line-height:1;">&#x2715;</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;padding:10px 20px;flex-wrap:wrap;">'+
+        '<button class="exp-period-btn" data-period="all"  onclick="setExpandPeriod(\'all\')">Todo</button>'+
+        '<button class="exp-period-btn" data-period="sem"  onclick="setExpandPeriod(\'sem\')">Semestre</button>'+
+        '<button class="exp-period-btn" data-period="trim" onclick="setExpandPeriod(\'trim\')">Trimestre</button>'+
+        '<button class="exp-period-btn" data-period="month"onclick="setExpandPeriod(\'month\')">Último mes</button>'+
+      '</div>'+
+      '<div style="flex:1;position:relative;padding:6px 20px 18px;min-height:0;"><canvas id="expand-canvas"></canvas></div>'+
+    '</div>';
+  document.body.appendChild(ov);
+  // Estilo base de los botones de periodo
+  ov.querySelectorAll('.exp-period-btn').forEach(function(b){
+    b.style.cssText = 'padding:6px 14px;border:1px solid rgba(0,71,200,0.2);border-radius:20px;background:transparent;color:rgba(0,48,135,0.65);font-size:11px;font-weight:700;font-family:\'Inter\',sans-serif;cursor:pointer;';
+  });
+}
+
+// Abre el modal con los datos de la grafica indicada.
+function expandChart(chartId, title, sub, legend){
+  _ensureExpandModal();
+  // Buscar la instancia: primero en el registro AX, luego por canvas (ROP/Ventanas)
+  var chart = (typeof AX!=='undefined' && AX[chartId]) ? AX[chartId] : null;
+  if(!chart && window.Chart && Chart.getChart){ try{ chart = Chart.getChart(chartId); }catch(e){} }
+  if(!chart){ alert('La gráfica aún no está lista. Ábrela una vez y reintenta.'); return; }
+
+  _expandState.title = title||'';
+  _expandState.sub   = sub||'';
+  _expandState.allLabels = (chart.data.labels||[]).slice();
+  _expandState.allDatasets = (chart.data.datasets||[]).map(function(ds){
+    return {
+      label: ds.label,
+      data: (ds.data||[]).slice(),
+      borderColor: ds.borderColor, backgroundColor: ds.backgroundColor,
+      borderWidth: ds.borderWidth, tension: ds.tension,
+      cubicInterpolationMode: ds.cubicInterpolationMode, fill: ds.fill,
+      pointRadius: ds.pointRadius, pointHoverRadius: ds.pointHoverRadius,
+      pointBackgroundColor: ds.pointBackgroundColor, pointBorderColor: ds.pointBorderColor,
+      pointBorderWidth: ds.pointBorderWidth, borderDash: ds.borderDash, spanGaps: ds.spanGaps,
+      showValueLabels: ds.showValueLabels, valueLabelFormat: ds.valueLabelFormat,
+      valueLabelColor: ds.valueLabelColor, yAxisID: ds.yAxisID
+    };
+  });
+
+  var t=document.getElementById('expand-title'); if(t) t.textContent=title||'';
+  var s=document.getElementById('expand-sub');   if(s) s.textContent=sub||'';
+  var lg=document.getElementById('expand-legend'); if(lg) lg.innerHTML=legend||'';
+  var modal=document.getElementById('expand-modal'); if(modal) modal.style.display='flex';
+  setExpandPeriod('all');
+}
+
+// Cierra el modal (antes no existia → los handlers de fondo/Escape fallaban).
+function closeExpand(){
+  var modal=document.getElementById('expand-modal'); if(modal) modal.style.display='none';
+  if(typeof _expandChart!=='undefined' && _expandChart){ try{_expandChart.destroy();}catch(e){} _expandChart=null; }
+}
+
 function renderExpandChart(period) {
   var allL  = _expandState.allLabels;
   var allDS = _expandState.allDatasets;
@@ -11538,7 +11614,7 @@ function renderChart_byPeriod(chartId, period) {
     chart.options.scales.x.offset = true; // adds half-bar padding before/after edges
   }
   // Padding: top for value labels, right/left for bar overflow
-  chart.options.layout = chart.options.layout || {};
+  if(!chart.options.layout) chart.options.layout = {}; // NO re-asignar el proxy a si mismo (causaba recursion infinita en Chart.js)
   chart.options.layout.padding = {left:20, right:56, top:28, bottom:4};
 
   chart.update('none'); // skip animation for instant redraw at correct size
