@@ -7580,6 +7580,7 @@ function _applyTrendAndLegend() {
   Object.keys(AX).forEach(function(k){
     var ch = AX[k];
     if (!ch || !ch.config) return;
+    if (ch._periodAgg) return; // en vista mensual/semanal la grafica maneja su propia leyenda y no lleva tendencia
     var t = ch.config.type;
     if (t !== 'line' && t !== 'bar') return;
     if (!ch.data || !ch.data.datasets || !ch.data.datasets.length) return;
@@ -11592,22 +11593,41 @@ function renderChart_byPeriod(chartId, period) {
     'ax_cumpl':   [function(g){return g._n>0?+((g._sumL/g._n)*100).toFixed(1):0;}],
     'ax_intransit':[function(g){return g._n>0?Math.round(g.J/g._n):0;}],
     'ax_tareas':  [function(g){return g.I;},function(g){return g.K;}],
-    'ax_fr':      [function(g){return g._n>0?+((g._sumS/g._n)*100).toFixed(2):0;}],
+    // ax_fr: dataset[0]=Canceladas (suma mensual, eje derecho), dataset[1]=Fill Rate
+    // (promedio %, eje izquierdo). Antes solo habia 1 builder y quedaba cruzado:
+    // escribia Fill Rate sobre Canceladas y multiplicaba Fill Rate x dias (99.8x20≈2000%),
+    // desbordando el eje y montandose sobre la leyenda.
+    'ax_fr':      [function(g){return g.T;},
+                   function(g){return g._n>0?+((g._sumS/g._n)*100).toFixed(2):0;}],
     'ax_cancel_diario':[function(g){return g.T;}],
-    'ax_pers':    [function(g){return g._n>0?+(g.M/g._n).toFixed(0):0;}],
+    // ax_pers: Real (promedio) + Necesario (promedio aprox = prom(M)/prom(L))
+    'ax_pers':    [function(g){return g._n>0?+(g.M/g._n).toFixed(0):0;},
+                   function(g){var aM=g._n>0?g.M/g._n:0,aL=g._n>0?g._sumL/g._n:1; return aL<1?Math.ceil(aM/aL):Math.round(aM);}],
   };
   var builders = DS_MAP[chartId];
   if (!builders) return;
+
+  // Quitar tendencias viejas: fueron calculadas sobre datos diarios y al agregar
+  // se escalan mal (se disparan). La vista agregada no las re-agrega.
+  chart.data.datasets = chart.data.datasets.filter(function(ds){ return !ds._isTrend; });
+  chart._periodAgg = true; // marca: _applyTrendAndLegend NO debe tocar esta grafica
 
   chart.data.labels = labels;
   builders.forEach(function(fn,idx){
     if(chart.data.datasets[idx]) chart.data.datasets[idx].data = grouped.map(fn);
   });
-  // Scale avg/extra datasets to period (daily avg × working days in group)
+  // Datasets extra = lineas de referencia (Meta 150, Meta 100%, Promedio...).
+  // Solo se multiplican x dias en graficas cuya barra principal es una SUMA
+  // (canceladas diario). En las de PROMEDIO la meta es CONSTANTE y NO se escala.
+  var SUM_BASED = { 'ax_cancel_diario':1 };
   chart.data.datasets.forEach(function(ds,idx){
     if(idx>=builders.length && ds.data && ds.data[0]!=null){
       var dailyVal = ds.data[0];
-      ds.data = grouped.map(function(g){ return Math.round(dailyVal * g._n); });
+      if(SUM_BASED[chartId]){
+        ds.data = grouped.map(function(g){ return Math.round(dailyVal * g._n); });
+      } else {
+        ds.data = grouped.map(function(){ return dailyVal; }); // meta constante
+      }
     }
   });
 
@@ -11620,7 +11640,21 @@ function renderChart_byPeriod(chartId, period) {
   }
   // Padding: top for value labels, right/left for bar overflow
   if(!chart.options.layout) chart.options.layout = {}; // NO re-asignar el proxy a si mismo (causaba recursion infinita en Chart.js)
-  chart.options.layout.padding = {left:20, right:56, top:28, bottom:4};
+  chart.options.layout.padding = {left:20, right:56, top:34, bottom:6};
+
+  // Headroom arriba: las barras y sus etiquetas no deben tocar/montar la leyenda.
+  if(chart.options.scales){
+    Object.keys(chart.options.scales).forEach(function(k){
+      var sc=chart.options.scales[k];
+      if(sc && k!=='x' && sc.max==null){ sc.grace='14%'; }
+    });
+  }
+  // Leyenda propia (no depende del intervalo global, que ademas se salta esta grafica)
+  if(chart.options.plugins){
+    chart.options.plugins.legend = { display:true, position:'bottom',
+      labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,
+              font:{size:10,family:'Montserrat'},color:'rgba(0,48,135,0.7)'} };
+  }
 
   chart.update('none'); // skip animation for instant redraw at correct size
 }
