@@ -7542,8 +7542,30 @@ function buildAnalytics() {
   });
 
   /* ── 7. STACKED COMPOSICIÓN ── */
+  // Plugin: dibuja el TOTAL de la pila encima de cada barra apilada.
+  var _stackTotalPlugin = {
+    id:'stackTotal',
+    afterDatasetsDraw: function(chart){
+      var ctx=chart.ctx;
+      var dss=chart.data.datasets;
+      var topMeta=chart.getDatasetMeta(dss.length-1); // dataset superior de la pila
+      if(!topMeta || !topMeta.data) return;
+      ctx.save();
+      ctx.font='800 11px Outfit,sans-serif';
+      ctx.fillStyle='rgba(0,30,98,.9)';
+      ctx.textAlign='center';
+      ctx.textBaseline='bottom';
+      topMeta.data.forEach(function(bar,i){
+        var total=dss.reduce(function(s,ds){return s+(+(ds.data[i]||0));},0);
+        if(!total) return;
+        ctx.fillText(total.toLocaleString('es-VE'), bar.x, bar.y-4);
+      });
+      ctx.restore();
+    }
+  };
   mkAN('anCstack', {
     type:'bar',
+    plugins:[_stackTotalPlugin],
     data: {
       labels: lb,
       datasets: [
@@ -7555,11 +7577,15 @@ function buildAnalytics() {
       ]
     },
     options: Object.assign({}, DK, {
+      layout: { padding: { top: 26 } }, // aire para el total encima de la pila
       plugins: Object.assign({}, DK.plugins, {
         legend: { display: true, labels: { font:{family:'Outfit,sans-serif',size:10}, color:'rgba(0,30,98,.65)', boxWidth:10, padding:14, usePointStyle:true } },
         tooltip: Object.assign({}, DK.plugins.tooltip, {
           mode: 'index',
-          callbacks: { label: function(ctx){ return '  '+ctx.dataset.label+': '+Number(ctx.parsed.y).toLocaleString('es-VE'); } }
+          callbacks: {
+            label: function(ctx){ return '  '+ctx.dataset.label+': '+Number(ctx.parsed.y).toLocaleString('es-VE'); },
+            footer: function(items){ var t=items.reduce(function(s,it){return s+(+it.parsed.y||0);},0); return 'TOTAL: '+t.toLocaleString('es-VE'); }
+          }
         })
       }),
       scales: {
@@ -7754,11 +7780,16 @@ function buildOnePage() {
   (typeof HIST!=='undefined'?HIST:[]).forEach(function(h){
     if(!h.date||!(h.total>0)) return;
     var m=h.date.split(' ')[0]; if(!_HMORD.includes(m)) return;
-    if(!_HM[m]){_HM[m]={dbo:[],ddym:[],alm:[],post4pm:[],efect:[],rop:[],items:[]};}
+    if(!_HM[m]){_HM[m]={dbo:[],ddym:[],alm:[],post4pm:[],efect:[],rop:[],items:[],total:[]};}
     _HM[m].dbo.push(h.dbo||0); _HM[m].ddym.push(h.ddym||0);
     _HM[m].alm.push(h.alm_real||0); _HM[m].post4pm.push(h.post4pm||0);
     var b=h.total+(h.items||0); _HM[m].efect.push(b>0?h.total/b:1);
     _HM[m].rop.push(h.rop||0); _HM[m].items.push(h.items||0);
+    // Total de tareas bajadas por noche = ROP + Top Off + Dem.BO + Dem.DYM + Almacenado
+    // (campo h.total; si faltara, se reconstruye desde sus componentes).
+    var _tot = (h.total!=null && h.total>0) ? h.total
+             : ((h.rop||0)+(h.topoff||0)+(h.dbo||0)+(h.ddym||0)+(h.alm_real||0));
+    _HM[m].total.push(_tot);
   });
   var _hmKeys=_HMORD.filter(function(m){return _HM[m];});
   function _hmAvg(field){ return _hmKeys.map(function(m){var a=_HM[m][field];return a.length?a.reduce(function(s,v){return s+v;},0)/a.length:0;}); }
@@ -7871,7 +7902,16 @@ function buildOnePage() {
         note: 'Promedio: '+opFmt(noches_rop>0?total_pal/noches_rop:0,0)+' paletas/noche con ROP activo.'
               +(noches_rop===0?' Sin noches ROP registradas en '+curMes+'.':'')
       };
-    })()
+    })(),
+    {
+      num:'7.', icon:'🚚', title:'TAREAS TOTALES BAJADAS / NOCHE', cls:'purple',
+      value: opFmt(d.avg_total,0), vcls:'purple',
+      desc: 'ROP + Top Off + Demanda BO/DYM + Almacenado, por noche',
+      progress: Math.min(100, d.avg_total/25),
+      spark: sparkFor('dbo'), rawSpark: _hmAvg('total').map(Math.round), sparkLabels:_hmLblShort, invertSpark:false, showTrend:true,
+      delta: pData ? opDelta(d.avg_total, pData.avg_total, false, pData.label) : '',
+      note: 'Total de tareas ejecutadas por noche entre todas las fuentes. Línea = tendencia lineal por mes.'
+    }
   ];
 
   (document.getElementById('op-kpi-grid')||{innerHTML:'',textContent:''}).innerHTML = cards.map(function(c) {
@@ -7907,9 +7947,24 @@ function buildOnePage() {
           +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+valY+'" text-anchor="middle" font-size="7.5" font-weight="800" fill="#ffffff" font-family="monospace">'+dispV+'</text>'
           +(lblTxt?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(HBAR+HLBL-1)+'" text-anchor="middle" font-size="8.5" font-weight="700" fill="#1e293b" opacity=".6" font-family="Outfit,sans-serif">'+lblTxt+'</text>':'');
       }).join('');
+      // Linea de TENDENCIA LINEAL (regresion minimos cuadrados) para tarjetas con showTrend
+      var trendSVG='';
+      if(c.showTrend && n>=2){
+        var _sx=0,_sy=0,_sxy=0,_sxx=0;
+        raw.forEach(function(val,i){ _sx+=i; _sy+=val; _sxy+=i*val; _sxx+=i*i; });
+        var _den=n*_sxx-_sx*_sx;
+        if(_den!==0){
+          var _sl=(n*_sxy-_sx*_sy)/_den, _ic=(_sy-_sl*_sx)/n;
+          function _tY(val){ var h=Math.max(0,(val-mn2)/rng2*(HBAR-14)+14); return (HBAR-h).toFixed(1); }
+          var _x0=(bw/2).toFixed(1), _y0=_tY(_ic);
+          var _xN=((n-1)*(bw+gap)+bw/2).toFixed(1), _yN=_tY(_sl*(n-1)+_ic);
+          trendSVG='<line x1="'+_x0+'" y1="'+_y0+'" x2="'+_xN+'" y2="'+_yN+'" stroke="#00875A" stroke-width="2" stroke-dasharray="6,4" opacity=".95" stroke-linecap="round"/>';
+        }
+      }
       sparkSVG='<svg viewBox="0 0 '+W+' '+SH+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:'+(SH+2)+'px;display:block;margin:8px 0 4px;" preserveAspectRatio="none">'
         +bars2
         +'<line x1="0" y1="'+avgY2+'" x2="'+W+'" y2="'+avgY2+'" stroke="#1e293b" stroke-width="1" stroke-dasharray="5,3" opacity=".18"/>'
+        +trendSVG
         +'</svg>';
     } else {
       // Fallback CSS bars (normalized)
