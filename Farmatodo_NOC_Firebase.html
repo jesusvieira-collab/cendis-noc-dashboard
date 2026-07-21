@@ -11631,16 +11631,19 @@ function renderChart_byPeriod(chartId, period) {
     }
   });
 
-  // ── Fix: prevent bar clipping on first/last bar in monthly/weekly mode ──
+  // CAUSA RAIZ del solape: clip:false permitia que las barras se dibujaran
+  // FUERA del area del grafico, tapando las etiquetas de mes y la leyenda de
+  // abajo. Con clip:true (mas offset:true en el eje X, que ya deja medio espacio
+  // en los bordes) las barras de los extremos no se recortan y nada se desborda.
   chart.data.datasets.forEach(function(ds){
-    ds.clip = false; // allow bars to render beyond plot area
+    ds.clip = true;
   });
   if(chart.options.scales && chart.options.scales.x){
     chart.options.scales.x.offset = true; // adds half-bar padding before/after edges
   }
   // Padding: top for value labels, right/left for bar overflow
   if(!chart.options.layout) chart.options.layout = {}; // NO re-asignar el proxy a si mismo (causaba recursion infinita en Chart.js)
-  chart.options.layout.padding = {left:20, right:56, top:34, bottom:6};
+  chart.options.layout.padding = {left:20, right:56, top:34, bottom:10};
 
   // Headroom arriba: las barras y sus etiquetas no deben tocar/montar la leyenda.
   if(chart.options.scales){
