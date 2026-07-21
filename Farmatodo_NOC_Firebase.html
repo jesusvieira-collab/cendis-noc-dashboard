@@ -4412,6 +4412,23 @@ function renderEjecutivo(){
   const _sk5 = _skByMes(dd=>Math.round(dd.reduce((s,d)=>s+(d.B||0),0)/dd.length));  // Tareas man
   const _sk6 = _skByMes(dd=>+(dd.reduce((s,d)=>s+(d.S||0),0)/dd.length*100).toFixed(2)); // FR
 
+  // ── Tareas DYM por noche (ROP DYM + Demanda DYM) — desde HIST (Almacenaje),
+  //    que es donde viven ambos campos por noche; alineado a los meses de datos.
+  const _M2FULL={ENE:'ENERO',FEB:'FEBRERO',MAR:'MARZO',ABR:'ABRIL',MAY:'MAYO',JUN:'JUNIO',JUL:'JULIO',AGO:'AGOSTO',SEP:'SEPTIEMBRE',OCT:'OCTUBRE',NOV:'NOVIEMBRE',DIC:'DICIEMBRE'};
+  function _histMesDym(abbr){ const full=_M2FULL[abbr]||abbr; return (typeof HIST!=='undefined'?HIST:[]).filter(h=>h.date && h.date.split(' ')[0]===full && ((h.rop_dym||0)>0||(h.ddym||0)>0)); }
+  function _avgF(arr,f){ return arr.length? arr.reduce((s,h)=>s+(h[f]||0),0)/arr.length : 0; }
+  const _skRopDym = _sMeses.map(m=>Math.round(_avgF(_histMesDym(m),'rop_dym')));
+  const _skTotDym = _sMeses.map(m=>{ const a=_histMesDym(m); return Math.round(_avgF(a,'ddym')+_avgF(a,'rop_dym')); });
+  const _curDymH = _histMesDym(MA.mes);
+  const _ropDymN = _avgF(_curDymH,'rop_dym');
+  const _demDymN = _avgF(_curDymH,'ddym');
+  const _totDymN = _ropDymN + _demDymN;
+  const _idxMA = _sMeses.indexOf(MA.mes);
+  const _ropDymAnt = _idxMA>0 ? _skRopDym[_idxMA-1] : 0;
+  const _totDymAnt = _idxMA>0 ? _skTotDym[_idxMA-1] : 0;
+  const d7 = delta(_ropDymN, _ropDymAnt);
+  const d8 = delta(_totDymN, _totDymAnt);
+
   cont.innerHTML = `
   <!-- ══ ONE PAGE EJECUTIVO ══ -->
   <div id="onepager" style="max-width:900px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;box-shadow:0 4px 24px rgba(13,45,107,.12);border:1px solid rgba(13,45,107,.08);">
@@ -4527,6 +4544,22 @@ function renderEjecutivo(){
         _sk6
       )}
 
+      ${buildKpiCard('7','TAREAS DE ROP DYM POR NOCHE','🎯',
+        Math.round(_ropDymN).toLocaleString()+' tareas/noche',
+        'promedio de ROP DYM ejecutado por turno',
+        d7, null,
+        `Reposición ROP de estanterías DYM por noche. Línea verde = tendencia anual · x̄ = promedio anual.`,
+        _skRopDym, true
+      )}
+
+      ${buildKpiCard('8','DYM TOTAL / NOCHE (DEMANDA + ROP)','🛒',
+        Math.round(_totDymN).toLocaleString()+' tareas/noche',
+        'Demanda DYM: '+Math.round(_demDymN).toLocaleString()+' · ROP DYM: '+Math.round(_ropDymN).toLocaleString()+' (prom/noche)',
+        d8, null,
+        `Total de tareas DYM por noche = Demanda DYM + ROP DYM. Línea verde = tendencia anual · x̄ = promedio anual.`,
+        _skTotDym, true
+      )}
+
     </div>
 
 
@@ -4550,7 +4583,7 @@ function renderEjecutivo(){
 
 // Construye cada card de indicador del one-pager
 /* ── Mini sparkline SVG mensual para One Page NOC ── */
-function nocSparkSVG(data, invertColor, labels) {
+function nocSparkSVG(data, invertColor, labels, showTrend) {
   if(!data||data.length<2) return '';
   var W=200,HBAR=62,HLBL=15,H=HBAR+HLBL,n=data.length,gap=3;
   var bw=(W-gap*(n-1))/n;
@@ -4575,15 +4608,30 @@ function nocSparkSVG(data, invertColor, labels) {
       +'<text x="'+cx+'" y="'+valY+'" text-anchor="middle" font-size="7.5" font-weight="800" fill="#ffffff" font-family="monospace">'+dispV+'</text>'
       +(lbl?'<text x="'+cx+'" y="'+(HBAR+HLBL-1)+'" text-anchor="middle" font-size="8.5" font-weight="700" fill="#0D2D6B" opacity=".6" font-family="Outfit,sans-serif">'+lbl+'</text>':'');
   }).join('');
+  // Linea de TENDENCIA LINEAL anual (regresion minimos cuadrados)
+  var trendSVG='';
+  if(showTrend && n>=2){
+    var sx=0,sy=0,sxy=0,sxx=0;
+    data.forEach(function(val,i){ sx+=i; sy+=val; sxy+=i*val; sxx+=i*i; });
+    var den=n*sxx-sx*sx;
+    if(den!==0){
+      var sl=(n*sxy-sx*sy)/den, ic=(sy-sl*sx)/n;
+      var tY=function(val){ var hh=Math.max(0,(val-mn)/rng*(HBAR-14)+14); return (HBAR-hh).toFixed(1); };
+      var x0=(bw/2).toFixed(1), y0=tY(ic);
+      var xN=((n-1)*(bw+gap)+bw/2).toFixed(1), yN=tY(sl*(n-1)+ic);
+      trendSVG='<line x1="'+x0+'" y1="'+y0+'" x2="'+xN+'" y2="'+yN+'" stroke="#00875A" stroke-width="2" stroke-dasharray="6,4" opacity=".92" stroke-linecap="round"/>';
+    }
+  }
   return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:'+(H+2)+'px;display:block;margin:10px 0 2px;" preserveAspectRatio="none">'
     +bars
     +'<line x1="0" y1="'+avgY+'" x2="'+W+'" y2="'+avgY+'" stroke="#0D2D6B" stroke-width="1" stroke-dasharray="5,3" opacity=".2"/>'
+    +trendSVG
     +'</svg>';
 }
 var _SPARK_MES_LABELS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 function _nocSparkLabels(){ return (typeof _sMeses!=='undefined'?_sMeses:[]).map(function(m){return _SPARK_MES_LABELS[['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'].indexOf(m)]||m.slice(0,3);}); }
 
-function buildKpiCard(num, titulo, icon, valor, sublabel, deltaObj, buenoCuandoSube, nota, sparkValues){
+function buildKpiCard(num, titulo, icon, valor, sublabel, deltaObj, buenoCuandoSube, nota, sparkValues, showTrend){
   // buenoCuandoSube: true=verde cuando sube, false=rojo cuando sube, null=neutro
   let deltaColor = 'var(--muted)';
   if(deltaObj.up !== null && buenoCuandoSube !== null){
@@ -4592,7 +4640,7 @@ function buildKpiCard(num, titulo, icon, valor, sublabel, deltaObj, buenoCuandoS
   }
   const sinAnterior = !deltaObj || deltaObj.pct === 0 && deltaObj.txt.includes('sin');
   // sparkline: redWhenHigh = true cuando subir es malo
-  const sparkHtml = sparkValues&&sparkValues.length>1 ? nocSparkSVG(sparkValues, buenoCuandoSube===false, typeof _nocSparkLabels==='function'?_nocSparkLabels():[]) : '';
+  const sparkHtml = sparkValues&&sparkValues.length>1 ? nocSparkSVG(sparkValues, buenoCuandoSube===false, typeof _nocSparkLabels==='function'?_nocSparkLabels():[], showTrend) : '';
 
   // % vs Promedio Anual (promedio de todos los meses vs el mes actual = último valor)
   let vsAnualHtml = '';
