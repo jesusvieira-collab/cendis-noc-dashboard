@@ -4189,6 +4189,11 @@ function renderCanceladas(){
 
   // 7. Heatmap canceladas Lun-Vie
   renderCancelHeatmap(dd, avgCDS);
+
+  // Aplicar tendencia + leyenda de inmediato (no esperar al intervalo de 3s),
+  // asi la leyenda de estas graficas aparece desde el primer render, tambien
+  // en movil.
+  if(typeof _applyTrendAndLegend==='function') setTimeout(_applyTrendAndLegend, 150);
 }
 
 function renderCancelHeatmap(dd, avgCDS){
@@ -5344,18 +5349,17 @@ function renderROP() {
   if(trendVals){
     datasets.push({
       label:'Tendencia lineal',
+      type:'line',              // SIEMPRE linea, aunque la grafica base sea de barras
       data: trendVals,
       borderColor: '#00875A',
-      borderWidth: 2,
+      borderWidth: 2.5,
       borderDash: [7,4],
-      pointRadius: 4,
-      pointBackgroundColor: '#00875A',
-      pointBorderColor: '#ffffff',
-      pointBorderWidth: 2,
+      pointRadius: 0,           // linea limpia, sin puntos
+      pointHoverRadius: 0,
       fill: false,
-      tension: 0.45,
-      cubicInterpolationMode:'monotone',
+      tension: 0,               // recta (regresion lineal), sin curvatura
       spanGaps: true,
+      order: 0,                 // dibujar la linea por encima de las barras
       showValueLabels: false
     });
   }
@@ -7231,7 +7235,7 @@ function anTrend(data) {
 function anTrendDs(data,color) {
   var td=anTrend(data); if(!td) return {label:'',data:[],type:'line',pointRadius:0,borderColor:'transparent',fill:false};
   return {label:'Tendencia',data:td,type:'line',borderColor:color||'rgba(220,38,38,.5)',
-          borderWidth:1.8,borderDash:[5,3],pointRadius:0,fill:false,tension:0.3,spanGaps:true};
+          borderWidth:1.8,borderDash:[5,3],pointRadius:0,fill:false,tension:0,spanGaps:true,order:0};
 }
 function buildAnalytics() {
   // Ensure month selector is populated
