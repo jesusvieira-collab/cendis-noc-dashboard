@@ -10265,6 +10265,7 @@ function setExpandPeriod(period) {
 
 // ── Estado del modal de expandir (antes no existia → expandChart fallaba) ──
 var _expandState = { allLabels:[], allDatasets:[], period:'all', title:'', sub:'' };
+var _expandChart = null; // declarada aqui: renderExpandChart la LEE antes de asignarla (si no, ReferenceError)
 
 // Crea el modal de expandir una sola vez (no existia en el HTML).
 function _ensureExpandModal(){
