@@ -8269,7 +8269,15 @@ function ROW(ctx,lbl,val,y,vc){
 function drawCard1(canvas) {
   /* Dynamic height */
   var pend=D.items||0, bo=D.bo_pend||0, dym=D.dym_pend||0;
-  var CH1 = 160 + 56+180+240+60+18 + 56+92+(2*120)+18 + 56+196+18 + 56+110+60 + 220;
+  // Categorias de participacion (se define antes para dimensionar la tarjeta)
+  var _partTot=D.total||1;
+  var _partCats=[
+    {l:'Demanda BO + DYM',v:(D.dbo||0)+(D.ddym||0),c:'#1A5CA8'},
+    {l:'ROP',v:D.rop||0,c:'#16a34a'},
+    {l:'Almacenado',v:D.alm_real||0,c:'#d97706'},
+    {l:'Top Off',v:D.topoff||0,c:'#0891b2'}
+  ].filter(function(c){return c.v>0;});
+  var CH1 = 160 + 56+180+240+60+18 + 56+92+(2*120)+18 + 56+196+18 + 56+110+60 + (18+58+_partCats.length*72+70);
   canvas.width=1080; canvas.height=CH1;
   var ctx=canvas.getContext('2d'), CW=1080;
   var eb=D.total+pend, ep=eb>0?Math.round(D.total/eb*100):0;
@@ -8348,39 +8356,26 @@ function drawCard1(canvas) {
   y+=100;
   _T(ctx,'TOTAL: '+fN(D.total),CW/2,y+36,'bold 54px Bebas Neue,sans-serif','#16a34a','center');
   y+=58;
-  // ── % Participación por actividad ──
+  // ── % Participación por actividad (filas grandes, legibles a simple vista) ──
   _sep(ctx,y,CW); y+=18;
   _st(ctx,'📊 % PARTICIPACIÓN POR ACTIVIDAD',y+34,CW,'#1A5CA8'); _sep(ctx,y+42,CW); y+=58;
-  var tot1=D.total||1;
-  var cats=[
-    {l:'BO + DYM',v:(D.dbo||0)+(D.ddym||0),c:'#1A5CA8'},
-    {l:'ROP',v:D.rop||0,c:'#16a34a'},
-    {l:'Almacenado',v:D.alm_real||0,c:'#d97706'},
-    {l:'Top Off',v:D.topoff||0,c:'#0891b2'},
-  ].filter(function(c){return c.v>0;});
-  // Stacked bar total
-  var barW=CW-56, barH=40, bx=28;
-  ctx.fillStyle='#f1f5f9'; ctx.beginPath(); ctx.roundRect(28,y,barW,barH,barH/2); ctx.fill();
-  cats.forEach(function(cat){
-    var w=Math.max(0,barW*cat.v/tot1);
-    ctx.fillStyle=cat.c; ctx.fillRect(bx,y,w,barH); bx+=w;
-  });
-  // Round edges
-  ctx.save(); ctx.beginPath(); ctx.roundRect(28,y,barW,barH,barH/2); ctx.clip();
-  cats.forEach(function(cat){ var w=Math.max(0,barW*cat.v/tot1); ctx.fillStyle=cat.c; ctx.fillRect(28,y,bx,barH); });
+  // Barra apilada de referencia (delgada, arriba)
+  var _barW=CW-56, _barH=22, _bx=28;
+  ctx.save(); ctx.beginPath(); ctx.roundRect(28,y,_barW,_barH,_barH/2); ctx.clip();
+  ctx.fillStyle='#f1f5f9'; ctx.fillRect(28,y,_barW,_barH);
+  _partCats.forEach(function(cat){ var w=Math.max(0,_barW*cat.v/_partTot); ctx.fillStyle=cat.c; ctx.fillRect(_bx,y,w,_barH); _bx+=w; });
   ctx.restore();
-  y+=barH+14;
-  // Labels row
-  var lx=28;
-  cats.forEach(function(cat){
-    var pct=Math.round(cat.v/tot1*100);
-    ctx.fillStyle=cat.c; ctx.beginPath(); ctx.roundRect(lx,y,14,14,3); ctx.fill();
-    ctx.fillStyle='#0f172a'; ctx.font='500 17px Outfit,sans-serif'; ctx.textAlign='left';
-    ctx.fillText(cat.l+' '+pct+'%  '+fN(cat.v), lx+20, y+12);
-    lx += ctx.measureText(cat.l+' '+pct+'%  '+fN(cat.v)).width + 36;
-    if(lx > CW-200){ lx=28; y+=24; }
+  y+=_barH+16;
+  // Una fila grande por actividad: chip + nombre 28px + tareas + % 50px
+  _partCats.forEach(function(cat){
+    var pct=Math.round(cat.v/_partTot*100);
+    _rr(ctx,28,y,CW-56,62,12,'#f8fafc','#e2e8f0');
+    ctx.fillStyle=cat.c; ctx.beginPath(); ctx.roundRect(28,y,10,62,[6,0,0,6]); ctx.fill();
+    _T(ctx,cat.l,60,y+40,'bold 28px Outfit,sans-serif','#0f172a','left');
+    _T(ctx,fN(cat.v)+' tareas',CW-150,y+40,'600 22px Outfit,sans-serif','#64748b','right');
+    _T(ctx,pct+'%',CW-44,y+48,'bold 50px Bebas Neue,sans-serif',cat.c,'right');
+    y+=62+10;
   });
-  y+=28;
   _sep(ctx,CH1-42,CW);
   _T(ctx,'Farmatodo CD · v4 · 1/4',CW/2,CH1-16,'16px JetBrains Mono,monospace','#94a3b8','center');
 }
@@ -8417,12 +8412,12 @@ function drawCard2(canvas) {
     _rr(ctx,28,y,CW-56,ZH,14,'#f8fafc','#e2e8f0');
     ctx.fillStyle=_zC(p); ctx.beginPath(); ctx.roundRect(28,y,10,ZH,[6,0,0,6]); ctx.fill();
     _T(ctx,z.z,56,y+54,'bold 50px Bebas Neue,sans-serif','#0f172a','left');
-    _T(ctx,fN(z.l)+' libres  /  '+fN(z.t)+' total',56,y+88,'500 20px Outfit,sans-serif','#64748b','left');
+    _T(ctx,fN(z.l)+' libres  /  '+fN(z.t)+' total',56,y+90,'600 25px Outfit,sans-serif','#475569','left');
     ctx.fillStyle='#e2e8f0'; ctx.beginPath(); ctx.roundRect(56,y+100,CW-290,14,7); ctx.fill();
     ctx.fillStyle=_zC(p); ctx.beginPath(); ctx.roundRect(56,y+100,Math.max(6,(CW-290)*p/100),14,7); ctx.fill();
     _T(ctx,p+'%',CW-44,y+100,'bold 58px Bebas Neue,sans-serif',_zC(p),'right');
-    _rr(ctx,CW-200,y+112,172,34,17,_zB(p),null);
-    _T(ctx,_zL(p),CW-114,y+132,'bold 17px Outfit,sans-serif',_zC(p),'center');
+    _rr(ctx,CW-210,y+108,182,40,20,_zB(p),null);
+    _T(ctx,_zL(p),CW-119,y+134,'bold 21px Outfit,sans-serif',_zC(p),'center');
     y+=ZH+ZG;
   });
   _sep(ctx,CH2-42,CW);
@@ -8453,7 +8448,7 @@ function drawCard3(canvas) {
   y += 56;
 
   _rr(ctx, 28, y, CW-56, 78, 14, '#fffbeb', '#fde68a');
-  _T(ctx, 'TOTAL EN TRÁNSITO', 52, y+28, 'bold 22px Outfit,sans-serif', '#92400e', 'left');
+  _T(ctx, 'TOTAL EN TRÁNSITO', 52, y+30, 'bold 26px Outfit,sans-serif', '#92400e', 'left');
   _T(ctx, fN(itT), CW-44, y+68, 'bold 64px Bebas Neue,sans-serif', '#d97706', 'right');
   y += 94;
   _sep(ctx, y, CW);
@@ -8468,7 +8463,7 @@ function drawCard3(canvas) {
     _rr(ctx, 28, y, CW-56, RH, 14, bg, bc);
 
     /* Etiqueta PISO */
-    _T(ctx, 'PISO', CW/2, y+34, 'bold 18px Outfit,sans-serif', '#94a3b8', 'center');
+    _T(ctx, 'PISO', CW/2, y+36, 'bold 24px Outfit,sans-serif', '#94a3b8', 'center');
 
     /* Letra del piso grande */
     _T(ctx, p, CW/2, y+96, 'bold 70px Bebas Neue,sans-serif',
@@ -8515,11 +8510,11 @@ function drawCard4(canvas) {
 
   /* EN JORNADA label */
   _rr(ctx,28,y,CW-56,36,8,'#f0fdf4',null);
-  _T(ctx,'EN JORNADA',48,y+24,'bold 18px Outfit,sans-serif','#16a34a','left');
+  _T(ctx,'EN JORNADA',48,y+25,'bold 22px Outfit,sans-serif','#16a34a','left');
   y+=44;
   mActivos.forEach(function(r) {
     _sep(ctx,y,CW); y+=4;
-    _T(ctx,r[0],52,y+38,'500 22px Outfit,sans-serif','#334155','left');
+    _T(ctx,r[0],52,y+40,'600 27px Outfit,sans-serif','#334155','left');
     _T(ctx,fN(r[1]),CW-44,y+38,'bold 40px Bebas Neue,sans-serif','#0f172a','right');
     y+=50;
   });
@@ -8531,11 +8526,11 @@ function drawCard4(canvas) {
 
   /* NO ACTIVOS label */
   _rr(ctx,28,y,CW-56,36,8,'#f8fafc',null);
-  _T(ctx,'NO ACTIVOS',48,y+24,'bold 18px Outfit,sans-serif','#94a3b8','left');
+  _T(ctx,'NO ACTIVOS',48,y+25,'bold 22px Outfit,sans-serif','#94a3b8','left');
   y+=44;
   mNoActivos.forEach(function(r) {
     _sep(ctx,y,CW); y+=4;
-    _T(ctx,'↪  '+r[0],52,y+38,'500 22px Outfit,sans-serif','#94a3b8','left');
+    _T(ctx,'↪  '+r[0],52,y+40,'600 27px Outfit,sans-serif','#94a3b8','left');
     _T(ctx,fN(r[1]),CW-44,y+38,'bold 40px Bebas Neue,sans-serif','#94a3b8','right');
     y+=50;
   });
@@ -8543,11 +8538,11 @@ function drawCard4(canvas) {
   _st(ctx,'📋 REPOSITORES FTD',y+34,CW,'#003087'); _sep(ctx,y+42,CW); y+=56;
   /* EN JORNADA */
   _rr(ctx,28,y,CW-56,36,8,'#f0fdf4',null);
-  _T(ctx,'EN JORNADA',48,y+24,'bold 18px Outfit,sans-serif','#16a34a','left');
+  _T(ctx,'EN JORNADA',48,y+25,'bold 22px Outfit,sans-serif','#16a34a','left');
   y+=44;
   [['Personal FTD',P.ftd||0],['Serviexpress',P.servix||0]].forEach(function(r) {
     _sep(ctx,y,CW); y+=4;
-    _T(ctx,r[0],52,y+38,'500 22px Outfit,sans-serif','#334155','left');
+    _T(ctx,r[0],52,y+40,'600 27px Outfit,sans-serif','#334155','left');
     _T(ctx,fN(r[1]),CW-44,y+38,'bold 40px Bebas Neue,sans-serif','#0f172a','right');
     y+=50;
   });
@@ -8558,11 +8553,11 @@ function drawCard4(canvas) {
   y+=84;
   /* NO ACTIVOS */
   _rr(ctx,28,y,CW-56,36,8,'#f8fafc',null);
-  _T(ctx,'NO ACTIVOS',48,y+24,'bold 18px Outfit,sans-serif','#94a3b8','left');
+  _T(ctx,'NO ACTIVOS',48,y+25,'bold 22px Outfit,sans-serif','#94a3b8','left');
   y+=44;
   rRows.forEach(function(r) {
     _sep(ctx,y,CW); y+=4;
-    _T(ctx,'↪  '+r[0],52,y+38,'500 22px Outfit,sans-serif','#94a3b8','left');
+    _T(ctx,'↪  '+r[0],52,y+40,'600 27px Outfit,sans-serif','#94a3b8','left');
     _T(ctx,fN(r[1]),CW-44,y+38,'bold 40px Bebas Neue,sans-serif','#94a3b8','right');
     y+=50;
   });
