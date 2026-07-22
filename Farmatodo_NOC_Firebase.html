@@ -7828,7 +7828,7 @@ function buildOnePage() {
   (typeof HIST!=='undefined'?HIST:[]).forEach(function(h){
     if(!h.date||!(h.total>0)) return;
     var m=h.date.split(' ')[0]; if(!_HMORD.includes(m)) return;
-    if(!_HM[m]){_HM[m]={dbo:[],ddym:[],alm:[],post4pm:[],efect:[],rop:[],items:[],total:[]};}
+    if(!_HM[m]){_HM[m]={dbo:[],ddym:[],alm:[],post4pm:[],efect:[],rop:[],items:[],total:[],libpct:[]};}
     _HM[m].dbo.push(h.dbo||0); _HM[m].ddym.push(h.ddym||0);
     _HM[m].alm.push(h.alm_real||0); _HM[m].post4pm.push(h.post4pm||0);
     var b=h.total+(h.items||0); _HM[m].efect.push(b>0?h.total/b:1);
@@ -7838,6 +7838,11 @@ function buildOnePage() {
     var _tot = (h.total!=null && h.total>0) ? h.total
              : ((h.rop||0)+(h.topoff||0)+(h.dbo||0)+(h.ddym||0)+(h.alm_real||0));
     _HM[m].total.push(_tot);
+    // % de ubicaciones libres del almacen esa noche = sum(libres)/sum(total) de las zonas
+    if(h.zones && h.zones.length){
+      var _tl=0,_tt=0; h.zones.forEach(function(z){ _tl+=(z.l||0); _tt+=(z.t||0); });
+      if(_tt>0) _HM[m].libpct.push(+(_tl/_tt*100).toFixed(1));
+    }
   });
   var _hmKeys=_HMORD.filter(function(m){return _HM[m];});
   function _hmAvg(field){ return _hmKeys.map(function(m){var a=_HM[m][field];return a.length?a.reduce(function(s,v){return s+v;},0)/a.length:0;}); }
@@ -7959,7 +7964,32 @@ function buildOnePage() {
       spark: sparkFor('dbo'), rawSpark: _hmAvg('total').map(Math.round), sparkLabels:_hmLblShort, invertSpark:false, showTrend:true,
       delta: pData ? opDelta(d.avg_total, pData.avg_total, false, pData.label) : '',
       note: 'Total de tareas ejecutadas por noche entre todas las fuentes. Línea = tendencia lineal por mes.'
-    }
+    },
+    (function(){
+      // % ubicaciones libres del almacen: promedio del mes seleccionado + serie mensual
+      var _libMes = _hmAvg('libpct');                 // promedio mensual (todo el anio)
+      var _libSelKey = OP_MES;                         // mes seleccionado (nombre completo)
+      var _libSel = (_HM[_libSelKey] && _HM[_libSelKey].libpct.length)
+        ? _HM[_libSelKey].libpct.reduce(function(s,v){return s+v;},0)/_HM[_libSelKey].libpct.length
+        : (_libMes.length ? _libMes[_libMes.length-1] : 0);
+      // Promedio anual y ocupacion
+      var _libAnual = _libMes.length ? _libMes.reduce(function(s,v){return s+v;},0)/_libMes.length : 0;
+      var _ocup = 100 - _libSel;
+      // Analisis breve segun nivel de ocupacion
+      var _analisis;
+      if(_libSel < 12)      _analisis = '🔴 Almacén muy saturado ('+_ocup.toFixed(0)+'% ocupado): riesgo de quiebre de espacio; priorizar despacho y compactación.';
+      else if(_libSel < 25) _analisis = '🟡 Ocupación alta ('+_ocup.toFixed(0)+'% ocupado): holgura ajustada, vigilar entradas de PR.';
+      else                  _analisis = '🟢 Holgura saludable ('+_ocup.toFixed(0)+'% ocupado): capacidad disponible para recibir mercancía.';
+      return {
+        num:'8.', icon:'📍', title:'UBICACIONES LIBRES DEL ALMACÉN', cls:'green',
+        value: opFmt(_libSel,1)+'%', vcls:'green',
+        desc: 'Promedio de espacios libres (BO · BO/DYM · DYM · EA · O/S) por noche',
+        progress: Math.min(100, _libSel),
+        spark: sparkFor('dbo'), rawSpark: _libMes.map(function(v){return +v.toFixed(1);}), sparkLabels:_hmLblShort, invertSpark:false, showTrend:true,
+        delta: '',
+        note: _analisis+' Promedio anual: '+_libAnual.toFixed(1)+'% libre. Línea = tendencia por mes.'
+      };
+    })()
   ];
 
   (document.getElementById('op-kpi-grid')||{innerHTML:'',textContent:''}).innerHTML = cards.map(function(c) {
