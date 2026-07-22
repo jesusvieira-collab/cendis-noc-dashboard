@@ -1788,6 +1788,17 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         console.log('[Firebase] HIST cargado:', histData.length, 'registros');
       }
     }
+    // Autorregenerar Almacenaje desde Reposición: si hay jornadas en datos con
+    // datos V22 que faltan en HIST (p.ej. v22_hist se borró), se reconstruyen y
+    // se guardan de vuelta en la nube para que Analytics las muestre.
+    try {
+      if (typeof mergeV22toHIST === 'function' && mergeV22toHIST()) {
+        try { if (typeof anPopulateMeses === 'function') anPopulateMeses(); } catch(e) {}
+        try { if (typeof buildAnalytics === 'function') buildAnalytics(); } catch(e) {}
+        try { if (typeof save === 'function') save(); } catch(e) {}
+        console.log('[Firebase] Almacenaje autorregenerado desde Reposición.');
+      }
+    } catch(e){ console.warn('mergeV22toHIST init error:', e); }
 
     // 3. MontaTrack db{}
     const montaData = await window.fbLoad('monta_db', 'main');
@@ -1832,6 +1843,9 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       // cuando otro dispositivo agrega una jornada nueva en tiempo real.
       try { if (typeof actualizarMeses === 'function') actualizarMeses(); } catch(e) {}
       try { if (typeof renderDashboard === 'function') renderDashboard(); } catch(e) {}
+      // Autorregenerar Almacenaje en memoria (sin guardar aquí para evitar bucles);
+      // la próxima carga o guardado persiste los días derivados.
+      try { if (typeof mergeV22toHIST === 'function') mergeV22toHIST(); } catch(e) {}
       console.log('[Firebase] NOC datos actualizados en tiempo real');
     });
 
@@ -11624,10 +11638,58 @@ function buildOpMesSelector() {
 }
 
 // ── Merge V22_HIST seed into HIST (called on demand) ──
+// Convierte un registro de Reposición (datos[]) a un registro de Almacenaje (HIST)
+// usando los campos V22 que la carga unificada guarda en NOC. Es PARCIAL (trae
+// total, quedan, ventanas, ROP y canceladas; demanda BO/DYM/zonas/pisos quedan
+// en 0 hasta que se re-pegue el cuadro completo de Almacenaje), pero es
+// suficiente para que la jornada APAREZCA y se cuente en Analytics.
+function _nocToHist(d){
+  var iso=d.fecha||''; var p=iso.split('-');
+  var M=['','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  var date=(M[parseInt(p[1])]||'')+' '+parseInt(p[2]);
+  return {
+    date:date, fecha:iso,
+    total:d.v22_total||0, turno:d.pr_turno||0, quedan:d.quedan||0,
+    alm_pr:d.pr_alm||0, alm_real:d.pr_alm||0,
+    ventanas:d.v22_ventanas||d.ventanas||0,
+    rop:d.v22_rop||d.rop_paletas||0, rop_bo:d.rop_bo||0, rop_dym:d.rop_dym||0,
+    canceladas:d.T||0,
+    dbo:0, ddym:0, intransit:0, items:0, items_cero:0, post4pm:0, may3d:0,
+    unloc:0, mm:0, topoff:0, doors:{}, zones:[], personal:{},
+    _derivedFromNoc:true
+  };
+}
+
+// Sincroniza Almacenaje (HIST) con lo cargado en Reposición (datos): agrega a
+// HIST cualquier jornada que exista en datos con datos V22 pero que falte en
+// HIST. Devuelve true si agregó/actualizó algo. NO sobrescribe registros de
+// HIST que ya tengan datos reales (solo rellena huecos o mejora registros que
+// eran derivados). Esto hace que Almacenaje se autorregenere desde Reposición
+// aunque v22_hist se haya borrado.
 function mergeV22toHIST() {
-  if(typeof HIST === 'undefined' || typeof V22_HIST === 'undefined') return;
-  var ed = new Set(HIST.map(function(h){ return h.date; }));
-  V22_HIST.forEach(function(h){ if(!ed.has(h.date) && (h.total>0||h.turno>0)) HIST.push(h); });
+  if(typeof HIST === 'undefined') return false;
+  var changed=false;
+  var byDate={};
+  HIST.forEach(function(h){ if(h && h.date) byDate[h.date]=h; });
+  // 1) Merge del seed hardcodeado (comportamiento previo)
+  if(typeof V22_HIST!=='undefined'){
+    V22_HIST.forEach(function(h){ if(h && h.date && !byDate[h.date] && (h.total>0||h.turno>0)){ HIST.push(h); byDate[h.date]=h; changed=true; } });
+  }
+  // 2) Reconstruir desde Reposición (datos[]) los días V22 que falten
+  if(typeof datos!=='undefined'){
+    datos.forEach(function(d){
+      if(!d || !d.fecha) return;
+      var tieneV22 = (d.v22_total>0)||(d.quedan>0)||(d.pr_turno>0)||(d.v22_ventanas>0)||(d.v22_rop>0);
+      if(!tieneV22) return;
+      var rec=_nocToHist(d);
+      var ex=byDate[rec.date];
+      if(!ex){ HIST.push(rec); byDate[rec.date]=rec; changed=true; }
+      else if(ex._derivedFromNoc){
+        // Actualizar el derivado con los últimos valores (sin pisar uno real)
+        Object.keys(rec).forEach(function(k){ ex[k]=rec[k]; }); changed=true;
+      }
+    });
+  }
   HIST.sort(function(a,b){ 
     var ORDER=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
     var am=a.date.split(' ')[0], bm=b.date.split(' ')[0];
@@ -11637,6 +11699,7 @@ function mergeV22toHIST() {
   });
   CUR = HIST.length - 1;
   if(HIST[CUR]) D = Object.assign({}, HIST[CUR]);
+  return changed;
 }
 
 
