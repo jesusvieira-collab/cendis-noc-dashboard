@@ -1812,6 +1812,15 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       console.log('[Firebase] Vitácora cargada:', vitData.length, 'eventos');
     }
 
+    // 5. Unidades despachadas por mes (captura manual)
+    const despData = await window.fbLoad('desp_data', 'main');
+    if (despData && typeof despData === 'object') {
+      Object.keys(despData).forEach(function(k){ window.DESP_DATA[k] = despData[k]; });
+      try { localStorage.setItem('ftd_desp_data', JSON.stringify(window.DESP_DATA)); } catch(e){}
+      try { if (typeof renderDespList === 'function') renderDespList(); } catch(e){}
+      console.log('[Firebase] Unidades despachadas cargadas');
+    }
+
     // Escuchar cambios en tiempo real
     window.fbListen('noc_datos', 'main', function(newData) {
       if (!newData || !newData.length) return;
@@ -1824,6 +1833,15 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       try { if (typeof actualizarMeses === 'function') actualizarMeses(); } catch(e) {}
       try { if (typeof renderDashboard === 'function') renderDashboard(); } catch(e) {}
       console.log('[Firebase] NOC datos actualizados en tiempo real');
+    });
+
+    window.fbListen('desp_data', 'main', function(nd) {
+      if (!nd || typeof nd !== 'object') return;
+      for (var k in window.DESP_DATA) delete window.DESP_DATA[k];
+      Object.keys(nd).forEach(function(k){ window.DESP_DATA[k] = nd[k]; });
+      try { localStorage.setItem('ftd_desp_data', JSON.stringify(window.DESP_DATA)); } catch(e){}
+      try { if (typeof renderDespList === 'function') renderDespList(); } catch(e){}
+      try { if (typeof renderEjecutivo === 'function' && document.getElementById('execReport') && document.getElementById('execReport').offsetParent!==null) renderEjecutivo(); } catch(e){}
     });
 
     window.fbListen('v22_hist', 'main', function(newData) {
@@ -2266,6 +2284,25 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 
   <!-- Tabla histórico NOC (ya existe) -->
   <div style="margin-top:16px;" id="u_tabla_wrap"></div>
+
+  <!-- ── Unidades despachadas por mes (para % de cancelación proporcional) ── -->
+  <div class="fsec" style="border-left:3px solid #00875A;margin-top:16px;">
+    <div class="fsec-title" style="color:#00875A;">&#x1F69A; Unidades despachadas por mes (promedio/día)</div>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Carga el <b>promedio de unidades despachadas por día</b> en cada mes. Sirve para calcular en el One Page de Reposición el <b>% de cancelación proporcional</b> (canceladas &divide; despachadas) y comparar la productividad contra la carga real de trabajo. Puedes cargar este mes y los meses anteriores para construir el promedio y % anual.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+      <div><label style="display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;">Mes</label>
+        <select id="desp_mes" style="padding:8px 10px;border:1px solid rgba(0,71,200,.25);border-radius:8px;font-size:12px;color:#001F60;background:#F8FAFF;">
+          <option value="ENE">Enero</option><option value="FEB">Febrero</option><option value="MAR">Marzo</option><option value="ABR">Abril</option><option value="MAY">Mayo</option><option value="JUN">Junio</option><option value="JUL" selected>Julio</option><option value="AGO">Agosto</option><option value="SEP">Septiembre</option><option value="OCT">Octubre</option><option value="NOV">Noviembre</option><option value="DIC">Diciembre</option>
+        </select>
+      </div>
+      <div><label style="display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;">Unidades despachadas / día (promedio)</label>
+        <input id="desp_val" type="text" inputmode="numeric" placeholder="ej. 100000" style="padding:8px 10px;border:1px solid rgba(0,71,200,.25);border-radius:8px;font-size:12px;color:#001F60;background:#F8FAFF;width:170px;">
+      </div>
+      <button onclick="guardarDespacho()" class="btn btn-primary" style="padding:9px 18px;font-size:12px;font-weight:800;background:#00875A;border:none;color:#fff;border-radius:8px;cursor:pointer;">&#x1F4BE; Guardar mes</button>
+      <div id="desp_msg" style="font-size:11px;color:#00875A;font-weight:700;min-height:14px;"></div>
+    </div>
+    <div id="desp_list" style="margin-top:12px;"></div>
+  </div>
 </div>
 
 <div id="page-demanda" class="page">
@@ -3183,6 +3220,10 @@ const VENT_DATA=[{"f":"2025-01-05","v":154,"r":0},{"f":"2025-01-06","v":258,"r":
 const KEY = 'ftd_noc_v5';  // v5: incluye datos Abril 2026
 let datos = JSON.parse(localStorage.getItem(KEY) || '[]');
 let mesFiltro = 'ALL';
+// Unidades despachadas por dia (promedio) por mes, capturadas manualmente por el
+// usuario. Clave = abreviatura de mes (ENE, FEB, ...). Se usa para el % de
+// cancelacion proporcional (canceladas/dia ÷ despachadas/dia) en el One Page.
+var DESP_DATA = JSON.parse(localStorage.getItem('ftd_desp_data') || '{}');
 // Combina el arreglo local con la ultima copia de Firebase antes de guardar,
 // tomando como base TODAS las fechas que existan en cualquiera de los dos
 // (Firebase gana para fechas que este dispositivo no tiene localmente; el
@@ -4330,6 +4371,53 @@ function renderPersonal(){
 // ═══════════════════════════════════════════════════
 // EJECUTIVO
 // ═══════════════════════════════════════════════════
+// ── Captura de unidades despachadas por mes ──
+var _DESP_MESES=[['ENE','Enero'],['FEB','Febrero'],['MAR','Marzo'],['ABR','Abril'],['MAY','Mayo'],['JUN','Junio'],['JUL','Julio'],['AGO','Agosto'],['SEP','Septiembre'],['OCT','Octubre'],['NOV','Noviembre'],['DIC','Diciembre']];
+function _saveDesp(){
+  try{ localStorage.setItem('ftd_desp_data', JSON.stringify(DESP_DATA)); }catch(e){}
+  try{
+    if(typeof window.fbSave==='function' && typeof window.fbLoad==='function'){
+      window.fbLoad('desp_data','main').then(function(remote){
+        if(remote && typeof remote==='object'){
+          Object.keys(remote).forEach(function(k){ if(DESP_DATA[k]==null) DESP_DATA[k]=remote[k]; });
+        }
+        window.fbSave('desp_data','main',DESP_DATA);
+      }).catch(function(){ window.fbSave('desp_data','main',DESP_DATA); });
+    }
+  }catch(e){}
+}
+function guardarDespacho(){
+  var sel=document.getElementById('desp_mes'), inp=document.getElementById('desp_val');
+  if(!sel||!inp) return;
+  var mes=sel.value, val=parseFloat(String(inp.value||'').replace(/[^0-9.]/g,''));
+  if(!mes){ alert('Selecciona un mes.'); return; }
+  if(isNaN(val)||val<=0){ alert('Ingresa un número válido de unidades despachadas por día.'); return; }
+  DESP_DATA[mes]=Math.round(val);
+  _saveDesp();
+  inp.value='';
+  renderDespList();
+  var msg=document.getElementById('desp_msg');
+  if(msg){ msg.textContent='✓ Guardado: '+mes+' = '+Math.round(val).toLocaleString()+' uds/día'; setTimeout(function(){msg.textContent='';},4000); }
+  try{ var er=document.getElementById('execReport'); if(typeof renderEjecutivo==='function' && er && er.offsetParent!==null) renderEjecutivo(); }catch(e){}
+}
+function borrarDespacho(mes){
+  if(DESP_DATA[mes]==null) return;
+  if(!confirm('¿Borrar el dato de unidades despachadas de '+mes+'?')) return;
+  delete DESP_DATA[mes]; _saveDesp(); renderDespList();
+}
+function renderDespList(){
+  var cont=document.getElementById('desp_list'); if(!cont) return;
+  var keys=_DESP_MESES.filter(function(m){return DESP_DATA[m[0]]!=null;});
+  if(!keys.length){ cont.innerHTML='<div style="font-size:11px;color:var(--muted);padding:4px 0;">Aún no has cargado unidades despachadas. Selecciona un mes, escribe el promedio por día y guarda.</div>'; return; }
+  cont.innerHTML='<div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Cargado:</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+keys.map(function(m){
+    return '<div style="display:flex;align-items:center;gap:6px;background:rgba(0,135,90,.07);border:1px solid rgba(0,135,90,.25);border-radius:6px;padding:4px 8px;font-size:11px;font-family:var(--font);">'
+      +'<strong style="color:#00875A;">'+m[1]+':</strong> '+DESP_DATA[m[0]].toLocaleString()+' uds/día'
+      +'<span onclick="borrarDespacho(\''+m[0]+'\')" style="cursor:pointer;color:#D63B2F;font-weight:900;margin-left:2px;font-size:13px;" title="Borrar">×</span>'
+      +'</div>';
+  }).join('')+'</div>';
+}
+
 function renderEjecutivo(){
   const dd = filtroDatos();
   const cont = document.getElementById('execReport');
@@ -4428,6 +4516,24 @@ function renderEjecutivo(){
   const _totDymAnt = _idxMA>0 ? _skTotDym[_idxMA-1] : 0;
   const d7 = delta(_ropDymN, _ropDymAnt);
   const d8 = delta(_totDymN, _totDymAnt);
+
+  // ── % de cancelación proporcional = canceladas/día ÷ unidades despachadas/día ──
+  // Usa DESP_DATA (captura manual en la pestaña CARGA). Solo los meses con dato
+  // de despacho generan porcentaje; el resto queda en 0 hasta que se carguen.
+  const _cancPctByMes = _sMeses.map(function(m){
+    const despDia = (typeof DESP_DATA!=='undefined' && DESP_DATA[m]>0) ? DESP_DATA[m] : 0;
+    const p = pm.find(function(x){return x.mes===m;});
+    const cancDia = p ? p.avgT : 0;
+    return despDia>0 ? +(cancDia/despDia*100).toFixed(3) : 0;
+  });
+  const _despSel = (typeof DESP_DATA!=='undefined' && DESP_DATA[MA.mes]>0) ? DESP_DATA[MA.mes] : 0;
+  const _cancPctSel = _despSel>0 ? (MA.avgT/_despSel*100) : 0;
+  // % anual proporcional ponderado por días operativos de cada mes
+  let _sumCancA=0,_sumDespA=0;
+  pm.forEach(function(p){ const dd=(typeof DESP_DATA!=='undefined'?DESP_DATA[p.mes]:0)||0; if(dd>0){ _sumCancA+=p.avgT*p.dias; _sumDespA+=dd*p.dias; } });
+  const _cancPctAnual = _sumDespA>0 ? (_sumCancA/_sumDespA*100) : 0;
+  const _cancPctAnt = (function(){ const i=_sMeses.indexOf(MA.mes); return i>0? _cancPctByMes[i-1]:0; })();
+  const d9 = delta(_cancPctSel, _cancPctAnt);
 
   cont.innerHTML = `
   <!-- ══ ONE PAGE EJECUTIVO ══ -->
@@ -4559,6 +4665,16 @@ function renderEjecutivo(){
         `Total de tareas DYM por noche = Demanda DYM + ROP DYM. Línea verde = tendencia anual · x̄ = promedio anual.`,
         _skTotDym, true
       )}
+
+      ${'<div style="grid-column:1/-1;">'+buildKpiCard('9','CANCELACIÓN vs DESPACHO (PROPORCIÓN)','⚖️',
+        _despSel>0 ? _cancPctSel.toFixed(3)+'%' : '— sin dato de despacho',
+        _despSel>0 ? ('Canceladas ÷ despachadas · '+Math.round(MA.avgT).toLocaleString()+' cancel/día ÷ '+_despSel.toLocaleString()+' desp/día')
+                   : 'Carga las unidades despachadas del mes en Reposición → CARGA',
+        d9, false,
+        _despSel>0 ? ('% de unidades canceladas respecto a las despachadas — mide cancelación proporcional a la carga real de trabajo. Proporción ANUAL: '+_cancPctAnual.toFixed(3)+'% (ponderada por días). Menor % = más productivos a igual o mayor volumen. Línea verde = tendencia anual · x̄ = promedio anual.')
+                   : 'Sin unidades despachadas cargadas para '+(MNOM[MA.mes]||MA.mes)+'. Agrégalas en la pestaña CARGA para calcular el % proporcional.',
+        _cancPctByMes, true
+      )+'</div>'}
 
     </div>
 
@@ -11604,6 +11720,7 @@ function nocTab(btn, page) {
   btn.classList.add('on');
   // Show the page
   showPage(page, btn);
+  if(page==='carga'){ try{ if(typeof renderDespList==='function') renderDespList(); }catch(e){} }
 }
 
 // ══ V22 Analytics toggle type + period ══
