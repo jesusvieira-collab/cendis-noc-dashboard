@@ -6523,7 +6523,15 @@ async function _autoSeedJulio2026() {
       var pts = fechaISO.split('-');
       nd.date = meses[parseInt(pts[1])] + ' ' + parseInt(pts[2]);
       var ei = HIST.findIndex(function(r){ return r.date === nd.date; });
-      if (ei >= 0) HIST[ei] = Object.assign({}, nd);
+      if (ei >= 0) {
+        // El seed trae los datos REALES (demanda BO/DYM, zonas, pisos). Si el
+        // registro actual estaba derivado de Reposición (sin esos datos) o le
+        // falta la demanda, lo reemplazamos y marcamos changed para PERSISTIRLO.
+        var _cur = HIST[ei];
+        var _faltaReal = _cur._derivedFromNoc || !((_cur.dbo||0)>0 || (_cur.ddym||0)>0);
+        HIST[ei] = Object.assign({}, nd);
+        if (_faltaReal) changed = true;
+      }
       else { HIST.push(Object.assign({}, nd)); changed = true; }
 
       // Ya existe este día en datos[] (NOC) → no duplicar Reposición
