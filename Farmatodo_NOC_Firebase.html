@@ -6571,17 +6571,19 @@ async function _autoSeedJulio2026() {
 
     if (changed) {
       datos.sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
-      // IMPORTANTE: el seed ya NO escribe en Firebase. Julio 1-10 vive de forma
-      // permanente en la nube; escribir en cada carga era el disparador que,
-      // combinado con un fallo de lectura, borraba jornadas nuevas (13/14).
-      // El seed ahora solo completa la memoria local para visualizacion.
+      // El seed trae los datos REALES de julio 1-10 (demanda BO/DYM, zonas, pisos,
+      // personal). Se PERSISTE con save() — ahora es seguro porque save() está
+      // blindado (fusiona por fecha y no sobreescribe si la lectura remota falla),
+      // así no puede borrar las jornadas nuevas. Esto restaura la data real de
+      // los primeros días que un merge previo había dejado en 0.
       try { localStorage.setItem(KEY, JSON.stringify(datos)); } catch(e){}
+      try { if (typeof save==='function') save(); } catch(e){}
       try { if (typeof actualizarMeses==='function') actualizarMeses(); } catch(e){}
       try { if (typeof render==='function') render(); } catch(e){}
       try { if (typeof buildAnalytics==='function') buildAnalytics(); } catch(e){}
       try { if (typeof renderDashboard==='function') renderDashboard(); } catch(e){}
       try { if (typeof renderTablaUnificada==='function') renderTablaUnificada(); } catch(e){}
-      console.log('[Auto-carga] Julio 2026 completado en memoria (sin escribir en la nube).');
+      console.log('[Auto-carga] Julio 2026 real persistido en la nube.');
     }
   } catch(e) {
     console.error('[Auto-carga] Error:', e);
@@ -11643,10 +11645,14 @@ function buildOpMesSelector() {
 // total, quedan, ventanas, ROP y canceladas; demanda BO/DYM/zonas/pisos quedan
 // en 0 hasta que se re-pegue el cuadro completo de Almacenaje), pero es
 // suficiente para que la jornada APAREZCA y se cuente en Analytics.
-function _nocToHist(d){
-  var iso=d.fecha||''; var p=iso.split('-');
+function _nocDate(d){
+  var p=(d.fecha||'').split('-');
   var M=['','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-  var date=(M[parseInt(p[1])]||'')+' '+parseInt(p[2]);
+  return (M[parseInt(p[1])]||'')+' '+parseInt(p[2]);
+}
+function _nocToHist(d){
+  var iso=d.fecha||'';
+  var date=_nocDate(d);
   return {
     date:date, fecha:iso,
     total:d.v22_total||0, turno:d.pr_turno||0, quedan:d.quedan||0,
@@ -11681,13 +11687,11 @@ function mergeV22toHIST() {
       if(!d || !d.fecha) return;
       var tieneV22 = (d.v22_total>0)||(d.quedan>0)||(d.pr_turno>0)||(d.v22_ventanas>0)||(d.v22_rop>0);
       if(!tieneV22) return;
-      var rec=_nocToHist(d);
-      var ex=byDate[rec.date];
-      if(!ex){ HIST.push(rec); byDate[rec.date]=rec; changed=true; }
-      else if(ex._derivedFromNoc){
-        // Actualizar el derivado con los últimos valores (sin pisar uno real)
-        Object.keys(rec).forEach(function(k){ ex[k]=rec[k]; }); changed=true;
-      }
+      var ex=byDate[_nocDate(d)];
+      // Solo AGREGAR jornadas que faltan por completo en Almacenaje. NUNCA
+      // modificar una existente (ni real ni derivada): la data real de HIST
+      // (seed o pegado completo) siempre manda sobre la reconstrucción parcial.
+      if(!ex){ var rec=_nocToHist(d); HIST.push(rec); byDate[rec.date]=rec; changed=true; }
     });
   }
   HIST.sort(function(a,b){ 
