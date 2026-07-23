@@ -371,6 +371,10 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-
 .chart-type-btn,.period-btn{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:6px;border:1px solid rgba(0,48,135,0.18);background:#F0F4FA;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;letter-spacing:.03em;white-space:nowrap;transition:.15s;min-width:24px;}
 .chart-type-btn:hover,.period-btn:hover{background:#E2EAF6;color:var(--navy);}
 .chart-type-btn.active,.period-btn.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+.vista-bar{display:inline-flex;align-items:center;gap:3px;background:#F0F4FA;border-radius:8px;padding:2px;}
+.vista-btn{display:inline-flex;align-items:center;justify-content:center;padding:4px 11px;border-radius:6px;border:1px solid transparent;background:transparent;color:rgba(0,48,135,0.7);font-size:11px;font-weight:800;font-family:var(--font);cursor:pointer;letter-spacing:.03em;transition:.15s;min-width:26px;}
+.vista-btn:hover{background:#E2EAF6;color:var(--navy);}
+.vista-btn.active{background:var(--navy);border-color:var(--navy);color:#fff;}
 .ctrl-divider{width:1px;height:14px;background:rgba(0,48,135,0.15);margin:0 3px;display:inline-block;}
 /* Franja de estadísticas Máx/Prom/Mín/umbral en cards de Reposición (estilo V22) */
 .rep-stat-row{display:flex;gap:0;padding:6px 4px 10px;flex-wrap:wrap;}
@@ -2002,6 +2006,12 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       </select>
       <span class="mes-arrow">▾</span>
     </div>
+    <span style="margin-left:8px;color:var(--muted);font-size:11px;font-family:var(--font);">Vista:</span>
+    <div class="vista-bar" id="repo-vista-bar">
+      <button class="vista-btn active" data-p="dia" onclick="repoSetPeriod('dia',this)" title="Por día">D</button>
+      <button class="vista-btn" data-p="semana" onclick="repoSetPeriod('semana',this)" title="Por semana">S</button>
+      <button class="vista-btn" data-p="mes" onclick="repoSetPeriod('mes',this)" title="Por mes">M</button>
+    </div>
     <span class="mes-badge" id="mesBadge">todos los registros</span>
   </div>
   <div class="subbar-right" id="subbarInfo">0 registros cargados</div>
@@ -2043,7 +2053,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     <div class="ccard" id="card_bxhh">
       <div class="ccard-hdr">
         <div><div class="ccard-title">B × H/hora — evolución diaria</div><div class="ccard-sub">Barras verdes ≥150 · ámbar 120–149 · rojo &lt;120 · línea = objetivo 150</div></div>
-        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_bxhh"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_bxhh')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_bxhh')" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setChartPeriod('ax_bxhh','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setChartPeriod('ax_bxhh','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setChartPeriod('ax_bxhh','mes',this)">M</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_bxhh','B×H/hora','Evolución diaria','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_bxhh','BxHh_diario')">⬇ PNG</button></div>
+        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_bxhh"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_bxhh')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_bxhh')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_bxhh','B×H/hora','Evolución diaria','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_bxhh','BxHh_diario')">⬇ PNG</button></div>
       </div>
       <div style="position:relative;height:220px;"><canvas id="ax_bxhh" role="img" aria-label="Gráfico ax_bxhh"></canvas></div>
     </div>
@@ -2070,22 +2080,22 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 
   <div class="grid-2">
     <div class="ccard" id="card_cumpl">
-      <div class="ccard-hdr"><div><div class="ccard-title">Cumplimiento diario %</div><div class="ccard-sub">Verde ≥95% · ámbar 90–94% · rojo &lt;90%</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cumpl"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_cumpl')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_cumpl')" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setChartPeriod('ax_cumpl','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setChartPeriod('ax_cumpl','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setChartPeriod('ax_cumpl','mes',this)">M</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_cumpl','Cumplimiento','Diario %','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cumpl','Cumplimiento')">⬇ PNG</button></div></div>
+      <div class="ccard-hdr"><div><div class="ccard-title">Cumplimiento diario %</div><div class="ccard-sub">Verde ≥95% · ámbar 90–94% · rojo &lt;90%</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cumpl"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_cumpl')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_cumpl')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_cumpl','Cumplimiento','Diario %','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cumpl','Cumplimiento')">⬇ PNG</button></div></div>
       <div style="position:relative;height:200px;"><canvas id="ax_cumpl" role="img" aria-label="Gráfico ax_cumpl"></canvas></div>
     </div>
     <div class="ccard" id="card_intransit">
-      <div class="ccard-hdr"><div><div class="ccard-title">Intransit diario — tareas sin ejecutar</div><div class="ccard-sub">Ámbar &gt;40 · Rojo &gt;100 tareas pendientes</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_intransit"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_intransit')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_intransit')" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setChartPeriod('ax_intransit','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setChartPeriod('ax_intransit','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setChartPeriod('ax_intransit','mes',this)">M</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_intransit','Intransit','Tareas sin ejecutar','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_intransit','Intransit')">⬇ PNG</button></div></div>
+      <div class="ccard-hdr"><div><div class="ccard-title">Intransit diario — tareas sin ejecutar</div><div class="ccard-sub">Ámbar &gt;40 · Rojo &gt;100 tareas pendientes</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_intransit"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_intransit')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_intransit')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_intransit','Intransit','Tareas sin ejecutar','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_intransit','Intransit')">⬇ PNG</button></div></div>
       <div style="position:relative;height:200px;"><canvas id="ax_intransit" role="img" aria-label="Gráfico ax_intransit"></canvas></div>
     </div>
   </div>
 
   <div class="grid-2">
     <div class="ccard" id="card_tareas">
-      <div class="ccard-hdr"><div><div class="ccard-title">Tareas asignadas vs ejecutadas</div><div class="ccard-sub">Comparativo diario de volumen operativo</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_tareas"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_tareas')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_tareas')" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setChartPeriod('ax_tareas','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setChartPeriod('ax_tareas','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setChartPeriod('ax_tareas','mes',this)">M</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_tareas','Tareas','Asignadas vs Ejecutadas','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_tareas','Tareas')">⬇ PNG</button></div></div>
+      <div class="ccard-hdr"><div><div class="ccard-title">Tareas asignadas vs ejecutadas</div><div class="ccard-sub">Comparativo diario de volumen operativo</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_tareas"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_tareas')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_tareas')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_tareas','Tareas','Asignadas vs Ejecutadas','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_tareas','Tareas')">⬇ PNG</button></div></div>
       <div style="position:relative;height:200px;"><canvas id="ax_tareas" role="img" aria-label="Gráfico ax_tareas"></canvas></div>
     </div>
     <div class="ccard" id="card_fr_cancel">
-      <div class="ccard-hdr"><div><div class="ccard-title">Fill Rate & Canceladas</div><div class="ccard-sub">Fill Rate (eje izq.) · Canceladas (eje der.)</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_fr"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_fr')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_fr')" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setChartPeriod('ax_fr','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setChartPeriod('ax_fr','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setChartPeriod('ax_fr','mes',this)">M</button><span class="ctrl-divider"></span></div></div></div>
+      <div class="ccard-hdr"><div><div class="ccard-title">Fill Rate & Canceladas</div><div class="ccard-sub">Fill Rate (eje izq.) · Canceladas (eje der.)</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_fr"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_fr')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_fr')" title="Barra">📊</button></div></div></div>
       <div style="position:relative;height:200px;"><canvas id="ax_fr" role="img" aria-label="Gráfico ax_fr"></canvas></div>
     </div>
   </div>
@@ -2102,7 +2112,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         <div class="ccard-title">&#x1F4E6; ROP Ejecutado — Paletas bajadas por noche</div>
         <div class="ccard-sub" id="rop_stats_sub">Excel ROP_EJECUTADOS + formulario del turno · Oct 2025 – en curso</div>
       </div>
-      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="rop_chart"><button class="chart-type-btn active" data-type="line" onclick="setRVType('rop_chart','line',this)" title="Línea">📈</button><button class="chart-type-btn" data-type="bar" onclick="setRVType('rop_chart','bar',this)" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setRVPeriod('rop_chart','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setRVPeriod('rop_chart','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setRVPeriod('rop_chart','mes',this)">M</button><span class="ctrl-divider"></span><button class="period-btn rop-area-btn active" data-area="all" onclick="setRopArea('all',this)" title="Total ROP">TODO</button><button class="period-btn rop-area-btn" data-area="bo" onclick="setRopArea('bo',this)" title="Solo ROP de BO">BO</button><button class="period-btn rop-area-btn" data-area="dym" onclick="setRopArea('dym',this)" title="Solo ROP de DYM">DYM</button><span class="ctrl-divider"></span></div><button class="dl-btn" onclick="dlCardImagen('card_rop','ROP_Ejecutado')">⬇ PNG</button><button class="dl-btn" onclick="exportRopXLS()">⬇ XLS</button>
+      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="rop_chart"><button class="chart-type-btn active" data-type="line" onclick="setRVType('rop_chart','line',this)" title="Línea">📈</button><button class="chart-type-btn" data-type="bar" onclick="setRVType('rop_chart','bar',this)" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn rop-area-btn active" data-area="all" onclick="setRopArea('all',this)" title="Total ROP">TODO</button><button class="period-btn rop-area-btn" data-area="bo" onclick="setRopArea('bo',this)" title="Solo ROP de BO">BO</button><button class="period-btn rop-area-btn" data-area="dym" onclick="setRopArea('dym',this)" title="Solo ROP de DYM">DYM</button></div><button class="dl-btn" onclick="dlCardImagen('card_rop','ROP_Ejecutado')">⬇ PNG</button><button class="dl-btn" onclick="exportRopXLS()">⬇ XLS</button>
         <select id="rop_mes_filter" onchange="renderROP()" style="background:#F0F4FA;border:1px solid rgba(0,48,135,0.18);border-radius:6px;padding:3px 8px;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;outline:none;letter-spacing:.02em;">
           <option value="ALL">📅 Vista mensual (todos)</option>
         </select></div>
@@ -2135,7 +2145,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         <div class="ccard-title">&#x1FA9F; Ventanas pendientes al cierre — por jornada</div>
         <div class="ccard-sub" id="vent_stats_sub">Excel Tareas_Ejecutadas + formulario del turno · Ene 2025 – en curso</div>
       </div>
-      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="vent_chart"><button class="chart-type-btn active" data-type="line" onclick="setRVType('vent_chart','line',this)" title="Línea">📈</button><button class="chart-type-btn" data-type="bar" onclick="setRVType('vent_chart','bar',this)" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setRVPeriod('vent_chart','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setRVPeriod('vent_chart','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setRVPeriod('vent_chart','mes',this)">M</button><span class="ctrl-divider"></span></div><select id="vent_mes_filter" onchange="renderVentanas()" style="background:#F0F4FA;border:1px solid rgba(0,48,135,0.18);border-radius:6px;padding:3px 8px;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;outline:none;letter-spacing:.02em;"><option value="ALL">📅 Todos los meses</option></select><button class="dl-btn" onclick="dlCardImagen('card_ventanas','Ventanas_Pendientes')">⬇ PNG</button><button class="dl-btn" onclick="exportVentXLS()">⬇ XLS</button></div>
+      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="vent_chart"><button class="chart-type-btn active" data-type="line" onclick="setRVType('vent_chart','line',this)" title="Línea">📈</button><button class="chart-type-btn" data-type="bar" onclick="setRVType('vent_chart','bar',this)" title="Barra">📊</button></div><select id="vent_mes_filter" onchange="renderVentanas()" style="background:#F0F4FA;border:1px solid rgba(0,48,135,0.18);border-radius:6px;padding:3px 8px;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;outline:none;letter-spacing:.02em;"><option value="ALL">📅 Todos los meses</option></select><button class="dl-btn" onclick="dlCardImagen('card_ventanas','Ventanas_Pendientes')">⬇ PNG</button><button class="dl-btn" onclick="exportVentXLS()">⬇ XLS</button></div>
     </div>
     <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
       <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:6px;padding:6px 14px;">
@@ -2336,11 +2346,11 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   <div class="kpi-strip" id="kpiDemanda" style="grid-template-columns:repeat(4,1fr);"></div>
   <div class="grid-2">
     <div class="ccard" id="card_diasem">
-      <div class="ccard-hdr"><div><div class="ccard-title">Bultos promedio por día de semana</div><div class="ccard-sub">Lun–Vie · días de mayor carga resaltados</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_diasem"><button class="chart-type-btn " data-type="line" onclick="toggleChartType('ax_diasem')" title="Línea">📈</button><button class="chart-type-btn active" data-type="bar" onclick="toggleChartType('ax_diasem')" title="Barra">📊</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_diasem','Día semana','Distribución','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_diasem','DiaSemana')">⬇ PNG</button></div></div>
+      <div class="ccard-hdr"><div><div class="ccard-title">Bultos promedio por día de semana</div><div class="ccard-sub">Lun–Vie · días de mayor carga resaltados</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_diasem"><button class="chart-type-btn " data-type="line" onclick="toggleChartType('ax_diasem')" title="Línea">📈</button><button class="chart-type-btn active" data-type="bar" onclick="toggleChartType('ax_diasem')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_diasem','Día semana','Distribución','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_diasem','DiaSemana')">⬇ PNG</button></div></div>
       <div style="position:relative;height:240px;"><canvas id="ax_diasem" role="img" aria-label="Gráfico ax_diasem"></canvas></div>
     </div>
     <div class="ccard" id="card_top10b">
-      <div class="ccard-hdr"><div><div class="ccard-title">Top 10 · Días mayor volumen</div><div class="ccard-sub">Picos históricos con día de semana</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_top10b"><button class="chart-type-btn " data-type="line" onclick="toggleChartType('ax_top10b')" title="Línea">📈</button><button class="chart-type-btn active" data-type="bar" onclick="toggleChartType('ax_top10b')" title="Barra">📊</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_top10b','Top 10','Bultos','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_top10b','Top10')">⬇ PNG</button></div></div>
+      <div class="ccard-hdr"><div><div class="ccard-title">Top 10 · Días mayor volumen</div><div class="ccard-sub">Picos históricos con día de semana</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_top10b"><button class="chart-type-btn " data-type="line" onclick="toggleChartType('ax_top10b')" title="Línea">📈</button><button class="chart-type-btn active" data-type="bar" onclick="toggleChartType('ax_top10b')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_top10b','Top 10','Bultos','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_top10b','Top10')">⬇ PNG</button></div></div>
       <div style="position:relative;height:300px;"><canvas id="ax_top10b" role="img" aria-label="Gráfico ax_top10b"></canvas></div>
     </div>
   </div>
@@ -2368,7 +2378,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   <div class="ccard" style="margin-bottom:12px;" id="card_pers">
     <div class="ccard-hdr">
       <div><div class="ccard-title">Personal real vs Personal necesario para 100% cumplimiento</div><div class="ccard-sub">Brecha diaria entre barras = déficit o superávit de operadores</div></div>
-      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_pers"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_pers')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_pers')" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setChartPeriod('ax_pers','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setChartPeriod('ax_pers','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setChartPeriod('ax_pers','mes',this)">M</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_pers','Personal','Repositores','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_pers','Personal')">⬇ PNG</button></div>
+      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_pers"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_pers')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_pers')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_pers','Personal','Repositores','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_pers','Personal')">⬇ PNG</button></div>
     </div>
     <div style="position:relative;height:270px;"><canvas id="ax_pers" role="img" aria-label="Gráfico ax_pers"></canvas></div>
   </div>
@@ -2382,11 +2392,11 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   </div>
   <div class="grid-2">
     <div class="ccard" id="card_prodobj">
-      <div class="ccard-hdr"><div><div class="ccard-title">Productividad real vs objetivo 150 B×H/h</div><div class="ccard-sub">Verde = sobre objetivo · Rojo = bajo objetivo</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_prodobj"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_prodobj')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_prodobj')" title="Barra">📊</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_prodobj','Productividad','Objetivo','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_prodobj','ProdObj')">⬇ PNG</button></div></div>
+      <div class="ccard-hdr"><div><div class="ccard-title">Productividad real vs objetivo 150 B×H/h</div><div class="ccard-sub">Verde = sobre objetivo · Rojo = bajo objetivo</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_prodobj"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_prodobj')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_prodobj')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_prodobj','Productividad','Objetivo','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_prodobj','ProdObj')">⬇ PNG</button></div></div>
       <div style="position:relative;height:220px;"><canvas id="ax_prodobj" role="img" aria-label="Gráfico ax_prodobj"></canvas></div>
     </div>
     <div class="ccard" id="card_efic">
-      <div class="ccard-hdr"><div><div class="ccard-title">B×H/h promedio por mes</div><div class="ccard-sub">Evolución de eficiencia del equipo repositor</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_efic"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_efic')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_efic')" title="Barra">📊</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_efic','B×H/h','Mensual','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_efic','Eficiencia')">⬇ PNG</button></div></div>
+      <div class="ccard-hdr"><div><div class="ccard-title">B×H/h promedio por mes</div><div class="ccard-sub">Evolución de eficiencia del equipo repositor</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_efic"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_efic')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_efic')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_efic','B×H/h','Mensual','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_efic','Eficiencia')">⬇ PNG</button></div></div>
       <div style="position:relative;height:220px;"><canvas id="ax_efic" role="img" aria-label="Gráfico ax_efic"></canvas></div>
     </div>
   </div>
@@ -2411,7 +2421,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       <div class="ccard-hdr">
         <div><div class="ccard-title">Canceladas por día — evolución histórica</div>
         <div class="ccard-sub">Rojo &gt;2000 · Naranja &gt;800 · Gris normal · Línea = promedio</div></div>
-        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_diario"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_cancel_diario')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_cancel_diario')" title="Barra">📊</button><span class="ctrl-divider"></span><button class="period-btn active" data-period="dia" onclick="setChartPeriod('ax_cancel_diario','dia',this)">D</button><button class="period-btn" data-period="semana" onclick="setChartPeriod('ax_cancel_diario','semana',this)">S</button><button class="period-btn" data-period="mes" onclick="setChartPeriod('ax_cancel_diario','mes',this)">M</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_cancel_diario','Cancel.Diario','Jornadas','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_diario','CancelDiario')">⬇ PNG</button></div>
+        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_diario"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_cancel_diario')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_cancel_diario')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_cancel_diario','Cancel.Diario','Jornadas','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_diario','CancelDiario')">⬇ PNG</button></div>
       </div>
       <div style="position:relative;height:220px;"><canvas id="ax_cancel_diario" role="img" aria-label="Canceladas por día"></canvas></div>
     </div>
@@ -2419,7 +2429,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       <div class="ccard-hdr">
         <div><div class="ccard-title">Total canceladas por mes</div>
         <div class="ccard-sub">Comparativo mensual — tendencia de mejora o deterioro</div></div>
-        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_mes"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_cancel_mes')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_cancel_mes')" title="Barra">📊</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_cancel_mes','Cancel.Mes','Mensual','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_mes','CancelMes')">⬇ PNG</button></div>
+        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_mes"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_cancel_mes')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_cancel_mes')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_cancel_mes','Cancel.Mes','Mensual','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_mes','CancelMes')">⬇ PNG</button></div>
       </div>
       <div style="position:relative;height:220px;"><canvas id="ax_cancel_mes" role="img" aria-label="Canceladas por mes"></canvas></div>
     </div>
@@ -2429,7 +2439,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       <div class="ccard-hdr">
         <div><div class="ccard-title">Canceladas promedio por día de semana</div>
         <div class="ccard-sub">¿Qué días de la semana concentran más cancelaciones?</div></div>
-        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_diasem"><button class="chart-type-btn " data-type="line" onclick="toggleChartType('ax_cancel_diasem')" title="Línea">📈</button><button class="chart-type-btn active" data-type="bar" onclick="toggleChartType('ax_cancel_diasem')" title="Barra">📊</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_cancel_diasem','Cancel.DiaSem','','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_diasem','CancelDiaSem')">⬇ PNG</button></div>
+        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_diasem"><button class="chart-type-btn " data-type="line" onclick="toggleChartType('ax_cancel_diasem')" title="Línea">📈</button><button class="chart-type-btn active" data-type="bar" onclick="toggleChartType('ax_cancel_diasem')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_cancel_diasem','Cancel.DiaSem','','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_diasem','CancelDiaSem')">⬇ PNG</button></div>
       </div>
       <div style="position:relative;height:220px;"><canvas id="ax_cancel_diasem" role="img" aria-label="Canceladas por día de semana"></canvas></div>
     </div>
@@ -2437,7 +2447,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       <div class="ccard-hdr">
         <div><div class="ccard-title">Top 10 días con más cancelaciones</div>
         <div class="ccard-sub">Jornadas críticas históricas</div></div>
-        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_top10"><button class="chart-type-btn " data-type="line" onclick="toggleChartType('ax_cancel_top10')" title="Línea">📈</button><button class="chart-type-btn active" data-type="bar" onclick="toggleChartType('ax_cancel_top10')" title="Barra">📊</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_cancel_top10','Cancel.Top10','','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_top10','CancelTop10')">⬇ PNG</button></div>
+        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_top10"><button class="chart-type-btn " data-type="line" onclick="toggleChartType('ax_cancel_top10')" title="Línea">📈</button><button class="chart-type-btn active" data-type="bar" onclick="toggleChartType('ax_cancel_top10')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_cancel_top10','Cancel.Top10','','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_top10','CancelTop10')">⬇ PNG</button></div>
       </div>
       <div style="position:relative;height:260px;"><canvas id="ax_cancel_top10" role="img" aria-label="Top 10 días canceladas"></canvas></div>
     </div>
@@ -2448,7 +2458,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       <div class="ccard-hdr">
         <div><div class="ccard-title">Relación canceladas vs intransit</div>
         <div class="ccard-sub">¿Los días de alto intransit generan más cancelaciones?</div></div>
-        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_relacion"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_cancel_relacion')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_cancel_relacion')" title="Barra">📊</button><span class="ctrl-divider"></span></div><button class="expand-btn" onclick="expandChart('ax_cancel_relacion','Cancel.Rel.','','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_relacion','CancelRel')">⬇ PNG</button></div>
+        <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_relacion"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_cancel_relacion')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_cancel_relacion')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_cancel_relacion','Cancel.Rel.','','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_relacion','CancelRel')">⬇ PNG</button></div>
       </div>
       <div style="position:relative;height:220px;"><canvas id="ax_cancel_relacion" role="img" aria-label="Canceladas vs intransit"></canvas></div>
     </div>
@@ -11916,7 +11926,7 @@ function anToggleType(chartId, type, btnEl) {
   });
   chart.update('none');
 }
-function anSetPeriod(chartId, period, btnEl) {
+function anSetPeriodLegacy(chartId, period, btnEl) {
   _anPeriod[chartId] = period;
   if(btnEl){
     var bar=btnEl.closest('.chart-ctrl-bar');
@@ -11970,6 +11980,22 @@ function setChartPeriod(chartId, period, btnEl) {
 }
 
 /* ── Render chart by period (aggregates data) ── */
+var REPO_PERIOD='dia';
+function repoSetPeriod(p, btn){
+  REPO_PERIOD=p;
+  var bar=document.getElementById('repo-vista-bar');
+  if(bar) bar.querySelectorAll('.vista-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-p')===p); });
+  if(p==='dia'){
+    if(typeof renderDashboard==='function') try{ renderDashboard(); }catch(e){}
+  } else {
+    ['ax_bxhh','ax_cumpl','ax_intransit','ax_tareas','ax_fr','ax_pers','ax_cancel_diario'].forEach(function(id){
+      if(AX[id] && typeof renderChart_byPeriod==='function'){ try{ renderChart_byPeriod(id,p); }catch(e){} }
+    });
+  }
+  ['rop_chart','vent_chart'].forEach(function(id){
+    if(AX[id] && typeof setRVPeriod==='function'){ try{ setRVPeriod(id,p); }catch(e){} }
+  });
+}
 function renderChart_byPeriod(chartId, period) {
   var chart = AX[chartId];
   if (!chart) return;
