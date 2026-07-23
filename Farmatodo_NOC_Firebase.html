@@ -7353,11 +7353,16 @@ function anAggregate(recs, period){
       key=mon.toISOString().slice(0,10);
       lbl=mon.toISOString().slice(5,10).split('-').reverse().join('/');
     }
-    if(!groups[key]){ groups[key]={date:r.date, _lbl:lbl, _n:0, zones:[], doors:{}, personal:{}, items_cero:0}; SUMF.forEach(function(f){groups[key][f]=0;}); order.push(key); }
+    if(!groups[key]){ groups[key]={date:r.date, _lbl:lbl, _n:0, _sort:0, zones:[], doors:{}, personal:{}, items_cero:0}; SUMF.forEach(function(f){groups[key][f]=0;}); order.push(key); }
     var g=groups[key]; g._n++;
     SUMF.forEach(function(f){ g[f]+=(+(r[f]||0)); });
+    // clave de orden cronológico
+    if(period==='mes'){
+      var ORD=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+      g._sort = parseInt(_histYear(r))*100 + ORD.indexOf((r.date||'').split(' ')[0]);
+    } else { g._sort = (iso||'') ; }
   });
-  return order.map(function(k){return groups[k];});
+  return order.map(function(k){return groups[k];}).sort(function(a,b){ return a._sort>b._sort?1:(a._sort<b._sort?-1:0); });
 }
 var AN_CHARTS = {};
 
