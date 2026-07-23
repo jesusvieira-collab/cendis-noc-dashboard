@@ -852,6 +852,9 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 .an-pill.on{background:#fff;color:var(--blue);border-color:#fff;font-weight:700}
 .an-pill:hover:not(.on){background:rgba(255,255,255,.25);color:#fff}
 .an-summary-bar{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:18px}
+.an-per-bar{display:inline-flex;gap:4px}
+.an-per-btn{padding:4px 11px;border:1px solid rgba(0,30,98,.2);border-radius:6px;background:transparent;color:rgba(0,30,98,.6);font-size:11px;font-weight:800;font-family:'Outfit',sans-serif;cursor:pointer;transition:all .12s}
+.an-per-btn.active{background:#0047C8;border-color:#0047C8;color:#fff}
 .an-sm{background:var(--white);border-radius:12px;padding:13px 15px;box-shadow:var(--sh);border-left:4px solid transparent;transition:.15s}
 .an-sm:hover{transform:translateY(-2px)}
 .an-sm.bl{border-left-color:var(--blue)} .an-sm.gn{border-left-color:var(--green)}
@@ -1492,6 +1495,9 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 .an-pill.on{background:#fff;color:var(--blue);border-color:#fff;font-weight:700}
 .an-pill:hover:not(.on){background:rgba(255,255,255,.25);color:#fff}
 .an-summary-bar{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:18px}
+.an-per-bar{display:inline-flex;gap:4px}
+.an-per-btn{padding:4px 11px;border:1px solid rgba(0,30,98,.2);border-radius:6px;background:transparent;color:rgba(0,30,98,.6);font-size:11px;font-weight:800;font-family:'Outfit',sans-serif;cursor:pointer;transition:all .12s}
+.an-per-btn.active{background:#0047C8;border-color:#0047C8;color:#fff}
 .an-sm{background:var(--white);border-radius:12px;padding:13px 15px;box-shadow:var(--sh);border-left:4px solid transparent;transition:.15s}
 .an-sm:hover{transform:translateY(-2px)}
 .an-sm.bl{border-left-color:var(--blue)} .an-sm.gn{border-left-color:var(--green)}
@@ -1984,6 +1990,12 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 <div id="subbar-noc"><div class="subbar">
   <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted);font-family:var(--font);">
     <span>Filtrar período:</span>
+    <div class="mes-dropdown-wrap">
+      <select class="mes-select" id="anioSelect" onchange="setAnioSelect(this)">
+        <option value="ALL">📆 Todos los años</option>
+      </select>
+      <span class="mes-arrow">▾</span>
+    </div>
     <div class="mes-dropdown-wrap">
       <select class="mes-select" id="mesSelect" onchange="setMesSelect(this)">
         <option value="ALL">📅 Todos los meses</option>
@@ -2643,10 +2655,24 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     </div>
     <div class="dash-topbar-right">
       <div class="dash-filter-group">
-        <span class="dash-filter-label">PERÍODO</span>
+        <span class="dash-filter-label">AÑO</span>
+        <select id="an-anio-sel" class="dash-select" onchange="anYear(this.value)">
+          <option value="ALL">Todos los años</option>
+        </select>
+      </div>
+      <div class="dash-filter-group">
+        <span class="dash-filter-label">MES</span>
         <select id="an-mes-sel" class="dash-select" onchange="anFilter(this.value)">
           <option value="ALL">Todo el período</option>
         </select>
+      </div>
+      <div class="dash-filter-group">
+        <span class="dash-filter-label">VISTA</span>
+        <div class="an-per-bar">
+          <button class="an-per-btn active" data-p="dia" onclick="anSetPeriod('dia',this)" title="Por día">D</button>
+          <button class="an-per-btn" data-p="semana" onclick="anSetPeriod('semana',this)" title="Por semana">S</button>
+          <button class="an-per-btn" data-p="mes" onclick="anSetPeriod('mes',this)" title="Por mes">M</button>
+        </div>
       </div>
       <div class="dash-live-badge">
         <span class="dash-live-dot"></span>
@@ -3234,6 +3260,7 @@ const VENT_DATA=[{"f":"2025-01-05","v":154,"r":0},{"f":"2025-01-06","v":258,"r":
 const KEY = 'ftd_noc_v5';  // v5: incluye datos Abril 2026
 let datos = JSON.parse(localStorage.getItem(KEY) || '[]');
 let mesFiltro = 'ALL';
+let anioFiltro = 'ALL';
 // Unidades despachadas por dia (promedio) por mes, capturadas manualmente por el
 // usuario. Clave = abreviatura de mes (ENE, FEB, ...). Se usa para el % de
 // cancelacion proporcional (canceladas/dia ÷ despachadas/dia) en el One Page.
@@ -3466,7 +3493,12 @@ const DIAS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 function ds(f){return new Date(f+'T12:00:00').getDay();}
 function ff(f){const p=f.split('-');return p[2]+'/'+p[1];}
 function avg(arr,k){const v=arr.filter(d=>d[k]!=null&&!isNaN(d[k]));return v.length?v.reduce((s,d)=>s+d[k],0)/v.length:0;}
-function filtroDatos(){return mesFiltro==='ALL'?datos:datos.filter(d=>d.mes===mesFiltro);}
+function filtroDatos(){
+  var arr = datos;
+  if(anioFiltro!=='ALL') arr = arr.filter(function(d){ return (d.fecha||'').slice(0,4)===anioFiltro; });
+  if(mesFiltro!=='ALL')  arr = arr.filter(function(d){ return d.mes===mesFiltro; });
+  return arr;
+}
 function emptyMsg(){return`<div class="empty-state"><div class="ei">📥</div><h3>Sin datos</h3><p>Ve a "Hoja de Carga" para ingresar registros.</p></div>`;}
 
 // Chart instance registry
@@ -3662,6 +3694,13 @@ const MORD=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','D
 const MNOM={ENE:'Enero',FEB:'Febrero',MAR:'Marzo',ABR:'Abril',MAY:'Mayo',JUN:'Junio',JUL:'Julio',AGO:'Agosto',SEP:'Septiembre',OCT:'Octubre',NOV:'Noviembre',DIC:'Diciembre'};
 
 function actualizarMeses(){
+  // Poblar selector de AÑO (independiente de Reposición)
+  var selA=document.getElementById('anioSelect');
+  if(selA){
+    var anios=[...new Set(datos.map(function(d){return (d.fecha||'').slice(0,4);}).filter(Boolean))].sort();
+    selA.innerHTML='<option value="ALL"'+(anioFiltro==='ALL'?' selected':'')+'>📆 Todos los años</option>'+
+      anios.map(function(a){var c=datos.filter(function(d){return (d.fecha||'').slice(0,4)===a;}).length; return '<option value="'+a+'"'+(anioFiltro===a?' selected':'')+'>'+a+' ('+c+' días)</option>';}).join('');
+  }
   const meses=[...new Set(datos.map(d=>d.mes))].sort((a,b)=>MORD.indexOf(a)-MORD.indexOf(b));
   const sel=document.getElementById('mesSelect');
   if(!sel) return; // guard: selector puede no existir en ciertos contextos
@@ -3677,6 +3716,17 @@ function actualizarBadge(){
   if(!b) return;
   if(mesFiltro==='ALL'){const m=[...new Set(datos.map(d=>d.mes))];b.textContent=`${datos.length} registros · ${m.length} mes${m.length!==1?'es':''}`;} 
   else{const cnt=datos.filter(d=>d.mes===mesFiltro).length;b.textContent=`${MNOM[mesFiltro]||mesFiltro} · ${cnt} día${cnt!==1?'s':''}`;} 
+}
+function setAnioSelect(sel){
+  anioFiltro=sel.value; actualizarBadge();
+  var p=document.querySelector('.page.active');
+  if(p){var id=p.id.replace('page-','');
+    if(id==='dashboard')renderDashboard();
+    else if(id==='demanda')renderDemanda();
+    else if(id==='canceladas')renderCanceladas();
+    else if(id==='personal')renderPersonal();
+    else if(id==='ejecutivo')renderEjecutivo();
+  }
 }
 function setMesSelect(sel){
   mesFiltro=sel.value; actualizarBadge();
@@ -7272,6 +7322,43 @@ function buildCharts() {
 
 /* ═══ ANALYTICS ═══ */
 var AN_FILTER = 'ALL';
+var AN_YEAR = 'ALL';
+var AN_PERIOD = 'dia';  // 'dia' | 'semana' | 'mes'
+function _histISO(r){ return (r && r.fecha) ? r.fecha : (typeof _histToISO==='function' ? _histToISO(r&&r.date) : null); }
+function _histYear(r){ var iso=_histISO(r); if(iso) return String(iso).slice(0,4); var m=((r&&r.date)||'').split(' ')[0]; return (m==='ENERO'||m==='FEBRERO')?'2025':'2026'; }
+function anYear(y){ AN_YEAR=y; try{ if(typeof anPopulateMeses==='function') anPopulateMeses(); }catch(e){} buildAnalytics(); }
+function anSetPeriod(p, btn){ AN_PERIOD=p; if(btn){ var bar=btn.parentElement; if(bar) bar.querySelectorAll('.an-per-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-p')===p); }); } buildAnalytics(); }
+function anPopulateAnios(){
+  var sel=document.getElementById('an-anio-sel'); if(!sel) return;
+  var seen={}; (typeof HIST!=='undefined'?HIST:[]).forEach(function(r){ if(r&&r.date){ var y=_histYear(r); seen[y]=(seen[y]||0)+1; } });
+  var ys=Object.keys(seen).sort();
+  sel.innerHTML='<option value="ALL">Todos los años</option>'+ys.map(function(y){return '<option value="'+y+'"'+(AN_YEAR===y?' selected':'')+'>'+y+'</option>';}).join('');
+  sel.value=AN_YEAR;
+}
+// Agrega los registros diarios por semana o mes (para la vista D/S/M de Analytics)
+function anAggregate(recs, period){
+  if(!period || period==='dia') return recs;
+  var SUMF=['total','dbo','ddym','alm_real','quedan','items','rop','topoff','canceladas','turno','ventanas','intransit'];
+  var MSH={ENERO:'Ene',FEBRERO:'Feb',MARZO:'Mar',ABRIL:'Abr',MAYO:'May',JUNIO:'Jun',JULIO:'Jul',AGOSTO:'Ago',SEPTIEMBRE:'Sep',OCTUBRE:'Oct',NOVIEMBRE:'Nov',DICIEMBRE:'Dic'};
+  var groups={}, order=[];
+  recs.forEach(function(r){
+    var iso=_histISO(r)||'';
+    var key, lbl;
+    if(period==='mes'){
+      var mm=((r.date||'').split(' ')[0]);
+      key=_histYear(r)+'-'+mm;
+      lbl=(MSH[mm]||mm)+' '+String(_histYear(r)).slice(2);
+    } else {
+      var d=new Date(iso||'2026-01-01'); var day=d.getDay()||7; var mon=new Date(d); mon.setDate(d.getDate()-(day-1));
+      key=mon.toISOString().slice(0,10);
+      lbl=mon.toISOString().slice(5,10).split('-').reverse().join('/');
+    }
+    if(!groups[key]){ groups[key]={date:r.date, _lbl:lbl, _n:0, zones:[], doors:{}, personal:{}, items_cero:0}; SUMF.forEach(function(f){groups[key][f]=0;}); order.push(key); }
+    var g=groups[key]; g._n++;
+    SUMF.forEach(function(f){ g[f]+=(+(r[f]||0)); });
+  });
+  return order.map(function(k){return groups[k];});
+}
 var AN_CHARTS = {};
 
 function anFilter(f) {
@@ -7367,6 +7454,9 @@ function anGetData() {
            (r.alm_real||0) > 0 || (r.canceladas||0) > 0 || (r.rop||0) > 0 ||
            (r.dbo||0) > 0 || (r.ddym||0) > 0;
   });
+  if (AN_YEAR !== 'ALL') {
+    v = v.filter(function(r) { return _histYear(r) === AN_YEAR; });
+  }
   if (AN_FILTER !== 'ALL') {
     v = v.filter(function(r) { return r.date.startsWith(AN_FILTER); });
   }
@@ -7374,6 +7464,7 @@ function anGetData() {
 }
 
 function anLbl(r) {
+  if (r && r._lbl) return r._lbl;
   var mesMap = {ENERO:'Ene',FEBRERO:'Feb',MARZO:'Mar',ABRIL:'Abr',MAYO:'May',JUNIO:'Jun',JULIO:'Jul',AGOSTO:'Ago',SEPTIEMBRE:'Sep',OCTUBRE:'Oct',NOVIEMBRE:'Nov',DICIEMBRE:'Dic'};
   var parts = r.date.split(' ');
   var mes = mesMap[parts[0]] || parts[0];
@@ -7426,9 +7517,10 @@ function anTrendDs(data,color) {
           borderWidth:1.8,borderDash:[5,3],pointRadius:0,fill:false,tension:0,spanGaps:true,order:0};
 }
 function buildAnalytics() {
-  // Ensure month selector is populated
+  // Ensure month/year selectors are populated
   if(typeof anPopulateMeses==='function') anPopulateMeses();
-  var v = anGetData();
+  if(typeof anPopulateAnios==='function') anPopulateAnios();
+  var v = anAggregate(anGetData(), AN_PERIOD);
   if (!v.length) { 
     var sum=document.getElementById('an-summary');
     if(sum) sum.innerHTML='<div style="padding:20px;color:rgba(180,200,240,0.5);font-size:12px;">Sin datos para el período seleccionado</div>';
