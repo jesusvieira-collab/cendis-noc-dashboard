@@ -3574,7 +3574,7 @@ function setChartDefaults(){
         var ca=chart.chartArea;
         var totalPts=chart.data.labels?chart.data.labels.length:0;
         // Frecuencia adaptativa: más puntos = menos labels visibles
-        var showEvery=totalPts<=12?1:totalPts<=25?2:totalPts<=50?3:totalPts<=80?5:totalPts<=120?8:12;
+        var showEvery=1; // mostrar SIEMPRE todos los valores (sin adelgazar por cantidad de puntos)
         var fs=totalPts<=20?10:totalPts<=50?9:8;
         chart.data.datasets.forEach(function(ds,di){
           if(!ds.showValueLabels) return;
