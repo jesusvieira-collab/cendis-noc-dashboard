@@ -7372,7 +7372,14 @@ function anAggregate(recs, period){
       g._sort = parseInt(_histYear(r))*100 + ORD.indexOf((r.date||'').split(' ')[0]);
     } else { g._sort = (iso||'') ; }
   });
-  return order.map(function(k){return groups[k];}).sort(function(a,b){ return a._sort>b._sort?1:(a._sort<b._sort?-1:0); });
+  // En vista POR MES mostramos el PROMEDIO diario del mes (no la suma):
+  // cada campo acumulado se divide entre la cantidad de dias del mes.
+  var _esProm = (period==='mes');
+  return order.map(function(k){
+    var g=groups[k];
+    if(_esProm && g._n>0){ SUMF.forEach(function(f){ g[f]=Math.round(g[f]/g._n); }); }
+    return g;
+  }).sort(function(a,b){ return a._sort>b._sort?1:(a._sort<b._sort?-1:0); });
 }
 var AN_CHARTS = {};
 
