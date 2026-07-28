@@ -1810,6 +1810,43 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       }
     } catch(e){ console.warn('mergeV22toHIST init error:', e); }
 
+    // ── RESCATE ADITIVO desde localStorage ──
+    // Si este dispositivo tiene jornadas en su memoria local (ftd_noc_v5 /
+    // fcd_hist) que NO existen en la nube (p.ej. se cargaron cuando la red
+    // fallo o desde una version vieja), se AGREGAN a la nube. Solo agrega
+    // dias faltantes; NUNCA pisa dias que ya existen en la nube (la copia
+    // local puede estar vieja). Esto rescata automaticamente dias perdidos
+    // con solo abrir el tablero en el dispositivo donde se cargaron.
+    try {
+      var _resc = 0;
+      var _lsNoc = JSON.parse(localStorage.getItem('ftd_noc_v5')||'[]');
+      if (Array.isArray(_lsNoc) && typeof datos !== 'undefined') {
+        _lsNoc.forEach(function(d){
+          if (d && d.fecha && !datos.some(function(x){ return x.fecha===d.fecha; })) {
+            datos.push(d); _resc++;
+          }
+        });
+        if (_resc) datos.sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||''); });
+      }
+      var _rescH = 0;
+      var _lsHist = JSON.parse(localStorage.getItem('fcd_hist')||'[]');
+      if (Array.isArray(_lsHist) && typeof HIST !== 'undefined') {
+        _lsHist.forEach(function(h){
+          if (h && h.date && !HIST.some(function(x){ return x.date===h.date; })) {
+            HIST.push(h); _rescH++;
+          }
+        });
+      }
+      if (_resc || _rescH) {
+        console.log('[Rescate] Jornadas locales agregadas a la nube — NOC:', _resc, 'HIST:', _rescH);
+        try { if (typeof actualizarMeses === 'function') actualizarMeses(); } catch(e) {}
+        try { if (typeof anPopulateMeses === 'function') anPopulateMeses(); } catch(e) {}
+        try { if (typeof buildAnalytics === 'function') buildAnalytics(); } catch(e) {}
+        try { if (typeof render === 'function') render(); } catch(e) {}
+        try { if (typeof save === 'function') save(); } catch(e) {}
+      }
+    } catch(e){ console.warn('rescate local error:', e); }
+
     // 3. MontaTrack db{}
     const montaData = await window.fbLoad('monta_db', 'main');
     if (montaData && typeof db !== 'undefined') {
