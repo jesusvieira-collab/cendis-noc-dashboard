@@ -13259,5 +13259,68 @@ body.exec-mode #execModeToggle .em-chev{ transform:rotate(180deg); }
 })();
 </script>
 
+<script>
+/* ═══ WATCHDOG DE FRESCURA — sesion vieja se recarga sola ═══
+   Problema real: una pestana abierta por dias en un dispositivo opera con
+   codigo y datos VIEJOS en memoria, y puede confundir al usuario o (con
+   codigo antiguo) danar la nube. Solucion: si la sesion supera el limite,
+   la pagina se recarga sola con cache-busting (?v=timestamp) para traer
+   SIEMPRE el HTML mas reciente y re-sincronizar los datos desde Firebase.
+   Guardas de seguridad: NUNCA recarga mientras el usuario escribe o hay
+   texto sin guardar en un formulario/textarea. */
+(function(){
+  var LIMITE_SESION = 30*60*1000;   // 30 min de vida maxima de la sesion
+  var LIMITE_OCULTA = 10*60*1000;   // 10 min en segundo plano => recargar al volver
+  var IDLE_MINIMO   = 3*60*1000;    // solo recargar si lleva >=3 min sin actividad
+  var inicio = Date.now();
+  var ultimaActividad = Date.now();
+  var ocultaDesde = null;
+
+  ['mousemove','mousedown','keydown','touchstart','scroll'].forEach(function(ev){
+    window.addEventListener(ev, function(){ ultimaActividad = Date.now(); }, {passive:true});
+  });
+
+  function hayTextoSinGuardar(){
+    // activo un input/textarea => esta escribiendo
+    var ae = document.activeElement;
+    if (ae && (ae.tagName==='TEXTAREA' || ae.tagName==='INPUT' || ae.tagName==='SELECT')) return true;
+    // cualquier textarea visible con contenido => pegado sin procesar
+    var tas = document.querySelectorAll('textarea');
+    for (var i=0;i<tas.length;i++){
+      var t = tas[i];
+      if (t.value && t.value.trim().length>0 && t.offsetParent!==null) return true;
+    }
+    return false;
+  }
+
+  function recargar(motivo){
+    try { console.log('[Watchdog] Recargando ('+motivo+') para traer la version mas reciente...'); } catch(e){}
+    var base = location.origin + location.pathname;
+    location.replace(base + '?v=' + Date.now());
+  }
+
+  function intentarRecarga(motivo){
+    if (hayTextoSinGuardar()) return false;                       // no interrumpir trabajo
+    if (Date.now() - ultimaActividad < IDLE_MINIMO) return false; // usuario activo
+    recargar(motivo);
+    return true;
+  }
+
+  // 1) Pestana que vuelve de estar oculta mucho tiempo (celular/PC dormido)
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden) { ocultaDesde = Date.now(); return; }
+    if (ocultaDesde && (Date.now() - ocultaDesde) > LIMITE_OCULTA) {
+      // al volver, recargar de inmediato si es seguro (sin exigir idle)
+      if (!hayTextoSinGuardar()) recargar('pestana dormida ' + Math.round((Date.now()-ocultaDesde)/60000) + ' min');
+    }
+    ocultaDesde = null;
+  });
+
+  // 2) Sesion abierta demasiado tiempo: chequeo cada minuto
+  setInterval(function(){
+    if (Date.now() - inicio > LIMITE_SESION) intentarRecarga('sesion > 30 min');
+  }, 60*1000);
+})();
+</script>
 </body>
 </html>
