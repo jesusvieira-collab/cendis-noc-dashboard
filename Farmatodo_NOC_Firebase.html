@@ -4497,13 +4497,26 @@ function _saveDesp(){
     }
   }catch(e){}
 }
+// Parseo robusto de numeros en formato venezolano/mixto:
+//  "1.234.567"    (punto = miles)   -> 1234567
+//  "1.234.567,50" (coma = decimal)  -> 1234567.5
+//  "105000"                          -> 105000
+// Antes se usaba parseFloat(replace([^0-9.])) y "1.234.567" quedaba en 1.234 -> 1
+// (por eso los meses guardaban 1 y 2 en vez de millones). Ahora respeta TODOS los digitos.
+function _parseNumES(s){
+  s = String(s==null?'':s).trim().replace(/[^\d.,]/g,'');
+  if(s==='') return NaN;
+  if(s.indexOf(',')>=0){ s = s.replace(/\./g,'').replace(',', '.'); }
+  else { s = s.replace(/\./g,''); }
+  return parseFloat(s);
+}
 function guardarDespacho(){
   var sel=document.getElementById('desp_mes'), inp=document.getElementById('desp_val');
   if(!sel||!inp) return;
-  var mes=sel.value, val=parseFloat(String(inp.value||'').replace(/[^0-9.]/g,''));
+  var mes=sel.value, val=_parseNumES(inp.value);
   if(!mes){ alert('Selecciona un mes.'); return; }
   if(isNaN(val)||val<=0){ alert('Ingresa un número válido de unidades despachadas por día.'); return; }
-  DESP_DATA[mes]=Math.round(val);
+  DESP_DATA[mes]=val;
   _saveDesp();
   inp.value='';
   renderDespList();
@@ -4640,9 +4653,11 @@ function renderEjecutivo(){
   const _despSel = (typeof DESP_DATA!=='undefined' && DESP_DATA[MA.mes]>0) ? DESP_DATA[MA.mes] : 0;
   const _cancPctSel = _despSel>0 ? (MA.avgT/_despSel*100) : 0;
   // % anual proporcional ponderado por días operativos de cada mes
-  let _sumCancA=0,_sumDespA=0;
-  pm.forEach(function(p){ const dd=(typeof DESP_DATA!=='undefined'?DESP_DATA[p.mes]:0)||0; if(dd>0){ _sumCancA+=p.avgT*p.dias; _sumDespA+=dd*p.dias; } });
+  let _sumCancA=0,_sumDespA=0,_sumDiasA=0;
+  pm.forEach(function(p){ const dd=(typeof DESP_DATA!=='undefined'?DESP_DATA[p.mes]:0)||0; if(dd>0){ _sumCancA+=p.avgT*p.dias; _sumDespA+=dd*p.dias; _sumDiasA+=p.dias; } });
   const _cancPctAnual = _sumDespA>0 ? (_sumCancA/_sumDespA*100) : 0;
+  const _despAnualProm = _sumDiasA>0 ? _sumDespA/_sumDiasA : 0;   // uds despachadas/día — promedio anual ponderado
+  const _cancAnualProm = _sumDiasA>0 ? _sumCancA/_sumDiasA : 0;   // uds canceladas/día — promedio anual ponderado
   const _cancPctAnt = (function(){ const i=_sMeses.indexOf(MA.mes); return i>0? _cancPctByMes[i-1]:0; })();
   const d9 = delta(_cancPctSel, _cancPctAnt);
 
@@ -4778,12 +4793,16 @@ function renderEjecutivo(){
       )}
 
       ${'<div style="grid-column:1/-1;">'+buildKpiCard('9','CANCELACIÓN vs DESPACHO (PROPORCIÓN)','⚖️',
-        _despSel>0 ? _cancPctSel.toFixed(3)+'%' : '— sin dato de despacho',
-        _despSel>0 ? ('Canceladas ÷ despachadas · '+Math.round(MA.avgT).toLocaleString()+' cancel/día ÷ '+_despSel.toLocaleString()+' desp/día')
-                   : 'Carga las unidades despachadas del mes en Reposición → CARGA',
+        _despSel>0 ? _cancPctSel.toFixed(3)+'%' : (_sumDespA>0 ? _cancPctAnual.toFixed(3)+'% (anual)' : '— sin dato de despacho'),
+        _despSel>0 ? (Math.round(MA.avgT).toLocaleString('es-VE')+' cancel/día ÷ '+Math.round(_despSel).toLocaleString('es-VE')+' desp/día')
+                   : (_sumDespA>0 ? 'Mes reportado sin dato · se muestra la proporción anual' : 'Carga las unidades despachadas del mes en Reposición → CARGA'),
         d9, false,
-        _despSel>0 ? ('% de unidades canceladas respecto a las despachadas — mide cancelación proporcional a la carga real de trabajo. Proporción ANUAL: '+_cancPctAnual.toFixed(3)+'% (ponderada por días). Menor % = más productivos a igual o mayor volumen. Línea verde = tendencia anual · x̄ = promedio anual.')
-                   : 'Sin unidades despachadas cargadas para '+(MNOM[MA.mes]||MA.mes)+'. Agrégalas en la pestaña CARGA para calcular el % proporcional.',
+        (_sumDespA>0
+          ? ('PROMEDIO ANUAL &nbsp;·&nbsp; Despachadas: <b>'+Math.round(_despAnualProm).toLocaleString('es-VE')+'</b> uds/día &nbsp;·&nbsp; Canceladas: <b>'+Math.round(_cancAnualProm).toLocaleString('es-VE')+'</b> uds/día. '
+             +'Proporción histórica esperada de cancelación: <b>'+_cancPctAnual.toFixed(3)+'%</b> (según el patrón anual, ese es el nivel que "debería" cancelarse por cada unidad despachada). '
+             +(_despSel>0 ? ((MNOM[MA.mes]||MA.mes)+': <b>'+_cancPctSel.toFixed(3)+'%</b> — '+(_cancPctSel<=_cancPctAnual?'✅ MEJOR que el histórico':'⚠️ PEOR que el histórico')+'. ') : '')
+             +'Menor % a igual o mayor volumen = más productivos. Cada barra = % del mes · línea verde = tendencia · x̄ = promedio anual.')
+          : 'Sin unidades despachadas cargadas. Agrégalas mes por mes en la pestaña CARGA para calcular el % proporcional.'),
         _cancPctByMes, true
       )+'</div>'}
 
