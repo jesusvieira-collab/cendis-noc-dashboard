@@ -4542,6 +4542,73 @@ function renderDespList(){
   }).join('')+'</div>';
 }
 
+function buildCard9(o){
+  var meses=o.sMeses||[], pct=o.pctByMes||[], desp=o.desp||{}, pm=o.pm||[];
+  var MN={ENE:'Ene',FEB:'Feb',MAR:'Mar',ABR:'Abr',MAY:'May',JUN:'Jun',JUL:'Jul',AGO:'Ago',SEP:'Sep',OCT:'Oct',NOV:'Nov',DIC:'Dic'};
+  var anual=+(o.cancPctAnual||0);
+  function fmt(n){ return Math.round(n||0).toLocaleString('es-VE'); }
+  function cancDe(m){ for(var i=0;i<pm.length;i++){ if(pm[i].mes===m) return Math.round(pm[i].avgT||0); } return 0; }
+  function pctTxt(v){ return (+((v||0).toFixed(3)))+'%'; }
+  var ri=meses.indexOf(o.repMes);
+  var repDesp=desp[o.repMes]||0, hayRep=repDesp>0;
+  var repPct=ri>=0?(pct[ri]||0):0, repCanc=cancDe(o.repMes);
+  var prevPct=null, prevMes=null, k;
+  for(k=ri-1;k>=0;k--){ if((desp[meses[k]]||0)>0){ prevPct=pct[k]; prevMes=meses[k]; break; } }
+  var maxP=0.0001;
+  meses.forEach(function(m,idx){ if((desp[m]||0)>0 && pct[idx]>maxP) maxP=pct[idx]; });
+  var BARH=84;
+  var cols=meses.map(function(m,idx){
+    var hasD=(desp[m]||0)>0;
+    var pv=hasD?(pct[idx]||0):0;
+    var h=hasD?Math.max(6,Math.round(pv/maxP*BARH)):4;
+    var col=!hasD?'#cbd5e1':(pv>anual?'#dc2626':'#16a34a');
+    var esRep=(m===o.repMes);
+    return '<div style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;min-width:0;padding:4px 2px;border-radius:8px;'+(esRep?'background:rgba(0,71,200,.06);outline:1px solid rgba(0,71,200,.22);':'')+'">'
+      + '<div style="font-family:monospace;font-size:10px;font-weight:800;color:'+(!hasD?'#94a3b8':col)+';margin-bottom:3px;white-space:nowrap;">'+(hasD?pctTxt(pv):'—')+'</div>'
+      + '<div style="width:62%;height:'+BARH+'px;display:flex;align-items:flex-end;">'
+        + '<div style="width:100%;height:'+h+'px;background:'+col+';border-radius:3px 3px 0 0;"></div>'
+      + '</div>'
+      + '<div style="font-family:var(--font);font-size:10px;font-weight:800;color:#0D2D6B;margin-top:5px;">'+(MN[m]||m)+'</div>'
+      + '<div style="font-family:var(--font);font-size:8px;color:rgba(13,45,107,.4);text-transform:uppercase;letter-spacing:.03em;margin-top:4px;">Despach.</div>'
+      + '<div style="font-family:monospace;font-size:9.5px;font-weight:700;color:#0D6A4F;white-space:nowrap;">'+(hasD?fmt(desp[m]):'s/d')+'</div>'
+      + '<div style="font-family:var(--font);font-size:8px;color:rgba(13,45,107,.4);text-transform:uppercase;letter-spacing:.03em;margin-top:3px;">Cancel.</div>'
+      + '<div style="font-family:monospace;font-size:9.5px;font-weight:700;color:#B4232A;white-space:nowrap;">'+fmt(cancDe(m))+'</div>'
+    + '</div>';
+  }).join('');
+  var deltaHtml;
+  if(hayRep && prevPct!=null && prevPct>0){
+    var dp=(repPct-prevPct)/prevPct*100, up=dp>0.05, dn=dp<-0.05;
+    var clr=up?'#dc2626':(dn?'#16a34a':'rgba(13,45,107,.5)');
+    deltaHtml='<span style="font-size:13px;">'+(up?'⬆️':(dn?'⬇️':'🟰'))+'</span>'
+      + '<span style="font-family:var(--font);font-size:11px;font-weight:700;color:'+clr+';">'+(dp>=0?'+':'')+dp.toFixed(2)+'% vs. '+(MN[prevMes]||prevMes)+'</span>';
+  } else if(hayRep){
+    deltaHtml='<span style="font-family:var(--font);font-size:11px;font-weight:700;color:rgba(13,45,107,.5);">— Sin mes anterior para comparar</span>';
+  } else {
+    deltaHtml='<span style="font-size:13px;">🟡</span><span style="font-family:var(--font);font-size:11px;font-weight:700;color:#C87000;">'+(o.repNombre||o.repMes)+' sin dato — cárgalo en CARGA para ver su % y la comparación</span>';
+  }
+  var vsAnual;
+  if(hayRep && anual>0){
+    var da=(repPct-anual)/anual*100, upA=da>0.05, dnA=da<-0.05;
+    var clrA=upA?'#dc2626':(dnA?'#16a34a':'rgba(13,45,107,.5)');
+    vsAnual='<span style="font-family:var(--font);font-size:11px;font-weight:700;color:'+clrA+';margin-left:auto;white-space:nowrap;">'+(da>=0?'+':'')+da.toFixed(1)+'% vs anual &nbsp;·&nbsp;<span style="color:rgba(13,45,107,.65);font-weight:800;">x̄ '+pctTxt(anual)+'</span></span>';
+  } else {
+    vsAnual='<span style="font-family:var(--font);font-size:11px;font-weight:800;color:rgba(13,45,107,.65);margin-left:auto;white-space:nowrap;">x̄ anual '+pctTxt(anual)+'</span>';
+  }
+  var bigVal=hayRep?pctTxt(repPct):(pctTxt(anual)+' (anual)');
+  var subTxt=hayRep?((o.repNombre||o.repMes)+': '+fmt(repCanc)+' cancel/día ÷ '+fmt(repDesp)+' desp/día'):((o.repNombre||o.repMes)+' sin dato · se muestra la proporción anual');
+  return '<div style="background:#fff;border:1px solid rgba(13,45,107,.1);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(13,45,107,.06);">'
+    + '<div style="position:absolute;top:12px;right:16px;font-family:var(--font);font-size:32px;font-weight:900;color:rgba(13,45,107,.04);line-height:1;">9</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">⚖️</span><div style="font-family:var(--font);font-size:9px;font-weight:800;color:#1A5CA8;text-transform:uppercase;letter-spacing:.08em;">9. CANCELACIÓN vs DESPACHO (PROPORCIÓN)</div></div>'
+    + '<div style="font-family:var(--font);font-size:28px;font-weight:900;color:#0D2D6B;line-height:1;margin-bottom:4px;">'+bigVal+'</div>'
+    + '<div style="font-size:11px;color:rgba(13,45,107,.55);font-family:var(--font-b);margin-bottom:12px;">'+subTxt+'</div>'
+    + '<div style="display:flex;align-items:flex-end;gap:3px;">'+cols+'</div>'
+    + '<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(13,45,107,.04);border-radius:6px;margin-top:12px;margin-bottom:10px;border-left:3px solid rgba(13,45,107,.25);">'+deltaHtml+vsAnual+'</div>'
+    + '<div style="font-size:10px;color:rgba(13,45,107,.6);font-family:var(--font-b);line-height:1.6;border-top:1px solid rgba(13,45,107,.08);padding-top:8px;">'
+      + '<b>% ANUAL:</b> '+pctTxt(anual)+' &nbsp;·&nbsp; <b>Prom. despachadas/año:</b> '+fmt(o.despAnualProm)+' uds/día &nbsp;·&nbsp; <b>Prom. canceladas/año:</b> '+fmt(o.cancAnualProm)+' uds/día. '
+      + 'Cada barra = % del mes (canceladas ÷ despachadas). Rojo = por encima del histórico · Verde = por debajo.'
+    + '</div>'
+  + '</div>';
+}
 function renderEjecutivo(){
   const dd = filtroDatos();
   const cont = document.getElementById('execReport');
@@ -4792,19 +4859,7 @@ function renderEjecutivo(){
         _skTotDym, true
       )}
 
-      ${'<div style="grid-column:1/-1;">'+buildKpiCard('9','CANCELACIÓN vs DESPACHO (PROPORCIÓN)','⚖️',
-        _despSel>0 ? _cancPctSel.toFixed(3)+'%' : (_sumDespA>0 ? _cancPctAnual.toFixed(3)+'% (anual)' : '— sin dato de despacho'),
-        _despSel>0 ? (Math.round(MA.avgT).toLocaleString('es-VE')+' cancel/día ÷ '+Math.round(_despSel).toLocaleString('es-VE')+' desp/día')
-                   : (_sumDespA>0 ? 'Mes reportado sin dato · se muestra la proporción anual' : 'Carga las unidades despachadas del mes en Reposición → CARGA'),
-        d9, false,
-        (_sumDespA>0
-          ? ('PROMEDIO ANUAL &nbsp;·&nbsp; Despachadas: <b>'+Math.round(_despAnualProm).toLocaleString('es-VE')+'</b> uds/día &nbsp;·&nbsp; Canceladas: <b>'+Math.round(_cancAnualProm).toLocaleString('es-VE')+'</b> uds/día. '
-             +'Proporción histórica esperada de cancelación: <b>'+_cancPctAnual.toFixed(3)+'%</b> (según el patrón anual, ese es el nivel que "debería" cancelarse por cada unidad despachada). '
-             +(_despSel>0 ? ((MNOM[MA.mes]||MA.mes)+': <b>'+_cancPctSel.toFixed(3)+'%</b> — '+(_cancPctSel<=_cancPctAnual?'✅ MEJOR que el histórico':'⚠️ PEOR que el histórico')+'. ') : '')
-             +'Menor % a igual o mayor volumen = más productivos. Cada barra = % del mes · línea verde = tendencia · x̄ = promedio anual.')
-          : 'Sin unidades despachadas cargadas. Agrégalas mes por mes en la pestaña CARGA para calcular el % proporcional.'),
-        _cancPctByMes, true
-      )+'</div>'}
+      ${'<div style="grid-column:1/-1;">'+buildCard9({sMeses:_sMeses, pctByMes:_cancPctByMes, desp:(typeof DESP_DATA!=='undefined'?DESP_DATA:{}), pm:pm, repMes:MA.mes, repNombre:(MNOM[MA.mes]||MA.mes), cancPctAnual:_cancPctAnual, despAnualProm:_despAnualProm, cancAnualProm:_cancAnualProm})+'</div>'}
 
     </div>
 
