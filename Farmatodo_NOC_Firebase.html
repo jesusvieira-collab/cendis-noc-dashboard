@@ -3840,7 +3840,7 @@ async function dlOnePageMobile(){
     clone.querySelectorAll('select, button, .dl-btn, .btn').forEach(function(b){ b.remove(); });
     var cardGrid=Array.from(clone.querySelectorAll('div')).filter(function(d){ return /grid-template-columns/.test(d.getAttribute('style')||'') && d.children.length>=6; })[0];
     var cards=cardGrid?Array.from(cardGrid.children):[];
-    var mitad=Math.ceil(cards.length/2);
+    var mitad=4; // Hoja 1 = tarjetas 1-4 · Hoja 2 = 5-9
     if(clone.children[1]) clone.children[1].insertAdjacentHTML('afterend', badge(which===1?'HOJA 1 / 2':'HOJA 2 / 2'));
     if(which===1){
       cards.slice(mitad).forEach(function(c){ c.remove(); });
@@ -4930,7 +4930,7 @@ function renderEjecutivo(){
 /* ── Mini sparkline SVG mensual para One Page NOC ── */
 function nocSparkSVG(data, invertColor, labels, showTrend) {
   if(!data||data.length<2) return '';
-  var W=200,HBAR=62,HLBL=15,H=HBAR+HLBL,n=data.length,gap=3;
+  var W=200,HBAR=62,HLBL=19,H=HBAR+HLBL,n=data.length,gap=3;
   var bw=(W-gap*(n-1))/n;
   var mx=Math.max.apply(null,data),mn=Math.min.apply(null,data);
   var rng=mx-mn||1;
@@ -4951,12 +4951,12 @@ function nocSparkSVG(data, invertColor, labels, showTrend) {
     else if(Math.abs(rawV)<10) dispV=(+rawV.toFixed(2)).toString();
     else dispV=(+rawV.toFixed(1)).toString();
     var valY=y+h-5;
-    var tw=dispV.length*4.8;
+    var tw=dispV.length*6.8;
     var cx=(x+bw/2).toFixed(1);
     return '<rect x="'+x+'" y="'+y+'" width="'+bw.toFixed(1)+'" height="'+h+'" rx="2.5" fill="'+fill+'"/>'
-      +'<rect x="'+((x+bw/2-tw/2-1).toFixed(1))+'" y="'+((valY-7).toFixed(1))+'" width="'+((tw+2).toFixed(1))+'" height="8.5" rx="1" fill="rgba(0,0,0,.2)"/>'
-      +'<text x="'+cx+'" y="'+valY+'" text-anchor="middle" font-size="7.5" font-weight="800" fill="#ffffff" font-family="monospace">'+dispV+'</text>'
-      +(lbl?'<text x="'+cx+'" y="'+(HBAR+HLBL-1)+'" text-anchor="middle" font-size="8.5" font-weight="700" fill="#0D2D6B" opacity=".6" font-family="Outfit,sans-serif">'+lbl+'</text>':'');
+      +'<rect x="'+((x+bw/2-tw/2-1).toFixed(1))+'" y="'+((valY-10.5).toFixed(1))+'" width="'+((tw+2).toFixed(1))+'" height="13" rx="2" fill="rgba(0,0,0,.45)"/>'
+      +'<text x="'+cx+'" y="'+valY+'" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff" font-family="monospace">'+dispV+'</text>'
+      +(lbl?'<text x="'+cx+'" y="'+(HBAR+HLBL-1)+'" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0D2D6B" opacity=".6" font-family="Outfit,sans-serif">'+lbl+'</text>':'');
   }).join('');
   // Linea de TENDENCIA LINEAL anual (regresion minimos cuadrados)
   var trendSVG='';
@@ -9247,7 +9247,7 @@ function buildOnePage() {
     var invC = c.invertSpark||false;
     var sparkSVG = '';
     if(raw.length>=2){
-      var W=200,HBAR=62,HLBL=15,SH=HBAR+HLBL,n=raw.length,gap=3;
+      var W=200,HBAR=62,HLBL=19,SH=HBAR+HLBL,n=raw.length,gap=3;
       var bw=(W-gap*(n-1))/n;
       var mx2=Math.max.apply(null,raw),mn2=Math.min.apply(null,raw);
       var rng2=mx2-mn2||1;
@@ -9263,12 +9263,12 @@ function buildOnePage() {
           ',.28)');
         var dispV=v>=1000?(v/1000).toFixed(1)+'K':v%1===0?Math.round(v).toString():(+v.toFixed(1)).toString();
         var valY=y+h-5;
-        var tw=dispV.length*4.8;
+        var tw=dispV.length*6.8;
         var lblTxt=lbl[i]||'';
         return '<rect x="'+x+'" y="'+y+'" width="'+bw.toFixed(1)+'" height="'+h+'" rx="2.5" fill="'+fill+'"/>'
-          +'<rect x="'+(x+bw/2-tw/2-1).toFixed(1)+'" y="'+(valY-7).toFixed(1)+'" width="'+(tw+2).toFixed(1)+'" height="8.5" rx="1" fill="rgba(0,0,0,.18)"/>'
-          +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+valY+'" text-anchor="middle" font-size="7.5" font-weight="800" fill="#ffffff" font-family="monospace">'+dispV+'</text>'
-          +(lblTxt?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(HBAR+HLBL-1)+'" text-anchor="middle" font-size="8.5" font-weight="700" fill="#1e293b" opacity=".6" font-family="Outfit,sans-serif">'+lblTxt+'</text>':'');
+          +'<rect x="'+(x+bw/2-tw/2-1).toFixed(1)+'" y="'+(valY-10.5).toFixed(1)+'" width="'+(tw+2).toFixed(1)+'" height="13" rx="2" fill="rgba(0,0,0,.45)"/>'
+          +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+valY+'" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff" font-family="monospace">'+dispV+'</text>'
+          +(lblTxt?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(HBAR+HLBL-1)+'" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1e293b" opacity=".6" font-family="Outfit,sans-serif">'+lblTxt+'</text>':'');
       }).join('');
       // Linea de TENDENCIA LINEAL (regresion minimos cuadrados) para tarjetas con showTrend
       var trendSVG='';
