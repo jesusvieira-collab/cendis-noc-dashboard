@@ -3828,14 +3828,14 @@ async function dlOnePageMobile(){
   if(!src){ toast('Abre primero el One Page (pestaña EJECUTIVO)','warn'); return; }
   if(typeof html2canvas==='undefined'){ toast('Librería de captura no disponible','err'); return; }
   toast('Generando 2 hojas para celular...');
-  var W=540;
+  var W=680;
   function badge(txt){ return '<div style="text-align:center;font-family:var(--font);font-size:14px;font-weight:800;color:#0D2D6B;letter-spacing:.06em;margin:8px 0 12px;">'+txt+'</div>'; }
   async function hoja(which){
     var clone=src.cloneNode(true);
     clone.style.maxWidth=W+'px'; clone.style.width=W+'px'; clone.style.margin='0'; clone.style.boxShadow='none';
     clone.querySelectorAll('[style*="grid-template-columns"]').forEach(function(el){
       var st=el.getAttribute('style')||'';
-      el.style.gridTemplateColumns=(/repeat\(4/.test(st))?'repeat(2,1fr)':'1fr';
+      el.style.gridTemplateColumns=(/repeat\(4/.test(st))?'repeat(4,1fr)':'repeat(2,1fr)';
     });
     clone.querySelectorAll('select, button, .dl-btn, .btn').forEach(function(b){ b.remove(); });
     var cardGrid=Array.from(clone.querySelectorAll('div')).filter(function(d){ return /grid-template-columns/.test(d.getAttribute('style')||'') && d.children.length>=6; })[0];
