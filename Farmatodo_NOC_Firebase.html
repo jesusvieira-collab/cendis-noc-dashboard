@@ -3829,7 +3829,7 @@ async function dlCardImagen(cardId, name){
   if(typeof html2canvas==='undefined'){toast('Librería de captura no disponible','err');return;}
   toast('Capturando imagen...');
   try{
-    const canvas=await html2canvas(el,{backgroundColor:'#111E35',scale:2,logging:false,useCORS:true});
+    const canvas=await html2canvas(el,{backgroundColor:'#111E35',scale:3,logging:false,useCORS:true});
     const a=document.createElement('a');
     a.href=canvas.toDataURL('image/png');
     a.download=`Farmatodo_NOC_${name}_${new Date().toISOString().split('T')[0]}.png`;
@@ -3846,7 +3846,7 @@ async function descargarTodas(){
     const el=document.getElementById(c.id);
     if(!el) continue;
     try{
-      const canvas=await html2canvas(el,{backgroundColor:'#111E35',scale:2,logging:false,useCORS:true});
+      const canvas=await html2canvas(el,{backgroundColor:'#111E35',scale:3,logging:false,useCORS:true});
       const a=document.createElement('a');
       a.href=canvas.toDataURL('image/png');
       a.download=`Farmatodo_NOC_${c.name}_${new Date().toISOString().split('T')[0]}.png`;
@@ -4564,15 +4564,15 @@ function buildCard9(o){
     var col=!hasD?'#cbd5e1':(pv>anual?'#dc2626':'#16a34a');
     var esRep=(m===o.repMes);
     return '<div style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;min-width:0;padding:4px 2px;border-radius:8px;'+(esRep?'background:rgba(0,71,200,.06);outline:1px solid rgba(0,71,200,.22);':'')+'">'
-      + '<div style="font-family:monospace;font-size:10px;font-weight:800;color:'+(!hasD?'#94a3b8':col)+';margin-bottom:3px;white-space:nowrap;">'+(hasD?pctTxt(pv):'—')+'</div>'
+      + '<div style="font-family:monospace;font-size:12px;font-weight:800;color:'+(!hasD?'#94a3b8':col)+';margin-bottom:3px;white-space:nowrap;">'+(hasD?pctTxt(pv):'—')+'</div>'
       + '<div style="width:62%;height:'+BARH+'px;display:flex;align-items:flex-end;">'
         + '<div style="width:100%;height:'+h+'px;background:'+col+';border-radius:3px 3px 0 0;"></div>'
       + '</div>'
-      + '<div style="font-family:var(--font);font-size:10px;font-weight:800;color:#0D2D6B;margin-top:5px;">'+(MN[m]||m)+'</div>'
-      + '<div style="font-family:var(--font);font-size:8px;color:rgba(13,45,107,.4);text-transform:uppercase;letter-spacing:.03em;margin-top:4px;">Despach.</div>'
-      + '<div style="font-family:monospace;font-size:9.5px;font-weight:700;color:#0D6A4F;white-space:nowrap;">'+(hasD?fmt(desp[m]):'s/d')+'</div>'
-      + '<div style="font-family:var(--font);font-size:8px;color:rgba(13,45,107,.4);text-transform:uppercase;letter-spacing:.03em;margin-top:3px;">Cancel.</div>'
-      + '<div style="font-family:monospace;font-size:9.5px;font-weight:700;color:#B4232A;white-space:nowrap;">'+fmt(cancDe(m))+'</div>'
+      + '<div style="font-family:var(--font);font-size:12px;font-weight:800;color:#0D2D6B;margin-top:5px;">'+(MN[m]||m)+'</div>'
+      + '<div style="font-family:var(--font);font-size:9.5px;color:rgba(13,45,107,.45);text-transform:uppercase;letter-spacing:.03em;margin-top:4px;">Despach.</div>'
+      + '<div style="font-family:monospace;font-size:11.5px;font-weight:700;color:#0D6A4F;white-space:nowrap;">'+(hasD?fmt(desp[m]):'s/d')+'</div>'
+      + '<div style="font-family:var(--font);font-size:9.5px;color:rgba(13,45,107,.45);text-transform:uppercase;letter-spacing:.03em;margin-top:3px;">Cancel.</div>'
+      + '<div style="font-family:monospace;font-size:11.5px;font-weight:700;color:#B4232A;white-space:nowrap;">'+fmt(cancDe(m))+'</div>'
     + '</div>';
   }).join('');
   var deltaHtml;
@@ -4580,7 +4580,7 @@ function buildCard9(o){
     var dp=(repPct-prevPct)/prevPct*100, up=dp>0.05, dn=dp<-0.05;
     var clr=up?'#dc2626':(dn?'#16a34a':'rgba(13,45,107,.5)');
     deltaHtml='<span style="font-size:13px;">'+(up?'⬆️':(dn?'⬇️':'🟰'))+'</span>'
-      + '<span style="font-family:var(--font);font-size:11px;font-weight:700;color:'+clr+';">'+(dp>=0?'+':'')+dp.toFixed(2)+'% vs. '+(MN[prevMes]||prevMes)+'</span>';
+      + '<span style="font-family:var(--font);font-size:13px;font-weight:700;color:'+clr+';">'+(dp>=0?'+':'')+dp.toFixed(2)+'% vs. '+(MN[prevMes]||prevMes)+'</span>';
   } else if(hayRep){
     deltaHtml='<span style="font-family:var(--font);font-size:11px;font-weight:700;color:rgba(13,45,107,.5);">— Sin mes anterior para comparar</span>';
   } else {
@@ -4590,7 +4590,7 @@ function buildCard9(o){
   if(hayRep && anual>0){
     var da=(repPct-anual)/anual*100, upA=da>0.05, dnA=da<-0.05;
     var clrA=upA?'#dc2626':(dnA?'#16a34a':'rgba(13,45,107,.5)');
-    vsAnual='<span style="font-family:var(--font);font-size:11px;font-weight:700;color:'+clrA+';margin-left:auto;white-space:nowrap;">'+(da>=0?'+':'')+da.toFixed(1)+'% vs anual &nbsp;·&nbsp;<span style="color:rgba(13,45,107,.65);font-weight:800;">x̄ '+pctTxt(anual)+'</span></span>';
+    vsAnual='<span style="font-family:var(--font);font-size:13px;font-weight:700;color:'+clrA+';margin-left:auto;white-space:nowrap;">'+(da>=0?'+':'')+da.toFixed(1)+'% vs anual &nbsp;·&nbsp;<span style="color:rgba(13,45,107,.65);font-weight:800;">x̄ '+pctTxt(anual)+'</span></span>';
   } else {
     vsAnual='<span style="font-family:var(--font);font-size:11px;font-weight:800;color:rgba(13,45,107,.65);margin-left:auto;white-space:nowrap;">x̄ anual '+pctTxt(anual)+'</span>';
   }
@@ -4598,12 +4598,12 @@ function buildCard9(o){
   var subTxt=hayRep?((o.repNombre||o.repMes)+': '+fmt(repCanc)+' cancel/día ÷ '+fmt(repDesp)+' desp/día'):((o.repNombre||o.repMes)+' sin dato · se muestra la proporción anual');
   return '<div style="background:#fff;border:1px solid rgba(13,45,107,.1);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(13,45,107,.06);">'
     + '<div style="position:absolute;top:12px;right:16px;font-family:var(--font);font-size:32px;font-weight:900;color:rgba(13,45,107,.04);line-height:1;">9</div>'
-    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">⚖️</span><div style="font-family:var(--font);font-size:9px;font-weight:800;color:#1A5CA8;text-transform:uppercase;letter-spacing:.08em;">9. CANCELACIÓN vs DESPACHO (PROPORCIÓN)</div></div>'
-    + '<div style="font-family:var(--font);font-size:28px;font-weight:900;color:#0D2D6B;line-height:1;margin-bottom:4px;">'+bigVal+'</div>'
-    + '<div style="font-size:11px;color:rgba(13,45,107,.55);font-family:var(--font-b);margin-bottom:12px;">'+subTxt+'</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">⚖️</span><div style="font-family:var(--font);font-size:11px;font-weight:800;color:#1A5CA8;text-transform:uppercase;letter-spacing:.08em;">9. CANCELACIÓN vs DESPACHO (PROPORCIÓN)</div></div>'
+    + '<div style="font-family:var(--font);font-size:34px;font-weight:900;color:#0D2D6B;line-height:1;margin-bottom:6px;">'+bigVal+'</div>'
+    + '<div style="font-size:13px;color:rgba(13,45,107,.55);font-family:var(--font-b);margin-bottom:12px;">'+subTxt+'</div>'
     + '<div style="display:flex;align-items:flex-end;gap:3px;">'+cols+'</div>'
     + '<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(13,45,107,.04);border-radius:6px;margin-top:12px;margin-bottom:10px;border-left:3px solid rgba(13,45,107,.25);">'+deltaHtml+vsAnual+'</div>'
-    + '<div style="font-size:10px;color:rgba(13,45,107,.6);font-family:var(--font-b);line-height:1.6;border-top:1px solid rgba(13,45,107,.08);padding-top:8px;">'
+    + '<div style="font-size:12px;color:rgba(13,45,107,.6);font-family:var(--font-b);line-height:1.7;border-top:1px solid rgba(13,45,107,.08);padding-top:8px;">'
       + '<b>% ANUAL:</b> '+pctTxt(anual)+' &nbsp;·&nbsp; <b>Prom. despachadas/año:</b> '+fmt(o.despAnualProm)+' uds/día &nbsp;·&nbsp; <b>Prom. canceladas/año:</b> '+fmt(o.cancAnualProm)+' uds/día. '
       + 'Cada barra = % del mes (canceladas ÷ despachadas). Rojo = por encima del histórico · Verde = por debajo.'
     + '</div>'
@@ -4963,7 +4963,7 @@ function buildKpiCard(num, titulo, icon, valor, sublabel, deltaObj, buenoCuandoS
       const signo = upAnual ? '+' : '';
       // Format annual avg nicely
       const fmtAvg = annualAvg>=1000?(annualAvg/1000).toFixed(1)+'K':annualAvg%1===0?Math.round(annualAvg).toString():(+annualAvg.toFixed(1)).toString();
-      vsAnualHtml = `<span style="font-family:var(--font);font-size:11px;font-weight:700;color:${clrAnual};margin-left:auto;white-space:nowrap;">${signo}${pctAnual.toFixed(1)}% vs anual &nbsp;·&nbsp; <span style="color:rgba(13,45,107,.65);font-weight:800;">x̄ ${fmtAvg}</span></span>`;
+      vsAnualHtml = `<span style="font-family:var(--font);font-size:13px;font-weight:700;color:${clrAnual};margin-left:auto;white-space:nowrap;">${signo}${pctAnual.toFixed(1)}% vs anual &nbsp;·&nbsp; <span style="color:rgba(13,45,107,.65);font-weight:800;">x̄ ${fmtAvg}</span></span>`;
     }
   }
 
@@ -4973,23 +4973,23 @@ function buildKpiCard(num, titulo, icon, valor, sublabel, deltaObj, buenoCuandoS
     <!-- Header -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
       <span style="font-size:18px;">${icon}</span>
-      <div style="font-family:var(--font);font-size:9px;font-weight:800;color:#1A5CA8;text-transform:uppercase;letter-spacing:.08em;">${num}. ${titulo}</div>
+      <div style="font-family:var(--font);font-size:11px;font-weight:800;color:#1A5CA8;text-transform:uppercase;letter-spacing:.08em;">${num}. ${titulo}</div>
     </div>
     <!-- Valor principal -->
-    <div style="font-family:var(--font);font-size:28px;font-weight:900;color:#0D2D6B;line-height:1;margin-bottom:4px;">${valor}</div>
-    <div style="font-size:11px;color:rgba(13,45,107,.55);font-family:var(--font-b);margin-bottom:4px;">${sublabel}</div>
+    <div style="font-family:var(--font);font-size:34px;font-weight:900;color:#0D2D6B;line-height:1;margin-bottom:6px;">${valor}</div>
+    <div style="font-size:13px;color:rgba(13,45,107,.55);font-family:var(--font-b);margin-bottom:4px;">${sublabel}</div>
     <!-- Sparkline mensual -->
     ${sparkHtml}
     <!-- Delta vs mes anterior + vs promedio anual -->
     <div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(13,45,107,.04);border-radius:6px;margin-top:8px;margin-bottom:10px;border-left:3px solid ${deltaColor};">
       <span style="font-size:13px;">${deltaObj.icon}</span>
-      <span style="font-family:var(--font);font-size:11px;font-weight:700;color:${deltaColor};">
+      <span style="font-family:var(--font);font-size:13px;font-weight:700;color:${deltaColor};">
         ${sinAnterior ? '— Sin mes anterior para comparar' : deltaObj.pct.toFixed(2)+'% vs. Mes Anterior'}
       </span>
       ${vsAnualHtml}
     </div>
     <!-- Nota contextual -->
-    <div style="font-size:10px;color:rgba(13,45,107,.5);font-family:var(--font-b);line-height:1.5;border-top:1px solid rgba(13,45,107,.08);padding-top:8px;">${nota}</div>
+    <div style="font-size:12px;color:rgba(13,45,107,.5);font-family:var(--font-b);line-height:1.6;border-top:1px solid rgba(13,45,107,.08);padding-top:8px;">${nota}</div>
   </div>`;
 }
 
@@ -8372,7 +8372,7 @@ function anExportChart(canvasId, filename) {
 
   if (card && typeof html2canvas !== 'undefined') {
     html2canvas(card, {
-      scale: 2,
+      scale: 3,
       backgroundColor: '#1a2540',
       useCORS: true,
       logging: false
@@ -9304,7 +9304,7 @@ function opExportPNG() {
   } else { opDoExport(el); }
 }
 function opDoExport(el) {
-  html2canvas(el, { scale:2, backgroundColor:'#f8fafc', useCORS:true }).then(function(canvas) {
+  html2canvas(el, { scale:3, backgroundColor:'#f8fafc', useCORS:true }).then(function(canvas) {
     var a = document.createElement('a');
     a.download = 'Farmatodo_NOC_'+OP_MES+'_OnePage.png';
     a.href = canvas.toDataURL('image/png');
