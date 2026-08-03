@@ -3823,6 +3823,40 @@ function abrirModalDescarga(){
 }
 function cerrarModalDescarga(){document.getElementById('dlModal').classList.remove('show');}
 
+async function dlOnePageMobile(){
+  var src=document.getElementById('onepager');
+  if(!src){ toast('Abre primero el One Page (pestaña EJECUTIVO)','warn'); return; }
+  if(typeof html2canvas==='undefined'){ toast('Librería de captura no disponible','err'); return; }
+  toast('Generando versión celular...');
+  try{
+    var clone=src.cloneNode(true);
+    // ancho angosto => el celular lo amplía más => texto más grande
+    clone.style.maxWidth='620px';
+    clone.style.width='620px';
+    clone.style.margin='0';
+    clone.style.boxShadow='none';
+    // 6 tarjetas en 1 columna; KPIs del encabezado en 2 columnas
+    clone.querySelectorAll('[style*="grid-template-columns"]').forEach(function(el){
+      var st=el.getAttribute('style')||'';
+      if(/repeat\(4/.test(st)) el.style.gridTemplateColumns='repeat(2,1fr)';
+      else el.style.gridTemplateColumns='1fr';
+    });
+    // quitar controles (selector de mes y botones) del clon
+    clone.querySelectorAll('select, button, .dl-btn, .btn').forEach(function(b){ b.remove(); });
+    var holder=document.createElement('div');
+    holder.style.cssText='position:fixed;left:-99999px;top:0;z-index:-1;background:#fff;padding:14px;';
+    holder.appendChild(clone);
+    document.body.appendChild(holder);
+    await new Promise(function(r){ setTimeout(r,150); });
+    var canvas=await html2canvas(clone,{backgroundColor:'#ffffff',scale:3,logging:false,useCORS:true});
+    document.body.removeChild(holder);
+    var a=document.createElement('a');
+    a.href=canvas.toDataURL('image/png');
+    a.download='Farmatodo_NOC_OnePage_Celular_'+new Date().toISOString().split('T')[0]+'.png';
+    a.click();
+    toast('✓ Versión celular descargada');
+  }catch(e){ toast('Error al generar versión celular','err'); console.error(e); }
+}
 async function dlCardImagen(cardId, name){
   const el=document.getElementById(cardId);
   if(!el){toast('Gráfica no encontrada en esta vista','warn');return;}
@@ -4742,6 +4776,7 @@ function renderEjecutivo(){
       </div>
       <div style="display:flex;gap:8px;">
         <button class="dl-btn primary" onclick="dlCardImagen('onepager','Ejecutivo_NOC_${MA.mes}')">📷 PNG</button>
+        <button class="dl-btn primary" onclick="dlOnePageMobile()">📱 PNG Celular</button>
         <button class="btn btn-primary" onclick="window.print()">🖨 PDF</button>
       </div>
     </div>
