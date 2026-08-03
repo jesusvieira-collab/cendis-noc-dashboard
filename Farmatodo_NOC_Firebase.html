@@ -3827,35 +3827,44 @@ async function dlOnePageMobile(){
   var src=document.getElementById('onepager');
   if(!src){ toast('Abre primero el One Page (pestaña EJECUTIVO)','warn'); return; }
   if(typeof html2canvas==='undefined'){ toast('Librería de captura no disponible','err'); return; }
-  toast('Generando versión celular...');
-  try{
+  toast('Generando 2 hojas para celular...');
+  var W=540;
+  function badge(txt){ return '<div style="text-align:center;font-family:var(--font);font-size:14px;font-weight:800;color:#0D2D6B;letter-spacing:.06em;margin:8px 0 12px;">'+txt+'</div>'; }
+  async function hoja(which){
     var clone=src.cloneNode(true);
-    // ancho angosto => el celular lo amplía más => texto más grande
-    clone.style.maxWidth='620px';
-    clone.style.width='620px';
-    clone.style.margin='0';
-    clone.style.boxShadow='none';
-    // 6 tarjetas en 1 columna; KPIs del encabezado en 2 columnas
+    clone.style.maxWidth=W+'px'; clone.style.width=W+'px'; clone.style.margin='0'; clone.style.boxShadow='none';
     clone.querySelectorAll('[style*="grid-template-columns"]').forEach(function(el){
       var st=el.getAttribute('style')||'';
-      if(/repeat\(4/.test(st)) el.style.gridTemplateColumns='repeat(2,1fr)';
-      else el.style.gridTemplateColumns='1fr';
+      el.style.gridTemplateColumns=(/repeat\(4/.test(st))?'repeat(2,1fr)':'1fr';
     });
-    // quitar controles (selector de mes y botones) del clon
     clone.querySelectorAll('select, button, .dl-btn, .btn').forEach(function(b){ b.remove(); });
+    var cardGrid=Array.from(clone.querySelectorAll('div')).filter(function(d){ return /grid-template-columns/.test(d.getAttribute('style')||'') && d.children.length>=6; })[0];
+    var cards=cardGrid?Array.from(cardGrid.children):[];
+    var mitad=Math.ceil(cards.length/2);
+    if(clone.children[1]) clone.children[1].insertAdjacentHTML('afterend', badge(which===1?'HOJA 1 / 2':'HOJA 2 / 2'));
+    if(which===1){
+      cards.slice(mitad).forEach(function(c){ c.remove(); });
+      Array.from(clone.children).forEach(function(ch){ if(ch!==cardGrid && /Notas/.test(ch.textContent) && /Sistema/i.test(ch.textContent)) ch.remove(); });
+    } else {
+      cards.slice(0,mitad).forEach(function(c){ c.remove(); });
+    }
     var holder=document.createElement('div');
     holder.style.cssText='position:fixed;left:-99999px;top:0;z-index:-1;background:#fff;padding:14px;';
-    holder.appendChild(clone);
-    document.body.appendChild(holder);
+    holder.appendChild(clone); document.body.appendChild(holder);
     await new Promise(function(r){ setTimeout(r,150); });
-    var canvas=await html2canvas(clone,{backgroundColor:'#ffffff',scale:3,logging:false,useCORS:true});
+    var cv=await html2canvas(clone,{backgroundColor:'#ffffff',scale:3,logging:false,useCORS:true});
     document.body.removeChild(holder);
     var a=document.createElement('a');
-    a.href=canvas.toDataURL('image/png');
-    a.download='Farmatodo_NOC_OnePage_Celular_'+new Date().toISOString().split('T')[0]+'.png';
+    a.href=cv.toDataURL('image/png');
+    a.download='Farmatodo_NOC_Celular_Hoja'+which+'de2_'+new Date().toISOString().split('T')[0]+'.png';
     a.click();
-    toast('✓ Versión celular descargada');
-  }catch(e){ toast('Error al generar versión celular','err'); console.error(e); }
+  }
+  try{
+    await hoja(1);
+    await new Promise(function(r){ setTimeout(r,700); });
+    await hoja(2);
+    toast('✓ 2 hojas descargadas');
+  }catch(e){ toast('Error al generar hojas','err'); console.error(e); }
 }
 async function dlCardImagen(cardId, name){
   const el=document.getElementById(cardId);
