@@ -4845,7 +4845,12 @@ function nocSparkSVG(data, invertColor, labels, showTrend) {
     var fill=invertColor?(above?'#dc2626':'#16a34a'):(above?'#1A5CA8':'rgba(26,92,168,.35)');
     var lbl=labels&&labels[i]?labels[i]:'';
     var rawV=v;
-    var dispV=rawV>=1000?(rawV/1000).toFixed(1)+'K':rawV%1===0?Math.round(rawV).toString():(+rawV.toFixed(1)).toString();
+    var dispV;
+    if(rawV>=1000) dispV=(rawV/1000).toFixed(1)+'K';
+    else if(rawV%1===0) dispV=Math.round(rawV).toString();
+    else if(Math.abs(rawV)<1) dispV=(+rawV.toFixed(3)).toString();   // % proporcionales chicos: 0.105, 0.044
+    else if(Math.abs(rawV)<10) dispV=(+rawV.toFixed(2)).toString();
+    else dispV=(+rawV.toFixed(1)).toString();
     var valY=y+h-5;
     var tw=dispV.length*4.8;
     var cx=(x+bw/2).toFixed(1);
