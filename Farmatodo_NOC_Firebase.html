@@ -2155,9 +2155,9 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       <div class="ccard-hdr"><div><div class="ccard-title">Cancelaciones por día</div><div class="ccard-sub">Unidades canceladas por jornada · rojo &gt;2000 · ámbar &gt;800</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_cancel_dia"><button class="chart-type-btn " data-type="line" onclick="toggleChartType('ax_cancel_dia')" title="Línea">📈</button><button class="chart-type-btn active" data-type="bar" onclick="toggleChartType('ax_cancel_dia')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_cancel_dia','Cancelaciones por día','Unidades por jornada','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_cancel_dia','Cancelaciones_dia')">⬇ PNG</button></div></div>
       <div style="position:relative;height:220px;"><canvas id="ax_cancel_dia" role="img" aria-label="Cancelaciones por día"></canvas></div>
     </div>
-    <div class="ccard" id="card_fill_dia">
+    <div class="ccard" id="card_fill_dia" style="grid-column:1/-1;">
       <div class="ccard-hdr"><div><div class="ccard-title">Fill Rate por día</div><div class="ccard-sub">% de surtido por jornada · verde ≥99.8%</div></div><div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_fill_dia"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_fill_dia')" title="Línea">📈</button><button class="chart-type-btn " data-type="bar" onclick="toggleChartType('ax_fill_dia')" title="Barra">📊</button></div><button class="expand-btn" onclick="expandChart('ax_fill_dia','Fill Rate por día','% por jornada','')">⤢ Expandir</button><button class="dl-btn" onclick="dlCardImagen('card_fill_dia','FillRate_dia')">⬇ PNG</button></div></div>
-      <div style="position:relative;height:220px;"><canvas id="ax_fill_dia" role="img" aria-label="Fill Rate por día"></canvas></div>
+      <div style="position:relative;height:320px;"><canvas id="ax_fill_dia" role="img" aria-label="Fill Rate por día"></canvas></div>
     </div>
   </div>
 
@@ -4110,11 +4110,14 @@ function renderDashboard(){
   });
   // ── Fill Rate por día (línea, con promedio · máx · mín) ──
   killAx('ax_fill_dia');
+  var _fillVals=dd.map(function(d){return +(d.S*100);}).filter(function(v){return !isNaN(v);});
+  var _fillMin=_fillVals.length?Math.min.apply(null,_fillVals):99;
+  var _fillYMin=Math.max(97, +( _fillMin-0.15 ).toFixed(2));
   AX['ax_fill_dia']=new Chart(document.getElementById('ax_fill_dia'),{
     type:'line',
     data:{labels:lbl,datasets:[
       {label:'Fill Rate',data:dd.map(d=>+(d.S*100).toFixed(3)),
-       showValueLabels:true,valueLabelColor:'#00875A',valueLabelFormat:function(v){return v.toFixed(1)+'%';},showTrendline:true,trendlineColor:'rgba(0,135,90,0.4)',
+       showValueLabels:true,valueLabelColor:'#00875A',valueLabelFormat:function(v){return v.toFixed(2)+'%';},showTrendline:true,trendlineColor:'rgba(0,135,90,0.4)',
        borderColor:'#00875A',pointBackgroundColor:dd.map(d=>(d.S*100)>=99.8?'#16a34a':(d.S*100)>=99.5?'#F39C12':'#E74C3C'),pointBorderWidth:2,pointBorderColor:'#ffffff',
        backgroundColor:'rgba(0,135,90,0.06)',borderWidth:2.5,tension:0.4,cubicInterpolationMode:'monotone',fill:true,pointRadius:4,pointHoverRadius:8}
     ]},
@@ -4122,7 +4125,7 @@ function renderDashboard(){
       plugins:{legend:{display:false}},
       scales:{
         x:{grid:{color:'rgba(0,48,135,0.06)',drawTicks:false},ticks:{maxRotation:45,maxTicksLimit:20}},
-        y:{min:99.0,max:100.05,grid:{color:'rgba(13,45,107,.07)'},ticks:{callback:v=>v.toFixed(1)+'%'}}
+        y:{min:_fillYMin,max:100.05,grid:{color:'rgba(13,45,107,.07)'},ticks:{stepSize:0.1,callback:v=>v.toFixed(2)+'%'}}
       }}
   });
 
