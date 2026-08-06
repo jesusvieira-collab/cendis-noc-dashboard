@@ -4935,13 +4935,11 @@ function renderEjecutivo(){
   // ── MERMA por mes (Almacenaje + Reposición) para el One Page ──
   const _mermaByMes={}, _mermaAlmMes={}, _mermaRepMes={};
   if(typeof MERMA!=='undefined') MERMA.forEach(function(r){ if(!r||!r.mes)return; _mermaByMes[r.mes]=(_mermaByMes[r.mes]||0)+(+r.monto||0); if(r.dep==='ALM')_mermaAlmMes[r.mes]=(_mermaAlmMes[r.mes]||0)+(+r.monto||0); else _mermaRepMes[r.mes]=(_mermaRepMes[r.mes]||0)+(+r.monto||0); });
-  const _mermaSpark=_sMeses.map(function(m){ return Math.round(_mermaByMes[m]||0); });
-  const _mermaSel=Math.round(_mermaByMes[MA.mes]||0);
-  const _mermaAlmSel=Math.round(_mermaAlmMes[MA.mes]||0);
-  const _mermaRepSel=Math.round(_mermaRepMes[MA.mes]||0);
-  const _mermaAnt=Math.round(_mermaByMes[_sMeses[_idxMA-1]]||0);
-  const _mermaAnyData=_sMeses.some(function(m){ return (_mermaByMes[m]||0)>0; });
-  const d10 = delta(_mermaSel, _mermaAnt);
+  const _mermaRepSpark=_sMeses.map(function(m){ return Math.round(_mermaRepMes[m]||0); });
+  const _mermaRepSelV=Math.round(_mermaRepMes[MA.mes]||0);
+  const _mermaRepAnt=Math.round(_mermaRepMes[_sMeses[_idxMA-1]]||0);
+  const _mermaRepAny=_sMeses.some(function(m){ return (_mermaRepMes[m]||0)>0; });
+  const d10 = delta(_mermaRepSelV, _mermaRepAnt);
 
   cont.innerHTML = `
   <!-- ══ ONE PAGE EJECUTIVO ══ -->
@@ -5077,12 +5075,12 @@ function renderEjecutivo(){
 
       ${'<div style="grid-column:1/-1;">'+buildCard9({sMeses:_sMeses, pctByMes:_cancPctByMes, desp:(typeof DESP_DATA!=='undefined'?DESP_DATA:{}), pm:pm, repMes:MA.mes, repNombre:(MNOM[MA.mes]||MA.mes), cancPctAnual:_cancPctAnual, despAnualProm:_despAnualProm, cancAnualProm:_cancAnualProm})+'</div>'}
 
-      ${'<div style="grid-column:1/-1;">'+buildKpiCard('10','MERMA / DAÑADO DE CARGA','🗑️',
-        _mermaAnyData ? _mermaSel.toLocaleString('es-VE')+' ' : '— sin merma cargada',
-        _mermaAnyData ? ('Almacenaje '+_mermaAlmSel.toLocaleString('es-VE')+' · Reposición '+_mermaRepSel.toLocaleString('es-VE')+' (mes reportado)') : 'Carga el monto dañado semanal en la pestaña MERMA',
+      ${'<div style="grid-column:1/-1;">'+buildKpiCard('10','MERMA / DAÑADO — REPOSICIÓN','🗑️',
+        _mermaRepAny ? _mermaRepSelV.toLocaleString('es-VE')+' ' : '— sin merma cargada',
+        _mermaRepAny ? ('Monto dañado del área de Reposición · mes reportado') : 'Carga la merma de Reposición en la pestaña MERMA',
         d10, false,
-        _mermaAnyData ? ('Monto dañado del mes (Almacenaje + Reposición). Se carga semanal en la pestaña MERMA y aquí se acumula por mes. Menos merma = mejor. Cada barra = monto del mes · x̄ = promedio anual.') : 'Sin merma cargada. Ve a la pestaña MERMA y registra el monto dañado por departamento (semanal).',
-        _mermaSpark, true
+        _mermaRepAny ? ('Monto dañado del mes en el área de REPOSICIÓN. Se carga semanal en la pestaña MERMA (departamento Reposición) y aquí se acumula por mes. Menos merma = mejor. Cada barra = monto del mes · x̄ = promedio anual.') : 'Sin merma de Reposición cargada. Ve a la pestaña MERMA y registra el monto dañado con el departamento Reposición.',
+        _mermaRepSpark, true
       )+'</div>'}
 
     </div>
@@ -9415,6 +9413,34 @@ function buildOnePage() {
         spark: sparkFor('dbo'), rawSpark: _libMes.map(function(v){return +v.toFixed(1);}), sparkLabels:_hmLblShort, invertSpark:false, showTrend:true,
         delta: '',
         note: _analisis+' Promedio anual: '+_libAnual.toFixed(1)+'% libre. Línea = tendencia por mes.'
+      };
+    })(),
+    (function(){
+      // MERMA — solo Almacenaje (área distinta a Reposición)
+      var _MMESI=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+      var _F2A={ENERO:'ENE',FEBRERO:'FEB',MARZO:'MAR',ABRIL:'ABR',MAYO:'MAY',JUNIO:'JUN',JULIO:'JUL',AGOSTO:'AGO',SEPTIEMBRE:'SEP',OCTUBRE:'OCT',NOVIEMBRE:'NOV',DICIEMBRE:'DIC'};
+      var _A2L={ENE:'Ene',FEB:'Feb',MAR:'Mar',ABR:'Abr',MAY:'May',JUN:'Jun',JUL:'Jul',AGO:'Ago',SEP:'Sep',OCT:'Oct',NOV:'Nov',DIC:'Dic'};
+      var byAbbr={};
+      (typeof MERMA!=='undefined'?MERMA:[]).forEach(function(r){ if(r&&r.dep==='ALM'&&r.mes){ byAbbr[r.mes]=(byAbbr[r.mes]||0)+(+r.monto||0); } });
+      var months=_MMESI.filter(function(a){return byAbbr[a]!=null;});
+      var raw=months.map(function(a){return Math.round(byAbbr[a]);});
+      var mx=Math.max.apply(null,raw.concat([1]));
+      var spark=raw.map(function(v){return mx>0?v/mx:0.1;});
+      var lbls=months.map(function(a){return _A2L[a]||a;});
+      var opAb=_F2A[OP_MES]||OP_MES;
+      var cur=Math.round(byAbbr[opAb]||0);
+      var prevAb=_MMESI[_MMESI.indexOf(opAb)-1];
+      var prev=Math.round((prevAb&&byAbbr[prevAb])||0);
+      var any=months.length>0;
+      var deltaHtml=(any&&prev>0)?opDelta(cur,prev,true,_A2L[prevAb]||prevAb):'';
+      return {
+        num:'9.', icon:'🗑️', title:'MERMA / DAÑADO — ALMACENAJE', cls:'red',
+        value: any ? opFmt(cur,0) : '—', vcls:'amber',
+        desc:'Monto dañado del mes en Almacenaje · carga semanal',
+        progress: 0,
+        spark: spark, rawSpark: raw, sparkLabels: lbls, invertSpark:true, showTrend:true,
+        delta: deltaHtml,
+        note: any ? 'Monto dañado registrado en ALMACENAJE. Menos = mejor. Se carga en la pestaña MERMA (departamento Almacenaje). Línea = tendencia por mes.' : 'Sin merma de Almacenaje cargada. Regístrala en la pestaña MERMA seleccionando el departamento Almacenaje.'
       };
     })()
   ];
