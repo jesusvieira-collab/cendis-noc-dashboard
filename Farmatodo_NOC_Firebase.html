@@ -4814,6 +4814,35 @@ function buildCard9(o){
     + '</div>'
   + '</div>';
 }
+function buildMermaCard(num, titulo, any, curVal, curMesFull, vals, lbls, deltaObj){
+  var val = any ? curVal.toLocaleString('es-VE') : '— sin merma cargada';
+  var sub = any ? ('Monto dañado · '+curMesFull) : 'Carga el monto dañado en la pestaña MERMA';
+  var up = deltaObj && deltaObj.up;
+  var dcolor = (!deltaObj || deltaObj.up===null) ? 'rgba(13,45,107,.5)' : (up ? '#dc2626':'#16a34a');
+  var sinAnt = !deltaObj || (deltaObj.pct===0 && (deltaObj.txt||'').indexOf('sin')>=0);
+  var spark = (any && vals.length>1) ? nocSparkSVG(vals, true, lbls, true) : '';
+  var vsAnual='';
+  if(any && vals.length>=2){
+    var avg=vals.reduce(function(s,v){return s+v;},0)/vals.length, cur=vals[vals.length-1];
+    if(avg>0){ var p=((cur-avg)/avg)*100, upA=p>0.05, dnA=p<-0.05, cA=upA?'#dc2626':(dnA?'#16a34a':'rgba(13,45,107,.5)');
+      var fmtAvg=avg>=1000?(avg/1000).toFixed(1)+'K':Math.round(avg).toLocaleString('es-VE');
+      vsAnual='<span style="font-family:var(--font);font-size:13px;font-weight:700;color:'+cA+';margin-left:auto;white-space:nowrap;">'+(p>=0?'+':'')+p.toFixed(1)+'% vs prom &nbsp;·&nbsp;<span style="color:rgba(13,45,107,.65);font-weight:800;">x̄ '+fmtAvg+'</span></span>';
+    }
+  }
+  return '<div style="background:#fff;border:1px solid rgba(13,45,107,.1);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(13,45,107,.06);">'
+   +'<div style="position:absolute;top:12px;right:16px;font-family:var(--font);font-size:32px;font-weight:900;color:rgba(13,45,107,.04);line-height:1;">'+num+'</div>'
+   +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">🗑️</span><div style="font-family:var(--font);font-size:11px;font-weight:800;color:#1A5CA8;text-transform:uppercase;letter-spacing:.08em;">'+num+'. '+titulo+'</div></div>'
+   +'<div style="font-family:var(--font);font-size:46px;font-weight:900;color:#0D2D6B;line-height:1;margin-bottom:8px;">'+val+'</div>'
+   +'<div style="font-size:17px;color:rgba(13,45,107,.55);font-family:var(--font-b);margin-bottom:4px;">'+sub+'</div>'
+   +spark
+   +'<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(13,45,107,.04);border-radius:6px;margin-top:8px;margin-bottom:10px;border-left:3px solid '+dcolor+';">'
+     +'<span style="font-size:13px;">'+(deltaObj?deltaObj.icon:'')+'</span>'
+     +'<span style="font-family:var(--font);font-size:13px;font-weight:700;color:'+dcolor+';">'+(sinAnt?'— Sin mes anterior para comparar':(deltaObj.pct.toFixed(2)+'% vs. Mes Anterior'))+'</span>'
+     +vsAnual
+   +'</div>'
+   +'<div style="font-size:12px;color:rgba(13,45,107,.55);font-family:var(--font-b);line-height:1.7;border-top:1px solid rgba(13,45,107,.08);padding-top:8px;">Monto dañado por mes en esta área. Menos merma = mejor. Se carga semanal en la pestaña MERMA. Cada barra = monto del mes · x̄ = promedio.</div>'
+  +'</div>';
+}
 function renderEjecutivo(){
   const dd = filtroDatos();
   const cont = document.getElementById('execReport');
@@ -4935,10 +4964,17 @@ function renderEjecutivo(){
   // ── MERMA por mes (Almacenaje + Reposición) para el One Page ──
   const _mermaByMes={}, _mermaAlmMes={}, _mermaRepMes={};
   if(typeof MERMA!=='undefined') MERMA.forEach(function(r){ if(!r||!r.mes)return; _mermaByMes[r.mes]=(_mermaByMes[r.mes]||0)+(+r.monto||0); if(r.dep==='ALM')_mermaAlmMes[r.mes]=(_mermaAlmMes[r.mes]||0)+(+r.monto||0); else _mermaRepMes[r.mes]=(_mermaRepMes[r.mes]||0)+(+r.monto||0); });
-  const _mermaRepSpark=_sMeses.map(function(m){ return Math.round(_mermaRepMes[m]||0); });
-  const _mermaRepSelV=Math.round(_mermaRepMes[MA.mes]||0);
-  const _mermaRepAnt=Math.round(_mermaRepMes[_sMeses[_idxMA-1]]||0);
-  const _mermaRepAny=_sMeses.some(function(m){ return (_mermaRepMes[m]||0)>0; });
+  const _MMESI=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  const _MA2L={ENE:'Ene',FEB:'Feb',MAR:'Mar',ABR:'Abr',MAY:'May',JUN:'Jun',JUL:'Jul',AGO:'Ago',SEP:'Sep',OCT:'Oct',NOV:'Nov',DIC:'Dic'};
+  const _MA2F={ENE:'Enero',FEB:'Febrero',MAR:'Marzo',ABR:'Abril',MAY:'Mayo',JUN:'Junio',JUL:'Julio',AGO:'Agosto',SEP:'Septiembre',OCT:'Octubre',NOV:'Noviembre',DIC:'Diciembre'};
+  const _repM=_MMESI.filter(function(a){ return (_mermaRepMes[a]||0)>0; });
+  const _mermaRepVals=_repM.map(function(a){ return Math.round(_mermaRepMes[a]); });
+  const _mermaRepLbls=_repM.map(function(a){ return _MA2L[a]||a; });
+  const _mermaRepAny=_repM.length>0;
+  const _repCurAb=_repM[_repM.length-1];
+  const _mermaRepSelV=Math.round((_repCurAb&&_mermaRepMes[_repCurAb])||0);
+  const _repPrevAb=_repM[_repM.length-2];
+  const _mermaRepAnt=Math.round((_repPrevAb&&_mermaRepMes[_repPrevAb])||0);
   const d10 = delta(_mermaRepSelV, _mermaRepAnt);
 
   cont.innerHTML = `
@@ -5075,13 +5111,7 @@ function renderEjecutivo(){
 
       ${'<div style="grid-column:1/-1;">'+buildCard9({sMeses:_sMeses, pctByMes:_cancPctByMes, desp:(typeof DESP_DATA!=='undefined'?DESP_DATA:{}), pm:pm, repMes:MA.mes, repNombre:(MNOM[MA.mes]||MA.mes), cancPctAnual:_cancPctAnual, despAnualProm:_despAnualProm, cancAnualProm:_cancAnualProm})+'</div>'}
 
-      ${'<div style="grid-column:1/-1;">'+buildKpiCard('10','MERMA / DAÑADO — REPOSICIÓN','🗑️',
-        _mermaRepAny ? _mermaRepSelV.toLocaleString('es-VE')+' ' : '— sin merma cargada',
-        _mermaRepAny ? ('Monto dañado del área de Reposición · mes reportado') : 'Carga la merma de Reposición en la pestaña MERMA',
-        d10, false,
-        _mermaRepAny ? ('Monto dañado del mes en el área de REPOSICIÓN. Se carga semanal en la pestaña MERMA (departamento Reposición) y aquí se acumula por mes. Menos merma = mejor. Cada barra = monto del mes · x̄ = promedio anual.') : 'Sin merma de Reposición cargada. Ve a la pestaña MERMA y registra el monto dañado con el departamento Reposición.',
-        _mermaRepSpark, true
-      )+'</div>'}
+      ${'<div style="grid-column:1/-1;">'+buildMermaCard('10','MERMA / DAÑADO — REPOSICIÓN', _mermaRepAny, _mermaRepSelV, (_repCurAb?_MA2F[_repCurAb]:''), _mermaRepVals, _mermaRepLbls, d10)+'</div>'}
 
     </div>
 
@@ -9427,16 +9457,18 @@ function buildOnePage() {
       var mx=Math.max.apply(null,raw.concat([1]));
       var spark=raw.map(function(v){return mx>0?v/mx:0.1;});
       var lbls=months.map(function(a){return _A2L[a]||a;});
-      var opAb=_F2A[OP_MES]||OP_MES;
+      var _F2F={ENE:'Enero',FEB:'Febrero',MAR:'Marzo',ABR:'Abril',MAY:'Mayo',JUN:'Junio',JUL:'Julio',AGO:'Agosto',SEP:'Septiembre',OCT:'Octubre',NOV:'Noviembre',DIC:'Diciembre'};
+      var opAb=months.length?months[months.length-1]:(_F2A[OP_MES]||OP_MES);
       var cur=Math.round(byAbbr[opAb]||0);
-      var prevAb=_MMESI[_MMESI.indexOf(opAb)-1];
+      var prevAb=months[months.length-2];
       var prev=Math.round((prevAb&&byAbbr[prevAb])||0);
+      var curFull=_F2F[opAb]||opAb;
       var any=months.length>0;
       var deltaHtml=(any&&prev>0)?opDelta(cur,prev,true,_A2L[prevAb]||prevAb):'';
       return {
         num:'9.', icon:'🗑️', title:'MERMA / DAÑADO — ALMACENAJE', cls:'red',
         value: any ? opFmt(cur,0) : '—', vcls:'amber',
-        desc:'Monto dañado del mes en Almacenaje · carga semanal',
+        desc: any ? ('Monto dañado · '+curFull) : 'Monto dañado del mes en Almacenaje · carga semanal',
         progress: 0,
         spark: spark, rawSpark: raw, sparkLabels: lbls, invertSpark:true, showTrend:true,
         delta: deltaHtml,
