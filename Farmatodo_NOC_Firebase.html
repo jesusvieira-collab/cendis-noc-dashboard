@@ -2005,6 +2005,34 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 })();
 </script>
 
+<style id="yoy-css">
+.yoy-hd{background:linear-gradient(120deg,#0A2E52,#123f66);color:#fff;padding:20px 24px;}
+.yoy-kick{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#7fd4cc;font-weight:800;}
+.yoy-title{font-size:22px;font-weight:900;margin-top:6px;line-height:1.1;}
+.yoy-sub{font-size:12.5px;color:rgba(255,255,255,.75);margin-top:5px;font-weight:600;}
+.yoy-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#e2e8f0;}
+.yoy-kpi{background:#f7f9fc;padding:13px 14px;text-align:center;}
+.yk-lbl{font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.yk-row{display:flex;justify-content:center;gap:16px;margin-top:7px;}
+.yk-y{font-size:8.5px;color:#94a3b8;text-transform:uppercase;font-weight:700;}
+.yk-v{font-size:18px;font-weight:900;line-height:1;}
+.yk-d{font-size:11px;font-weight:800;margin-top:7px;}
+.yoy-sech{font-size:13px;font-weight:900;color:#0A2E52;padding:16px 24px 4px;}
+.yoy-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:6px 24px 4px;}
+.yoy-panel{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px 6px;}
+.yp-t{font-size:11.5px;font-weight:800;color:#0A2E52;text-align:center;margin-bottom:5px;}
+.yp-c{height:180px;position:relative;}
+.yoy-tbl{width:100%;border-collapse:collapse;font-size:11px;min-width:520px;}
+.yoy-tbl thead th{background:#0A2E52;color:#fff;font-size:9px;text-transform:uppercase;padding:8px 7px;text-align:right;font-weight:800;}
+.yoy-tbl thead th:first-child{text-align:left;}
+.yoy-tbl tbody td{padding:7px;text-align:right;border-bottom:1px solid #eef2f7;}
+.yoy-tbl tbody td:first-child{text-align:left;font-weight:700;color:#0A2E52;}
+.yoy-tbl tbody tr:nth-child(even){background:#f6f8fa;}
+.yoy-tbl tfoot td{padding:8px 7px;text-align:right;font-weight:900;background:#eef4f4;color:#0A2E52;border-top:2px solid #0E8F86;}
+.yoy-tbl tfoot td:first-child{text-align:left;}
+.yoy-foot{padding:12px 24px 18px;font-size:10px;color:#64748b;border-top:1px solid #eef2f7;}
+@media(max-width:680px){ .yoy-kpis{grid-template-columns:repeat(2,1fr);} .yoy-charts{grid-template-columns:1fr;} }
+</style>
 <!-- build: merma-por-area v2 -->
 </head>
 <body>
@@ -2093,6 +2121,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   <button class="ntab" data-page="canceladas" onclick="nocTab(this,'canceladas')">🚫 CANCELADAS</button>
   <button class="ntab" data-page="personal"   onclick="nocTab(this,'personal')">👥 PERSONAL</button>
   <button class="ntab" data-page="merma"      onclick="nocTab(this,'merma')">🗑️ MERMA</button>
+  <button class="ntab" data-page="yoy"        onclick="nocTab(this,'yoy')">📅 AÑO VS AÑO</button>
   <button class="ntab" data-page="ejecutivo"  onclick="nocTab(this,'ejecutivo')">📋 EJECUTIVO</button>
 </nav>
 <div class="main">
@@ -2586,6 +2615,11 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   </div>
 </div>
 
+<div id="page-yoy" class="page">
+  <div class="sec-header"><h2>📅 Comparativo Año vs Año — Reposición</h2><p>2025 vs 2026 · mes a mes y promedio anual · reporte ejecutivo descargable</p></div>
+  <div id="yoy_noc_root"></div>
+</div>
+
 <div id="page-ejecutivo" class="page">
   <div id="execReport"></div>
 </div>
@@ -2616,6 +2650,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   <button class="ntab"    data-tab="historico" onclick="setTab(this)">🗓 HISTÓRICO</button>
   <button class="ntab"    data-tab="analytics" onclick="setTab(this)">📉 ANALYTICS</button>
   <button class="ntab"    data-tab="onepage"   onclick="setTab(this)">📋 ONE PAGE</button>
+  <button class="ntab"    data-tab="yoy"       onclick="setTab(this)">📅 AÑO VS AÑO</button>
 </nav>
 
 <div class="main">
@@ -2918,6 +2953,9 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 </div>
 
 <!-- ═══ ONE PAGE ═══ -->
+<div class="pane" id="pane-yoy">
+  <div style="padding:6px 4px 4px;"><div id="yoy_alm_root"></div></div>
+</div>
 <div class="pane" id="pane-onepage">
 
   <!-- Control bar -->
@@ -3452,6 +3490,7 @@ function showPage(id, btn) {
   else if (id === 'canceladas') renderCanceladas();
   else if (id === 'personal') renderPersonal();
   else if (id === 'merma') { setTimeout(function(){ if(typeof renderMerma==='function') renderMerma(); }, 60); }
+  else if (id === 'yoy') { setTimeout(function(){ if(typeof renderYoYRepo==='function') renderYoYRepo(); }, 60); }
   else if (id === 'ejecutivo') renderEjecutivo();
   else if (id === 'recomendaciones') renderRecos();
   else if (id === 'carga') setTimeout(function(){ if(typeof renderTablaUnificada==='function') renderTablaUnificada(); else renderTabla(); }, 80);
@@ -8545,6 +8584,7 @@ function setTab(b) {
       try{ anPopulateMeses(); buildAnalytics(); }catch(e){ console.warn('[Analytics] buildAnalytics error:', e); }
     }, 200); /* 200ms: tiempo para que el pane complete layout antes de que Chart.js lea dimensiones */
   }
+  if (b.dataset.tab === 'yoy') { setTimeout(function(){ if(typeof renderYoYAlm==='function') renderYoYAlm(); }, 150); }
   if (b.dataset.tab === 'onepage') {
     setTimeout(function(){
       if(typeof mergeV22toHIST==='function') try{mergeV22toHIST();}catch(e){}
@@ -13189,6 +13229,7 @@ var SUBNAVS = {
     {icon:'📂', label:'Histórico',  fn:"setTab(this)", tab:'historico'},
     {icon:'📉', label:'Analytics',  fn:"setTab(this)", tab:'analytics'},
     {icon:'📄', label:'One Page',   fn:"setTab(this)", tab:'onepage'},
+    {icon:'📅', label:'Año vs Año', fn:"setTab(this)", tab:'yoy'},
   ],
   monta: [
     {icon:'📋', label:'R105',         fn:"goTab('r105');paint()"},
@@ -13793,6 +13834,90 @@ body.exec-mode #execModeToggle .em-chev{ transform:rotate(180deg); }
     if (Date.now() - inicio > LIMITE_SESION) intentarRecarga('sesion > 30 min');
   }, 60*1000);
 })();
+</script>
+<script>
+var YOY_MESES=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+var YOY_ML={ENE:'Ene',FEB:'Feb',MAR:'Mar',ABR:'Abr',MAY:'May',JUN:'Jun',JUL:'Jul',AGO:'Ago',SEP:'Sep',OCT:'Oct',NOV:'Nov',DIC:'Dic'};
+var YOY_C25='#94a3b8', YOY_C26='#0E8F86';
+var _yoyCharts={};
+var YOY_REPO_2025={"ENE": {"dias": 22, "bultos": 12219, "asig": 681, "intr": 69, "ejec": 612, "cumpl": 89.9, "pers": 15.4, "bxh": 114.3}, "FEB": {"dias": 20, "bultos": 12566, "asig": 743, "intr": 134, "ejec": 609, "cumpl": 81.4, "pers": 16.2, "bxh": 111.6}, "MAR": {"dias": 21, "bultos": 11175, "asig": 581, "intr": 84, "ejec": 501, "cumpl": 86.1, "pers": 18.2, "bxh": 88.4}, "ABR": {"dias": 22, "bultos": 11908, "asig": 638, "intr": 20, "ejec": 618, "cumpl": 97.1, "pers": 18.7, "bxh": 91.2}, "MAY": {"dias": 27, "bultos": 10130, "asig": 538, "intr": 10, "ejec": 530, "cumpl": 98.5, "pers": 16.0, "bxh": 111.3}, "JUN": {"dias": 25, "bultos": 11081, "asig": 621, "intr": 2, "ejec": 569, "cumpl": 99.7, "pers": 14.9, "bxh": 128.1}, "JUL": {"dias": 27, "bultos": 11015, "asig": 574, "intr": 14, "ejec": 564, "cumpl": 98.1, "pers": 13.3, "bxh": 139.9}, "AGO": {"dias": 26, "bultos": 11210, "asig": 625, "intr": 92, "ejec": 526, "cumpl": 87.8, "pers": 11.7, "bxh": 171.2}, "SEP": {"dias": 26, "bultos": 12651, "asig": 680, "intr": 55, "ejec": 634, "cumpl": 93.5, "pers": 16.1, "bxh": 132.0}, "OCT": {"dias": 27, "bultos": 12154, "asig": 675, "intr": 41, "ejec": 641, "cumpl": 95.6, "pers": 15.4, "bxh": 134.7}, "NOV": {"dias": 24, "bultos": 11853, "asig": 679, "intr": 43, "ejec": 643, "cumpl": 95.4, "pers": 14.9, "bxh": 136.6}, "DIC": {"dias": 26, "bultos": 13084, "asig": 780, "intr": 75, "ejec": 717, "cumpl": 92.5, "pers": 16.5, "bxh": 133.9}};
+var YOY_ALM_2025={"ENE": {"dias": 18, "dem": 1033, "rop": 25, "alm": 478, "vent": 222, "intr": 61, "canc": 1839, "total": 1536}, "MAR": {"dias": 1, "dem": 1246, "rop": 122, "alm": 246, "vent": 163, "intr": 55, "canc": 2493, "total": 1614}, "ABR": {"dias": 17, "dem": 1117, "rop": 11, "alm": 403, "vent": 138, "intr": 14, "canc": 989, "total": 1531}, "MAY": {"dias": 19, "dem": 1248, "rop": 0, "alm": 302, "vent": 101, "intr": 7, "canc": 735, "total": 1550}, "JUN": {"dias": 18, "dem": 1167, "rop": 175, "alm": 296, "vent": 121, "intr": 2, "canc": 919, "total": 1638}, "JUL": {"dias": 12, "dem": 1166, "rop": 248, "alm": 564, "vent": 105, "intr": 6, "canc": 1230, "total": 1978}, "AGO": {"dias": 1, "dem": 1037, "rop": 0, "alm": 623, "vent": 104, "intr": 19, "canc": 2076, "total": 1660}, "OCT": {"dias": 17, "dem": 1126, "rop": 26, "alm": 354, "vent": 212, "intr": 34, "canc": 1495, "total": 1506}, "NOV": {"dias": 17, "dem": 1040, "rop": 219, "alm": 590, "vent": 284, "intr": 42, "canc": 817, "total": 1849}, "DIC": {"dias": 15, "dem": 1111, "rop": 167, "alm": 787, "vent": 540, "intr": 66, "canc": 2979, "total": 2065}};
+function _yoyRepo2026(){
+  var by={}, out={};
+  if(typeof datos!=='undefined') datos.forEach(function(d){ var m=d.mes; if(!m)return; (by[m]=by[m]||[]).push(d); });
+  Object.keys(by).forEach(function(m){ var a=by[m]; function av(f){var s=0,n=0;a.forEach(function(d){var v=+d[f];if(!isNaN(v)){s+=v;n++;}});return n?s/n:0;}
+    out[m]={cumpl:+(av('L')*100).toFixed(1), bxh:+av('O').toFixed(1), bultos:Math.round(av('G')), intr:Math.round(av('J')), ejec:Math.round(av('K')), pers:+av('M').toFixed(1)};
+  });
+  return out;
+}
+function _yoyAlm2026(){
+  var ORD={ENERO:'ENE',FEBRERO:'FEB',MARZO:'MAR',ABRIL:'ABR',MAYO:'MAY',JUNIO:'JUN',JULIO:'JUL',AGOSTO:'AGO',SEPTIEMBRE:'SEP',OCTUBRE:'OCT',NOVIEMBRE:'NOV',DICIEMBRE:'DIC'};
+  var by={}, out={};
+  if(typeof HIST!=='undefined') HIST.forEach(function(r){ if(!r||!r.date)return; var m=ORD[(r.date.split(' ')[0]||'').toUpperCase()]; if(!m)return;
+    var ok=((r.total||0)>0||(r.dbo||0)>0||(r.ddym||0)>0||(r.canceladas||0)>0||(r.ventanas||0)>0||(r.rop||0)>0||(r.alm_real||0)>0);
+    if(!ok)return; (by[m]=by[m]||[]).push(r); });
+  Object.keys(by).forEach(function(m){ var a=by[m]; function av(fn){var s=0,n=0;a.forEach(function(r){var v=fn(r);if(!isNaN(v)){s+=v;n++;}});return n?s/n:0;}
+    out[m]={dem:Math.round(av(function(r){return (+r.dbo||0)+(+r.ddym||0);})), rop:Math.round(av(function(r){return +r.rop||0;})), alm:Math.round(av(function(r){return +r.alm_real||0;})), vent:Math.round(av(function(r){return +r.ventanas||0;})), intr:Math.round(av(function(r){return +r.intransit||0;})), canc:Math.round(av(function(r){return +r.canceladas||0;}))};
+  });
+  return out;
+}
+function _yoyFmt(v,dec,unit){ if(v==null||isNaN(v)) return '—'; var n=dec?(+v).toFixed(dec):Math.round(v).toLocaleString('es-VE'); return n+(unit||''); }
+function _yoyAnnual(data,key){ var vals=[]; YOY_MESES.forEach(function(m){ if(data[m]&&data[m][key]!=null&&+data[m][key]!==0) vals.push(+data[m][key]); }); return vals.length?vals.reduce(function(s,v){return s+v;},0)/vals.length:0; }
+function _yoyMt(cfg,k){ for(var i=0;i<cfg.metrics.length;i++) if(cfg.metrics[i].key===k) return cfg.metrics[i]; return {label:k}; }
+function buildYoY(cfg){
+  var root=document.getElementById(cfg.rootId); if(!root) return;
+  var d25=cfg.data25, d26=cfg.get2026();
+  if(_yoyCharts[cfg.rootId]){ _yoyCharts[cfg.rootId].forEach(function(c){try{c.destroy();}catch(e){}}); }
+  _yoyCharts[cfg.rootId]=[];
+  var kpiHtml=cfg.metrics.map(function(mt){
+    var a25=_yoyAnnual(d25,mt.key), a26=_yoyAnnual(d26,mt.key);
+    var dpct=a25>0?(a26-a25)/a25*100:0;
+    var good=mt.inv===true?(dpct<0):mt.inv===false?(dpct>0):null;
+    var clr=good===null?'#64748b':(good?'#16a34a':'#dc2626');
+    var arrow=Math.abs(dpct)<0.05?'':(dpct>0?'▲':'▼');
+    return '<div class="yoy-kpi"><div class="yk-lbl">'+mt.label+'</div><div class="yk-row">'
+      +'<div><div class="yk-y">2025</div><div class="yk-v" style="color:'+YOY_C25+'">'+_yoyFmt(a25,mt.dec,mt.unit)+'</div></div>'
+      +'<div><div class="yk-y">2026</div><div class="yk-v" style="color:'+YOY_C26+'">'+_yoyFmt(a26,mt.dec,mt.unit)+'</div></div></div>'
+      +'<div class="yk-d" style="color:'+clr+'">'+arrow+' '+(dpct>=0?'+':'')+dpct.toFixed(1)+'% año vs año</div></div>';
+  }).join('');
+  var chartsHtml=cfg.chartKeys.map(function(k,i){ var mt=_yoyMt(cfg,k); return '<div class="yoy-panel"><div class="yp-t">'+mt.label+' — 2025 vs 2026</div><div class="yp-c"><canvas id="'+cfg.rootId+'_c'+i+'"></canvas></div></div>'; }).join('');
+  var tm=cfg.tableMetrics;
+  var thead='<tr><th>Mes</th>'; tm.forEach(function(k){ var mt=_yoyMt(cfg,k); thead+='<th>'+mt.label+' 25</th><th>26</th><th>Var%</th>'; }); thead+='</tr>';
+  var tbody=''; YOY_MESES.forEach(function(m){ if(!d25[m]&&!d26[m])return; var r='<tr><td>'+YOY_ML[m]+'</td>';
+    tm.forEach(function(k){ var mt=_yoyMt(cfg,k); var v25=d25[m]?d25[m][k]:null, v26=d26[m]?d26[m][k]:null; var vp=(v25&&v26&&+v25!==0)?((v26-v25)/v25*100):null; var good=vp==null?null:(mt.inv?vp<0:vp>0); var clr=good==null?'#94a3b8':(good?'#16a34a':'#dc2626');
+      r+='<td>'+_yoyFmt(v25,mt.dec,mt.unit)+'</td><td>'+_yoyFmt(v26,mt.dec,mt.unit)+'</td><td style="color:'+clr+';font-weight:800;">'+(vp==null?'—':(vp>=0?'+':'')+vp.toFixed(1)+'%')+'</td>'; });
+    r+='</tr>'; tbody+=r; });
+  var tfoot='<tr><td>PROMEDIO</td>'; tm.forEach(function(k){ var mt=_yoyMt(cfg,k); var a25=_yoyAnnual(d25,k),a26=_yoyAnnual(d26,k); var vp=a25>0?((a26-a25)/a25*100):null; var good=vp==null?null:(mt.inv?vp<0:vp>0); var clr=good==null?'#94a3b8':(good?'#16a34a':'#dc2626'); tfoot+='<td>'+_yoyFmt(a25,mt.dec,mt.unit)+'</td><td>'+_yoyFmt(a26,mt.dec,mt.unit)+'</td><td style="color:'+clr+'">'+(vp==null?'—':(vp>=0?'+':'')+vp.toFixed(1)+'%')+'</td>'; }); tfoot+='</tr>';
+  root.innerHTML=
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button class="btn btn-primary" style="background:#0A2E52;border:none;color:#fff;font-weight:800;font-size:12px;padding:9px 16px;border-radius:8px;cursor:pointer;" onclick="dlCardImagen(\''+cfg.reportId+'\',\'AnoVsAno_'+cfg.area+'\')">📷 Descargar reporte</button></div>'
+    +'<div id="'+cfg.reportId+'" style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 6px 24px rgba(10,46,82,.12);border:1px solid #e2e8f0;">'
+    +'<div class="yoy-hd"><div class="yoy-kick">Farmatodo · Logística & Cadena de Suministro</div><div class="yoy-title">Comparativo Año vs Año — '+cfg.areaLabel+'</div><div class="yoy-sub">2025 vs 2026 · mes a mes y promedio anual</div></div>'
+    +'<div class="yoy-kpis">'+kpiHtml+'</div>'
+    +'<div class="yoy-sech">Comportamiento mensual — <span style="color:#94a3b8">2025</span> vs <span style="color:#0E8F86">2026</span></div>'
+    +'<div class="yoy-charts">'+chartsHtml+'</div>'
+    +'<div class="yoy-sech">Resumen ejecutivo mes a mes</div>'
+    +'<div style="overflow:auto;padding:0 24px 16px;"><table class="yoy-tbl"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody><tfoot>'+tfoot+'</tfoot></table></div>'
+    +'<div class="yoy-foot">NOC Dashboard · Farmatodo CENDIS · 2025 (histórico) vs 2026 (en curso, en vivo). Promedio anual = promedio de los meses con datos de cada año.</div>'
+    +'</div>';
+  cfg.chartKeys.forEach(function(k,i){ var mt=_yoyMt(cfg,k); var cv=document.getElementById(cfg.rootId+'_c'+i); if(!cv||typeof Chart==='undefined')return;
+    var labels=YOY_MESES.map(function(m){return YOY_ML[m];});
+    var v25=YOY_MESES.map(function(m){return d25[m]?+(d25[m][k]||0):null;});
+    var v26=YOY_MESES.map(function(m){return d26[m]?+(d26[m][k]||0):null;});
+    var c=new Chart(cv,{type:'bar',data:{labels:labels,datasets:[
+      {label:'2025',data:v25,backgroundColor:YOY_C25,borderColor:YOY_C25,borderRadius:3,borderSkipped:false,categoryPercentage:0.7,barPercentage:0.9},
+      {label:'2026',data:v26,backgroundColor:YOY_C26,borderColor:YOY_C26,borderRadius:3,borderSkipped:false,categoryPercentage:0.7,barPercentage:0.9}
+    ]},options:{animation:false,responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,font:{size:10}}},tooltip:{callbacks:{label:function(ctx){return '  '+ctx.dataset.label+': '+Number(ctx.parsed.y).toLocaleString('es-VE');}}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:9,weight:'700'},color:'#94a3b8'}},y:{beginAtZero:true,grace:'12%',grid:{color:'#eef2f7'},ticks:{font:{size:9},color:'#94a3b8'}}}}});
+    _yoyCharts[cfg.rootId].push(c);
+  });
+}
+function renderYoYRepo(){ buildYoY({rootId:'yoy_noc_root',reportId:'yoy_noc_report',area:'Reposicion',areaLabel:'Reposición Nocturna',data25:YOY_REPO_2025,get2026:_yoyRepo2026,
+  metrics:[{key:'cumpl',label:'Cumplimiento',unit:'%',dec:1,inv:false},{key:'bxh',label:'B×H/hora',dec:1,inv:false},{key:'bultos',label:'Bultos/día',inv:false},{key:'ejec',label:'Tareas ejec.',inv:false},{key:'intr',label:'Intransit',inv:true},{key:'pers',label:'Personal',dec:1,inv:null}],
+  chartKeys:['cumpl','bxh','bultos','intr'],tableMetrics:['cumpl','bxh']}); }
+function renderYoYAlm(){ buildYoY({rootId:'yoy_alm_root',reportId:'yoy_alm_report',area:'Almacenaje',areaLabel:'Almacenaje Nocturno',data25:YOY_ALM_2025,get2026:_yoyAlm2026,
+  metrics:[{key:'dem',label:'Demanda/noche',inv:false},{key:'rop',label:'ROP/noche',inv:false},{key:'alm',label:'Almacenado/noche',inv:false},{key:'canc',label:'Canceladas/día',inv:true},{key:'vent',label:'Ventanas',inv:true},{key:'intr',label:'Intransit',inv:true}],
+  chartKeys:['dem','canc','alm','vent'],tableMetrics:['dem','canc']}); }
 </script>
 </body>
 </html>
