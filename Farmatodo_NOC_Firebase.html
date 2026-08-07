@@ -2573,8 +2573,14 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 
   <div class="kpi-strip" id="merma_kpis" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;"></div>
 
+  <div class="ccard" id="card_merma_sem">
+    <div class="ccard-hdr"><div><div class="ccard-title">Comparativo semanal de merma</div><div class="ccard-sub">Almacenaje vs Reposición · monto dañado por semana (el indicador se comparte semanal)</div></div>
+      <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_merma_sem','Merma_Semanal')">⬇ PNG</button></div></div>
+    <div style="position:relative;height:300px;"><canvas id="ax_merma_sem" role="img" aria-label="Comparativo semanal de merma"></canvas></div>
+  </div>
+
   <div class="ccard" id="card_merma">
-    <div class="ccard-hdr"><div><div class="ccard-title">Comparativo mensual de merma</div><div class="ccard-sub">Almacenaje vs Reposición · monto dañado acumulado por mes</div></div>
+    <div class="ccard-hdr"><div><div class="ccard-title">Comparativo mensual de merma (mes vs mes)</div><div class="ccard-sub">Almacenaje vs Reposición · monto dañado acumulado por mes</div></div>
       <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_merma','Merma_Mensual')">⬇ PNG</button></div></div>
     <div style="position:relative;height:300px;"><canvas id="ax_merma" role="img" aria-label="Comparativo mensual de merma"></canvas></div>
   </div>
@@ -4643,6 +4649,7 @@ function borrarMerma(id){
   _saveMerma(); renderMerma();
 }
 var _mermaChart=null;
+var _mermaSemChart=null;
 function _mermaAcumByMesDep(){
   var acc={};
   MERMA.forEach(function(r){ if(!r||!r.mes) return; var k=r.mes+'|'+r.dep; acc[k]=(acc[k]||0)+(+r.monto||0); });
@@ -4756,6 +4763,37 @@ function renderMerma(){
       }
     });
     if(typeof AX!=='undefined') AX['ax_merma']=_mermaChart;
+  }
+  // ── Comparativo SEMANAL (Almacenaje vs Reposición) ──
+  var cvS=document.getElementById('ax_merma_sem');
+  if(cvS && typeof Chart!=='undefined'){
+    var byWk={}, wkOrder=[];
+    MERMA.forEach(function(r){
+      if(!r||!r.fecha) return;
+      var d=new Date(r.fecha+'T00:00:00'); if(isNaN(d.getTime())) return;
+      var day=d.getDay()||7; var mon=new Date(d); mon.setDate(d.getDate()-(day-1));
+      var key=mon.toISOString().slice(0,10);
+      if(!byWk[key]){ byWk[key]={ALM:0,REP:0}; wkOrder.push(key); }
+      byWk[key][r.dep]=(byWk[key][r.dep]||0)+(+r.monto||0);
+    });
+    wkOrder.sort();
+    var wLbl=wkOrder.map(function(k){ var p=k.split('-'); return 'Sem '+p[2]+'/'+p[1]; });
+    var wAlm=wkOrder.map(function(k){ return Math.round(byWk[k].ALM||0); });
+    var wRep=wkOrder.map(function(k){ return Math.round(byWk[k].REP||0); });
+    if(_mermaSemChart){ try{_mermaSemChart.destroy();}catch(e){} _mermaSemChart=null; }
+    _mermaSemChart=new Chart(cvS,{ type:'bar',
+      data:{ labels:wLbl, datasets:[
+        {label:'Almacenaje', data:wAlm, backgroundColor:'rgba(245,158,11,.78)', borderColor:'#C87000', borderWidth:1.5, borderRadius:5, borderSkipped:false, showValueLabels:true, valueLabelColor:'#C87000', valueLabelFormat:function(v){return v.toLocaleString('es-VE');}, valueLabelOffset:12},
+        {label:'Reposición', data:wRep, backgroundColor:'rgba(0,71,200,.72)', borderColor:'#0047C8', borderWidth:1.5, borderRadius:5, borderSkipped:false, showValueLabels:true, valueLabelColor:'#0047C8', valueLabelFormat:function(v){return v.toLocaleString('es-VE');}, valueLabelOffset:12}
+      ]},
+      options:{ animation:false, responsive:true, maintainAspectRatio:false,
+        layout:{padding:{top:24,right:10,left:6,bottom:4}},
+        scales:{ y:{ beginAtZero:true, grace:'14%', ticks:{font:{size:10}} }, x:{ offset:true, ticks:{font:{size:10,weight:'700'},maxRotation:45,minRotation:0} } },
+        plugins:{ legend:{ display:true, position:'bottom', labels:{usePointStyle:true,pointStyle:'circle',boxWidth:9,font:{size:11}} },
+          tooltip:{ callbacks:{ label:function(ctx){ return '  '+ctx.dataset.label+': '+Number(ctx.parsed.y).toLocaleString('es-VE'); } } } }
+      }
+    });
+    if(typeof AX!=='undefined') AX['ax_merma_sem']=_mermaSemChart;
   }
 }
 var _DESP_MESES=[['ENE','Enero'],['FEB','Febrero'],['MAR','Marzo'],['ABR','Abril'],['MAY','Mayo'],['JUN','Junio'],['JUL','Julio'],['AGO','Agosto'],['SEP','Septiembre'],['OCT','Octubre'],['NOV','Noviembre'],['DIC','Diciembre']];
