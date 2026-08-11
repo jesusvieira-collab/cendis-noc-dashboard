@@ -75,10 +75,14 @@
     .m-action.prim { background: #001E62; color: #fff; border-color: #001E62; }
     .m-action.close { background: #f1f5f9; color: #64748b; border: none; }
 
-    /* Subbar compacto */
-    .subbar { padding: 6px 10px !important; gap: 6px !important; flex-wrap: wrap !important; }
-    .subbar-right { font-size: 10px !important; }
-    .mes-select { font-size: 11px !important; }
+    /* Subbar compacto — una sola fila deslizable, sin etiquetas de texto */
+    .subbar { padding: 7px 10px !important; gap: 8px !important; flex-wrap: nowrap !important; overflow-x: auto !important; scrollbar-width: none !important; -webkit-overflow-scrolling: touch !important; }
+    .subbar::-webkit-scrollbar { display: none !important; }
+    .subbar > div:first-child { flex-wrap: nowrap !important; gap: 7px !important; }
+    .subbar .lbl-hide { display: none !important; }
+    .subbar-right { display: none !important; }
+    .mes-select { font-size: 11px !important; min-width: 124px !important; flex-shrink: 0 !important; }
+    .mes-dropdown-wrap, .vista-bar, .mes-badge { flex-shrink: 0 !important; }
 
     /* Inner tabs scroll — SIN sticky en móvil: la barra nunca tapa el título */
     .nav, #mod-v22 .nav, #mod-monta .tabs {
@@ -2040,6 +2044,45 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 @media(max-width:680px){ .yoy-kpis{grid-template-columns:repeat(2,1fr);} }
 </style>
 <!-- build: merma-por-area v2 -->
+<style id="ftd-brand-header">
+/* ===== Identidad Corporativa Farmatodo — Cabecera (Azul I #001E62 · Azul II #418FDE) ===== */
+.topbar{ background:#001E62 !important; height:60px !important; border-bottom:2px solid #418FDE !important; box-shadow:0 2px 10px rgba(0,10,40,.18); }
+.topbar-left{ gap:16px !important; }
+.brand{ color:#fff !important; font-weight:800 !important; }
+.brand-sub{ color:rgba(255,255,255,.62) !important; }
+
+/* Pestañas de módulo */
+.mod-tabs{ background:rgba(255,255,255,.09) !important; border:1px solid rgba(255,255,255,.12) !important; }
+.mod-tab{ color:rgba(255,255,255,.78) !important; }
+.mod-tab:hover{ background:rgba(255,255,255,.14) !important; color:#fff !important; }
+.mod-tab.active{ background:#fff !important; color:#001E62 !important; box-shadow:0 1px 4px rgba(0,10,40,.25); }
+
+/* Botones de acción — agrupados y uniformes */
+.topbar-actions-desktop{ gap:6px !important; padding-left:12px !important; margin-left:2px; border-left:1px solid rgba(255,255,255,.16); }
+.tbtn{ background:rgba(255,255,255,.07) !important; border:1px solid rgba(255,255,255,.22) !important; color:#fff !important; font-weight:600 !important; }
+.tbtn:hover{ background:rgba(255,255,255,.16) !important; border-color:#418FDE !important; }
+.tbtn.tbtn-save{ background:#418FDE !important; border-color:#418FDE !important; color:#fff !important; font-weight:700 !important; }
+.tbtn.tbtn-save:hover{ background:#2f7fd0 !important; border-color:#2f7fd0 !important; }
+.tbtn.tbtn-p{ background:rgba(255,255,255,.07) !important; }
+
+/* Subbar (período + vista) */
+.subbar{ background:#0A2E6E !important; height:44px; border-bottom:1px solid rgba(255,255,255,.12) !important; }
+.mes-select{ background:rgba(255,255,255,.12) !important; border-color:rgba(255,255,255,.3) !important; border-radius:8px !important; }
+.mes-select:hover{ background:rgba(255,255,255,.2) !important; }
+.mes-select option{ background:#001E62 !important; color:#fff !important; }
+.vista-bar{ background:rgba(255,255,255,.14) !important; }
+.vista-btn{ color:rgba(255,255,255,.82) !important; }
+.vista-btn:hover{ background:rgba(255,255,255,.12) !important; color:#fff !important; }
+.vista-btn.active{ background:#418FDE !important; border-color:#418FDE !important; color:#fff !important; }
+.mes-badge{ color:rgba(255,255,255,.72) !important; }
+.subbar-right{ color:rgba(255,255,255,.6) !important; }
+
+/* Navegación de páginas (pestañas) */
+#mod-noc .nav{ background:#001E62 !important; border-bottom:1px solid rgba(65,143,222,.35) !important; }
+#mod-noc .ntab{ color:rgba(255,255,255,.6) !important; border-bottom:3px solid transparent !important; }
+#mod-noc .ntab:hover{ color:#fff !important; background:rgba(255,255,255,.05) !important; }
+#mod-noc .ntab.on{ color:#fff !important; border-bottom-color:#418FDE !important; background:rgba(65,143,222,.16) !important; }
+</style>
 </head>
 <body>
 <!-- ══ TOPBAR ══ -->
@@ -2064,9 +2107,9 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   <!-- Botones acción — visible solo en desktop -->
   <div class="topbar-actions-desktop" style="display:flex;gap:6px;">
     <button class="tbtn" onclick="importarDatos()" title="Importar">⬆ Importar</button>
-    <button class="tbtn" style="background:rgba(27,79,168,.15);border:1px solid rgba(27,79,168,.3);" onclick="abrirCargaHistorica()">📥 Día anterior</button>
-    <button class="tbtn dl-btn primary" onclick="abrirModalDescarga()">📷 Gráficas</button>
-    <button class="tbtn" onclick="descargarHTML()" style="background:#1E8449;border-color:#1E8449;color:#fff;font-weight:700;">💾 Guardar con datos</button>
+    <button class="tbtn" onclick="abrirCargaHistorica()">📥 Día anterior</button>
+    <button class="tbtn dl-btn" onclick="abrirModalDescarga()">📷 Gráficas</button>
+    <button class="tbtn tbtn-save" onclick="descargarHTML()">💾 Guardar con datos</button>
     <button class="tbtn tbtn-p" onclick="window.print()">🖨 Imprimir</button>
     <input type="file" id="fileInput" accept=".json,text/html" style="display:none" onchange="importarArchivo(event)">
   </div>
@@ -2084,7 +2127,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 <!-- ══ SUBBAR ══ -->
 <div id="subbar-noc"><div class="subbar">
   <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted);font-family:var(--font);">
-    <span>Filtrar período:</span>
+    <span class="lbl-hide">Filtrar período:</span>
     <div class="mes-dropdown-wrap">
       <select class="mes-select" id="anioSelect" onchange="setAnioSelect(this)">
         <option value="ALL">📆 Todos los años</option>
@@ -2097,7 +2140,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       </select>
       <span class="mes-arrow">▾</span>
     </div>
-    <span style="margin-left:8px;color:var(--muted);font-size:11px;font-family:var(--font);">Vista:</span>
+    <span class="lbl-hide" style="margin-left:8px;color:var(--muted);font-size:11px;font-family:var(--font);">Vista:</span>
     <div class="vista-bar" id="repo-vista-bar">
       <button class="vista-btn active" data-p="dia" onclick="repoSetPeriod('dia',this)" title="Por día">D</button>
       <button class="vista-btn" data-p="semana" onclick="repoSetPeriod('semana',this)" title="Por semana">S</button>
