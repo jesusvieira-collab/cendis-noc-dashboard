@@ -10251,7 +10251,7 @@ dbInit();
 // HELPERS DE BASE DE DATOS
 // =====================================================================
 function getYears(){ return Object.keys(db).sort(); }
-function getMonths(yr){ return Object.keys((db[yr])||{}).sort((a,b)=>MONTA_MONTHS.indexOf(a)-MONTA_MONTHS.indexOf(b)); }
+function getMonths(yr){ return Object.keys((db[yr])||{}).filter(k=>MONTA_MONTHS.indexOf(k)>=0).sort((a,b)=>MONTA_MONTHS.indexOf(a)-MONTA_MONTHS.indexOf(b)); }
 function latestYear(){ const k=getYears(); return k.length?k[k.length-1]:curYear; }
 function latestMonth(yr){ const k=getMonths(yr); return k.length?k[k.length-1]:null; }
 
