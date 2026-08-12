@@ -2072,9 +2072,21 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 .acc-wrap{ position:relative; }
 .acc-chev{ font-size:10px; opacity:.85; transition:transform .15s; }
 .acc-wrap.open .acc-chev{ transform:rotate(180deg); }
-.acc-pop{ position:absolute; top:calc(100% + 8px); right:0; min-width:230px; background:#fff;
+.acc-pop{ position:absolute; top:calc(100% + 10px); left:0; min-width:250px; background:#fff;
   border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 12px 34px rgba(0,20,60,.22);
   padding:8px; z-index:600; display:none; }
+/* Botón esquina (☰ Menú) que abre el panel */
+.corner-btn{ display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.28); color:#fff; font-family:var(--font); font-weight:800;
+  font-size:12px; letter-spacing:.03em; border-radius:10px; padding:9px 14px; cursor:pointer; transition:all .14s ease; }
+.corner-btn:hover{ background:rgba(255,255,255,.22); border-color:#fff; }
+.acc-wrap.open .corner-btn{ background:#fff; color:#001E62; border-color:#fff; }
+.corner-ico{ font-size:15px; line-height:1; }
+.acc-save{ background:rgba(65,143,222,.12) !important; color:#001E62 !important; font-weight:800 !important; margin-bottom:4px; }
+.acc-save:hover{ background:rgba(65,143,222,.22) !important; }
+/* Línea de filtros: bajarla con aire, sin chocar con las pestañas de abajo */
+#subbar-noc{ margin-top:8px !important; }
+#mod-noc > .nav{ margin-top:8px !important; }
 .acc-wrap.open .acc-pop{ display:block; animation:accIn .14s ease; }
 @keyframes accIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:none;} }
 .acc-pop-title{ font-size:9px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:.7px; padding:4px 10px 8px; }
@@ -2108,6 +2120,20 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 <div class="topbar" id="main-topbar" style="display:block">
   <!-- Logo + title (siempre visible) -->
   <div class="topbar-left">
+    <!-- Panel desplegable de acciones (esquina) -->
+    <div class="acc-wrap">
+      <button class="corner-btn" id="accBtn" onclick="toggleAcc(event)" title="Acciones del tablero" aria-label="Acciones">
+        <span class="corner-ico">☰</span><span class="corner-lbl">Menú</span>
+      </button>
+      <div class="acc-pop" id="accPop">
+        <div class="acc-pop-title">Acciones del tablero</div>
+        <button class="acc-item acc-save" onclick="descargarHTML();closeAcc()"><span>💾</span> Guardar con datos</button>
+        <button class="acc-item" onclick="importarDatos();closeAcc()"><span>⬆</span> Importar datos</button>
+        <button class="acc-item" onclick="abrirCargaHistorica();closeAcc()"><span>📥</span> Cargar día anterior</button>
+        <button class="acc-item" onclick="abrirModalDescarga();closeAcc()"><span>📷</span> Descargar gráficas</button>
+        <button class="acc-item" onclick="window.print();closeAcc()"><span>🖨</span> Imprimir</button>
+      </div>
+    </div>
     <a style="display:flex;align-items:center;gap:10px;text-decoration:none;" href="#">
       <img src="data:image/png;base64,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" alt="Farmatodo" style="height:36px;width:auto;display:block;flex-shrink:0;">
       <div>
@@ -2115,29 +2141,15 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         <div class="brand-sub">Farmatodo · Centro de Distribución · Turno NOC</div>
       </div>
     </a>
-    <!-- Módulos — visible solo en desktop -->
-    <div class="mod-tabs mod-tabs-desktop">
-      <button id="mbtn-noc"   class="mod-tab active" onclick="switchMod('noc')">🛒 REPOSICIÓN</button>
-      <button id="mbtn-v22"   class="mod-tab"        onclick="switchMod('v22')">🏗 ALMACENAJE</button>
-      <button id="mbtn-monta" class="mod-tab"        onclick="switchMod('monta')">👷 OPERADORES</button>
-      <button id="mbtn-vit"   class="mod-tab"        onclick="switchMod('vit')">📋 VITÁCORA</button>
-    </div>
   </div>
-  <!-- Botones acción — visible solo en desktop -->
-  <div class="topbar-actions-desktop" style="display:flex;gap:8px;align-items:center;">
-    <button class="tbtn tbtn-save" onclick="descargarHTML()">💾 Guardar</button>
-    <div class="acc-wrap">
-      <button class="tbtn tbtn-actions" id="accBtn" onclick="toggleAcc(event)">⚙ Acciones <span class="acc-chev">▾</span></button>
-      <div class="acc-pop" id="accPop">
-        <div class="acc-pop-title">Acciones del tablero</div>
-        <button class="acc-item" onclick="importarDatos();closeAcc()"><span>⬆</span> Importar datos</button>
-        <button class="acc-item" onclick="abrirCargaHistorica();closeAcc()"><span>📥</span> Cargar día anterior</button>
-        <button class="acc-item" onclick="abrirModalDescarga();closeAcc()"><span>📷</span> Descargar gráficas</button>
-        <button class="acc-item" onclick="window.print();closeAcc()"><span>🖨</span> Imprimir</button>
-      </div>
-    </div>
-    <input type="file" id="fileInput" accept=".json,text/html" style="display:none" onchange="importarArchivo(event)">
+  <!-- Módulos — única barra superior (derecha) -->
+  <div class="mod-tabs mod-tabs-desktop">
+    <button id="mbtn-noc"   class="mod-tab active" onclick="switchMod('noc')">🛒 REPOSICIÓN</button>
+    <button id="mbtn-v22"   class="mod-tab"        onclick="switchMod('v22')">🏗 ALMACENAJE</button>
+    <button id="mbtn-monta" class="mod-tab"        onclick="switchMod('monta')">👷 OPERADORES</button>
+    <button id="mbtn-vit"   class="mod-tab"        onclick="switchMod('vit')">📋 VITÁCORA</button>
   </div>
+  <input type="file" id="fileInput" accept=".json,text/html" style="display:none" onchange="importarArchivo(event)">
   <!-- Badge Firebase (siempre visible) -->
   <div id="fb-status" style="display:none;"></div>
 </div>
