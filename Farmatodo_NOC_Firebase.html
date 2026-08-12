@@ -2057,21 +2057,32 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 .mod-tab:hover{ background:rgba(255,255,255,.14) !important; color:#fff !important; }
 .mod-tab.active{ background:#fff !important; color:#001E62 !important; box-shadow:0 1px 4px rgba(0,10,40,.25); }
 
-/* Botones de acción — píldoras con presencia y hover invertido */
-.topbar-actions-desktop{ gap:7px !important; padding-left:14px !important; margin-left:2px; border-left:1px solid rgba(255,255,255,.18); align-items:center; }
-.tbtn{ display:inline-flex !important; align-items:center !important; gap:5px !important;
-  background:rgba(255,255,255,.14) !important; border:1px solid rgba(255,255,255,.30) !important;
-  color:#fff !important; font-weight:700 !important; border-radius:20px !important;
-  padding:7px 15px !important; letter-spacing:.01em; transition:all .14s ease !important; }
-.tbtn:hover{ background:#fff !important; color:#001E62 !important; border-color:#fff !important; transform:translateY(-1px); }
-/* Gráficas — acción destacada (contorno acento) */
-.tbtn.dl-btn{ background:rgba(65,143,222,.22) !important; border-color:#418FDE !important; }
-.tbtn.dl-btn:hover{ background:#fff !important; color:#001E62 !important; }
-/* Guardar con datos — acción primaria sólida (Azul Corporativo II) */
+/* Acciones — solo 2 controles en la barra: Guardar (primario) + menú desplegable */
+.topbar-actions-desktop{ gap:8px !important; padding-left:14px !important; margin-left:2px; border-left:1px solid rgba(255,255,255,.18); align-items:center; }
+.tbtn{ display:inline-flex !important; align-items:center !important; gap:6px !important;
+  background:rgba(255,255,255,.12) !important; border:1px solid rgba(255,255,255,.28) !important;
+  color:#fff !important; font-weight:700 !important; border-radius:9px !important;
+  padding:8px 15px !important; letter-spacing:.01em; transition:all .14s ease !important; }
+.tbtn:hover{ background:rgba(255,255,255,.22) !important; border-color:#fff !important; }
+/* Guardar — acción primaria sólida (Azul Corporativo II) */
 .tbtn.tbtn-save{ background:#418FDE !important; border-color:#418FDE !important; color:#fff !important;
   box-shadow:0 2px 8px rgba(65,143,222,.4) !important; }
-.tbtn.tbtn-save:hover{ background:#5aa0e8 !important; border-color:#5aa0e8 !important; color:#fff !important; }
-.tbtn.tbtn-p{ background:rgba(255,255,255,.14) !important; }
+.tbtn.tbtn-save:hover{ background:#5aa0e8 !important; border-color:#5aa0e8 !important; }
+/* Menú desplegable Acciones */
+.acc-wrap{ position:relative; }
+.acc-chev{ font-size:10px; opacity:.85; transition:transform .15s; }
+.acc-wrap.open .acc-chev{ transform:rotate(180deg); }
+.acc-pop{ position:absolute; top:calc(100% + 8px); right:0; min-width:230px; background:#fff;
+  border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 12px 34px rgba(0,20,60,.22);
+  padding:8px; z-index:600; display:none; }
+.acc-wrap.open .acc-pop{ display:block; animation:accIn .14s ease; }
+@keyframes accIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:none;} }
+.acc-pop-title{ font-size:9px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:.7px; padding:4px 10px 8px; }
+.acc-item{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:transparent;
+  border:none; border-radius:8px; padding:10px 11px; font-size:13px; font-weight:600; color:#0B1F4E;
+  font-family:var(--font); cursor:pointer; transition:background .12s; }
+.acc-item span{ font-size:15px; width:20px; text-align:center; }
+.acc-item:hover{ background:#EAF0FA; }
 
 /* Subbar (período + vista) */
 .subbar{ background:#0A2E6E !important; height:44px; border-bottom:1px solid rgba(255,255,255,.12) !important; }
@@ -2113,12 +2124,18 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     </div>
   </div>
   <!-- Botones acción — visible solo en desktop -->
-  <div class="topbar-actions-desktop" style="display:flex;gap:6px;">
-    <button class="tbtn" onclick="importarDatos()" title="Importar">⬆ Importar</button>
-    <button class="tbtn" onclick="abrirCargaHistorica()">📥 Día anterior</button>
-    <button class="tbtn dl-btn" onclick="abrirModalDescarga()">📷 Gráficas</button>
-    <button class="tbtn tbtn-save" onclick="descargarHTML()">💾 Guardar con datos</button>
-    <button class="tbtn tbtn-p" onclick="window.print()">🖨 Imprimir</button>
+  <div class="topbar-actions-desktop" style="display:flex;gap:8px;align-items:center;">
+    <button class="tbtn tbtn-save" onclick="descargarHTML()">💾 Guardar</button>
+    <div class="acc-wrap">
+      <button class="tbtn tbtn-actions" id="accBtn" onclick="toggleAcc(event)">⚙ Acciones <span class="acc-chev">▾</span></button>
+      <div class="acc-pop" id="accPop">
+        <div class="acc-pop-title">Acciones del tablero</div>
+        <button class="acc-item" onclick="importarDatos();closeAcc()"><span>⬆</span> Importar datos</button>
+        <button class="acc-item" onclick="abrirCargaHistorica();closeAcc()"><span>📥</span> Cargar día anterior</button>
+        <button class="acc-item" onclick="abrirModalDescarga();closeAcc()"><span>📷</span> Descargar gráficas</button>
+        <button class="acc-item" onclick="window.print();closeAcc()"><span>🖨</span> Imprimir</button>
+      </div>
+    </div>
     <input type="file" id="fileInput" accept=".json,text/html" style="display:none" onchange="importarArchivo(event)">
   </div>
   <!-- Badge Firebase (siempre visible) -->
@@ -14070,6 +14087,16 @@ function renderYoYRepo(){ buildYoY({rootId:'yoy_noc_root',reportId:'yoy_noc_repo
 function renderYoYAlm(){ buildYoY({rootId:'yoy_alm_root',reportId:'yoy_alm_report',area:'Almacenaje',areaLabel:'Almacenaje Nocturno',getY:_almYear,
   metrics:[{key:'dem',label:'Demanda/noche',inv:false},{key:'rop',label:'ROP/noche',inv:false},{key:'alm',label:'Almacenado/noche',inv:false},{key:'canc',label:'Canceladas/día',inv:true},{key:'vent',label:'Ventanas',inv:true},{key:'intr',label:'Intransit',inv:true}],
   chartKeys:['dem','canc','alm','vent'],tableMetrics:['dem','canc']}); }
+</script>
+<script>
+// Menú desplegable "Acciones" del topbar
+function toggleAcc(e){ if(e){e.stopPropagation();} var w=document.querySelector('.acc-wrap'); if(w) w.classList.toggle('open'); }
+function closeAcc(){ var w=document.querySelector('.acc-wrap'); if(w) w.classList.remove('open'); }
+document.addEventListener('click', function(e){
+  var w=document.querySelector('.acc-wrap');
+  if(w && w.classList.contains('open') && !w.contains(e.target)) w.classList.remove('open');
+});
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAcc(); });
 </script>
 </body>
 </html>
