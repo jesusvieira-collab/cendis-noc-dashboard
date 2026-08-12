@@ -5134,9 +5134,14 @@ function renderEjecutivo(){
   const d1 = deltaInv(MA.avgL,   MP?.avgL);   // cumplimiento — subir es bueno
   const d2 = deltaMalo(MA.avgJ,  MP?.avgJ);   // intransit — subir es malo
   const d3 = deltaMalo(MA.avgT,  MP?.avgT);   // canceladas — subir es malo
-  const d4_act = MA.avgU, d4_ant = MP?.avgU;
-  const d4pct_act = MA.avgT>0? (MA.avgU/MA.avgT*100):0;
-  const d4pct_ant = (MP && MP.avgT>0)? (MP.avgU/MP.avgT*100):0;
+  // 3er lote: usar el último mes CON dato de 3er lote (avgU>0). Meses recientes sin 3er
+  // lote capturado (ej. Agosto=0) mostraban "0 uds" y "-100%" engañoso.
+  const _pmU = pm.filter(p=>p.avgU>0);
+  const MA4 = _pmU.length ? _pmU[_pmU.length-1] : MA;
+  const MP4 = pm[pm.indexOf(MA4)-1] || null;
+  const d4_act = MA4.avgU, d4_ant = MP4?.avgU;
+  const d4pct_act = MA4.avgT>0? (MA4.avgU/MA4.avgT*100):0;
+  const d4pct_ant = (MP4 && MP4.avgT>0)? (MP4.avgU/MP4.avgT*100):0;
   const d4 = deltaMalo(d4_act, d4_ant);       // 3er lote — subir es malo
   const d5 = deltaMalo(MA.avgB,  MP?.avgB);   // tareas manuales — subir = más demanda (neutro/malo)
   const d6 = deltaInv(MA.avgS,   MP?.avgS);   // fill rate — subir es bueno
@@ -5154,7 +5159,9 @@ function renderEjecutivo(){
   const _sk1 = _skByMes(dd=>+(dd.reduce((s,d)=>s+d.L,0)/dd.length*100).toFixed(1)); // Cumplim %
   const _sk2 = _skByMes(dd=>Math.round(dd.reduce((s,d)=>s+(d.J||0),0)/dd.length));  // Intransit
   const _sk3 = _skByMes(dd=>Math.round(dd.reduce((s,d)=>s+(d.T||0),0)/dd.length));  // Canceladas
-  const _sk4 = _skByMes(dd=>Math.round(dd.reduce((s,d)=>s+(d.U||0),0)/dd.length));  // 3er lote
+  // 3er lote: solo meses con 3er lote capturado (para x̄ y "vs anual" correctos; excluye meses en 0)
+  const _sMesesU = _sMeses.filter(m=>datos.some(d=>d.mes===m && (+d.U||0)>0));
+  const _sk4 = _sMesesU.map(m=>{ const dd=datos.filter(d=>d.mes===m); return Math.round(dd.reduce((s,d)=>s+(d.U||0),0)/dd.length); });  // 3er lote
   const _sk5 = _skByMes(dd=>Math.round(dd.reduce((s,d)=>s+(d.B||0),0)/dd.length));  // Tareas man
   const _sk6 = _skByMes(dd=>+(dd.reduce((s,d)=>s+(d.S||0),0)/dd.length*100).toFixed(2)); // FR
 
@@ -5303,10 +5310,10 @@ function renderEjecutivo(){
       )}
 
       ${buildKpiCard('4','IMPACTO CANCELACIONES — 3ER LOTE','📊',
-        Math.round(MA.avgU).toLocaleString()+' uds',
-        `representa el ${d4pct_act.toFixed(1)}% del total de cancelaciones`,
+        Math.round(MA4.avgU).toLocaleString()+' uds',
+        `${MNOM[MA4.mes]||MA4.mes} · ${d4pct_act.toFixed(1)}% del total de cancelaciones`,
         d4, false,
-        `El 3er lote captura ${d4pct_act.toFixed(1)}% de las cancelaciones${MP?`. Mes anterior: ${d4pct_ant.toFixed(1)}%`:''}.`,
+        `El 3er lote captura ${d4pct_act.toFixed(1)}% de las cancelaciones${MP4?`. Mes anterior (${MNOM[MP4.mes]||MP4.mes}): ${d4pct_ant.toFixed(1)}%`:''}.`,
         _sk4
       )}
 
