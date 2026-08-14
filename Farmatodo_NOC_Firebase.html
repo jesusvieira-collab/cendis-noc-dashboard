@@ -2757,27 +2757,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 
 <div class="main">
 
-<div class="ip">
-  <div class="iph">
-    <div>
-      <div class="ipt">📋 DATOS DEL TURNO</div>
-      <div class="ips">Pega los datos de Excel (col B + C + D) y presiona Aplicar</div>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn ba" onclick="applyPaste()">▶ APLICAR</button>
-      <button class="btn bh" onclick="reloadHist()">↩ HISTÓRICO</button>
-      <button class="btn bs" onclick="openWA()">📲 COMPARTIR</button>
-      <button class="btn bc" onclick="clearAll()">✕ LIMPIAR</button>
-    </div>
-  </div>
-  <div class="iprow">
-    <textarea id="paste" placeholder="Ejemplo de datos a pegar:&#10;&#10;FECHA : 17-03-2026&#10;QUEDAN	337&#10;PR EN EL TURNO	1063&#10;...&#10;ITEMS	53	5&#10;BO	13	0&#10;DYM	40	5&#10;...&#10;TOTAL	2201"></textarea>
-    <div class="ipbtns">
-      <div class="pmsg" id="pmsg">Modo histórico</div>
-    </div>
-  </div>
-  <div class="prev" id="prev"></div>
-</div>
+<!-- Cuadro "DATOS DEL TURNO" eliminado: Almacenaje se alimenta automáticamente desde la Carga de Reposición -->
 
 <div class="al-wrap" id="alWrap"></div>
 
@@ -8683,11 +8663,11 @@ function applyPaste() {
 function reloadHist() {
   D = Object.assign({}, HIST[CUR]);
   render();
-  document.getElementById('prev').style.display = 'none';
+  var _pv=document.getElementById('prev'); if(_pv) _pv.style.display = 'none';
 }
 function clearAll() {
-  document.getElementById('paste').value = '';
-  document.getElementById('prev').style.display = 'none';
+  var _pa=document.getElementById('paste'); if(_pa) _pa.value = '';
+  var _pv=document.getElementById('prev'); if(_pv) _pv.style.display = 'none';
 }
 function setTab(b) {
   // Only affect V22 ntabs (not NOC nav which also uses .ntab class)
