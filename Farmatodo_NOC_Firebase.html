@@ -2185,9 +2185,9 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       <span class="mes-arrow">▾</span>
     </div>
     <div class="vista-bar" id="repo-vista-bar">
-      <button class="vista-btn active" data-p="dia" onclick="repoSetPeriod('dia',this)" title="Por día">D</button>
+      <button class="vista-btn" data-p="dia" onclick="repoSetPeriod('dia',this)" title="Por día">D</button>
       <button class="vista-btn" data-p="semana" onclick="repoSetPeriod('semana',this)" title="Por semana">S</button>
-      <button class="vista-btn" data-p="mes" onclick="repoSetPeriod('mes',this)" title="Por mes">M</button>
+      <button class="vista-btn active" data-p="mes" onclick="repoSetPeriod('mes',this)" title="Por mes">M</button>
     </div>
     <span class="mes-badge" id="mesBadge">todos los registros</span>
     <span class="subbar-right" id="subbarInfo" style="margin-left:6px">0 registros cargados</span>
@@ -4287,6 +4287,16 @@ function renderDashboard(){
 
   // ── Tendencia + leyenda en las gráficas de este dashboard (Reposición NOC) ──
   if(typeof _applyTrendAndLegend==='function') setTimeout(_applyTrendAndLegend, 200);
+
+  // ── Vista por defecto MENSUAL: si el período activo no es diario, re-agregar por mes/semana ──
+  if(typeof REPO_PERIOD!=='undefined' && REPO_PERIOD && REPO_PERIOD!=='dia'){
+    setTimeout(function(){
+      ['ax_bxhh','ax_cumpl','ax_intransit','ax_tareas','ax_cancel_dia','ax_fill_dia','ax_pers','ax_cancel_diario'].forEach(function(id){
+        if(AX[id] && typeof renderChart_byPeriod==='function'){ try{ renderChart_byPeriod(id,REPO_PERIOD); }catch(e){} }
+      });
+      ['rop_chart','vent_chart'].forEach(function(id){ if(AX[id] && typeof setRVPeriod==='function'){ try{ setRVPeriod(id,REPO_PERIOD); }catch(e){} } });
+    }, 130);
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -13570,7 +13580,7 @@ function setChartPeriod(chartId, period, btnEl) {
 }
 
 /* ── Render chart by period (aggregates data) ── */
-var REPO_PERIOD='dia';
+var REPO_PERIOD='mes';   // vista por defecto: tendencia MENSUAL (más limpia al entrar)
 function repoSetPeriod(p, btn){
   REPO_PERIOD=p;
   var bar=document.getElementById('repo-vista-bar');
