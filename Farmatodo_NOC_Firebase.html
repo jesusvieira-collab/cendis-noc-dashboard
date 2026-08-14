@@ -2057,12 +2057,12 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 .mod-tab:hover{ background:rgba(255,255,255,.14) !important; color:#fff !important; }
 .mod-tab.active{ background:#fff !important; color:#001E62 !important; box-shadow:0 1px 4px rgba(0,10,40,.25); }
 
-/* Acciones — solo 2 controles en la barra: Guardar (primario) + menú desplegable */
-.topbar-actions-desktop{ gap:8px !important; padding-left:14px !important; margin-left:2px; border-left:1px solid rgba(255,255,255,.18); align-items:center; }
+/* Botones principales — fila superior derecha */
+.topbar-actions-desktop{ display:flex !important; gap:7px !important; align-items:center !important; flex-wrap:wrap; justify-content:flex-end; }
 .tbtn{ display:inline-flex !important; align-items:center !important; gap:6px !important;
   background:rgba(255,255,255,.12) !important; border:1px solid rgba(255,255,255,.28) !important;
-  color:#fff !important; font-weight:700 !important; border-radius:9px !important;
-  padding:8px 15px !important; letter-spacing:.01em; transition:all .14s ease !important; }
+  color:#fff !important; font-weight:700 !important; font-size:11.5px !important; border-radius:9px !important;
+  padding:8px 14px !important; letter-spacing:.01em; white-space:nowrap; transition:all .14s ease !important; }
 .tbtn:hover{ background:rgba(255,255,255,.22) !important; border-color:#fff !important; }
 /* Guardar — acción primaria sólida (Azul Corporativo II) */
 .tbtn.tbtn-save{ background:#418FDE !important; border-color:#418FDE !important; color:#fff !important;
@@ -2084,9 +2084,31 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 .corner-ico{ font-size:15px; line-height:1; }
 .acc-save{ background:rgba(65,143,222,.12) !important; color:#001E62 !important; font-weight:800 !important; margin-bottom:4px; }
 .acc-save:hover{ background:rgba(65,143,222,.22) !important; }
-/* Línea de filtros: bajarla con aire, sin chocar con las pestañas de abajo */
-#subbar-noc{ margin-top:8px !important; }
-#mod-noc > .nav{ margin-top:8px !important; }
+/* Fila 1: logo+título a la izquierda, módulos (comando principal) a la derecha */
+.topbar{ gap:16px !important; height:auto !important; min-height:62px !important; align-items:center !important; }
+.topbar-left{ margin-right:auto !important; }
+.mod-tabs.mod-tabs-desktop{ padding:4px !important; }
+
+/* Fila 2: filtros compactos, tucked en la esquina derecha */
+.filter-row{ background:#0A2E6E; display:flex; justify-content:flex-end; align-items:center; gap:10px;
+  padding:9px 22px; margin-top:7px; }
+.mb-filters{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+#subbar-noc{ margin:0 !important; }
+
+/* Fila 3: pestañas de página repartidas a lo ancho, más aire */
+#mod-noc > .nav{ margin-top:7px !important; padding:0 14px !important; }
+@media(min-width:821px){
+  #mod-noc .nav{ justify-content:space-between !important; }
+  #mod-noc .ntab{ flex:1 1 0 !important; justify-content:center !important; font-size:12px !important; padding:13px 8px !important; }
+}
+@media(max-width:820px){
+  .filter-row{ padding:7px 10px; margin-top:0; justify-content:flex-start; overflow-x:auto; scrollbar-width:none; }
+  .filter-row::-webkit-scrollbar{ display:none; }
+  .filter-row .mb-filters{ flex-wrap:nowrap; }
+  .mb-filters > *{ flex-shrink:0 !important; }
+  .mb-filters .mes-select{ min-width:120px !important; }
+  #subbarInfo{ display:none !important; }
+}
 .acc-wrap.open .acc-pop{ display:block; animation:accIn .14s ease; }
 @keyframes accIn{ from{opacity:0; transform:translateY(-4px);} to{opacity:1; transform:none;} }
 .acc-pop-title{ font-size:9px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:.7px; padding:4px 10px 8px; }
@@ -2117,14 +2139,11 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 </head>
 <body>
 <!-- ══ TOPBAR ══ -->
-<div class="topbar" id="main-topbar" style="display:block">
-  <!-- Logo + title (siempre visible) -->
+<div class="topbar" id="main-topbar" style="display:flex">
+  <!-- Logo + título + Menú de acciones -->
   <div class="topbar-left">
-    <!-- Panel desplegable de acciones (esquina) -->
     <div class="acc-wrap">
-      <button class="corner-btn" id="accBtn" onclick="toggleAcc(event)" title="Acciones del tablero" aria-label="Acciones">
-        <span class="corner-ico">☰</span><span class="corner-lbl">Menú</span>
-      </button>
+      <button class="corner-btn" id="accBtn" onclick="toggleAcc(event)" title="Acciones del tablero" aria-label="Acciones"><span class="corner-ico">☰</span><span class="corner-lbl">Menú</span></button>
       <div class="acc-pop" id="accPop">
         <div class="acc-pop-title">Acciones del tablero</div>
         <button class="acc-item acc-save" onclick="descargarHTML();closeAcc()"><span>💾</span> Guardar con datos</button>
@@ -2137,12 +2156,12 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     <a style="display:flex;align-items:center;gap:10px;text-decoration:none;" href="#">
       <img src="data:image/png;base64,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" alt="Farmatodo" style="height:36px;width:auto;display:block;flex-shrink:0;">
       <div>
-        <div class="brand" style="font-size:13px;letter-spacing:.08em;">PRODUCTIVIDAD REPOSICION NOCTURNA 2026</div>
+        <div class="brand" style="font-size:14px;letter-spacing:.06em;">DESEMPEÑO OPERACIONAL COORD NOCTURNA</div>
         <div class="brand-sub">Farmatodo · Centro de Distribución · Turno NOC</div>
       </div>
     </a>
   </div>
-  <!-- Módulos — única barra superior (derecha) -->
+  <!-- Comando principal: módulos (junto al título) -->
   <div class="mod-tabs mod-tabs-desktop">
     <button id="mbtn-noc"   class="mod-tab active" onclick="switchMod('noc')">🛒 REPOSICIÓN</button>
     <button id="mbtn-v22"   class="mod-tab"        onclick="switchMod('v22')">🏗 ALMACENAJE</button>
@@ -2154,6 +2173,27 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   <div id="fb-status" style="display:none;"></div>
 </div>
 
+<!-- ══ FILA 2: FILTROS (esquina derecha, compactos) ══ -->
+<div class="filter-row" id="repoFilterSlot">
+  <div class="mb-filters">
+    <div class="mes-dropdown-wrap">
+      <select class="mes-select" id="anioSelect" onchange="setAnioSelect(this)"><option value="ALL">📆 Todos los años</option></select>
+      <span class="mes-arrow">▾</span>
+    </div>
+    <div class="mes-dropdown-wrap">
+      <select class="mes-select" id="mesSelect" onchange="setMesSelect(this)"><option value="ALL">📅 Todos los meses</option></select>
+      <span class="mes-arrow">▾</span>
+    </div>
+    <div class="vista-bar" id="repo-vista-bar">
+      <button class="vista-btn active" data-p="dia" onclick="repoSetPeriod('dia',this)" title="Por día">D</button>
+      <button class="vista-btn" data-p="semana" onclick="repoSetPeriod('semana',this)" title="Por semana">S</button>
+      <button class="vista-btn" data-p="mes" onclick="repoSetPeriod('mes',this)" title="Por mes">M</button>
+    </div>
+    <span class="mes-badge" id="mesBadge">todos los registros</span>
+    <span class="subbar-right" id="subbarInfo" style="margin-left:6px">0 registros cargados</span>
+  </div>
+</div>
+
 
 <!-- Firebase status badge — posición fija -->
 <div id="fb-status" style="position:fixed;bottom:70px;right:10px;z-index:999;background:rgba(0,20,60,.82);color:#fff;font-size:9px;font-weight:700;padding:4px 10px;border-radius:12px;display:flex;align-items:center;gap:5px;pointer-events:none;">
@@ -2161,32 +2201,8 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   <span id="fb-txt">☁ Conectando...</span>
 </div>
 
-<!-- ══ SUBBAR ══ -->
-<div id="subbar-noc"><div class="subbar">
-  <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted);font-family:var(--font);">
-    <span class="lbl-hide">Filtrar período:</span>
-    <div class="mes-dropdown-wrap">
-      <select class="mes-select" id="anioSelect" onchange="setAnioSelect(this)">
-        <option value="ALL">📆 Todos los años</option>
-      </select>
-      <span class="mes-arrow">▾</span>
-    </div>
-    <div class="mes-dropdown-wrap">
-      <select class="mes-select" id="mesSelect" onchange="setMesSelect(this)">
-        <option value="ALL">📅 Todos los meses</option>
-      </select>
-      <span class="mes-arrow">▾</span>
-    </div>
-    <span class="lbl-hide" style="margin-left:8px;color:var(--muted);font-size:11px;font-family:var(--font);">Vista:</span>
-    <div class="vista-bar" id="repo-vista-bar">
-      <button class="vista-btn active" data-p="dia" onclick="repoSetPeriod('dia',this)" title="Por día">D</button>
-      <button class="vista-btn" data-p="semana" onclick="repoSetPeriod('semana',this)" title="Por semana">S</button>
-      <button class="vista-btn" data-p="mes" onclick="repoSetPeriod('mes',this)" title="Por mes">M</button>
-    </div>
-    <span class="mes-badge" id="mesBadge">todos los registros</span>
-  </div>
-  <div class="subbar-right" id="subbarInfo">0 registros cargados</div>
-</div>
+<!-- Contenedor del modal de descarga (los filtros ahora viven en la fila 2) -->
+<div id="subbar-noc">
 
 <!-- ══ DOWNLOAD MODAL ══ -->
 <div class="dl-modal" id="dlModal" onclick="if(event.target===this)cerrarModalDescarga()">
@@ -12171,6 +12187,8 @@ function switchMod(mod){
   // ── Subbar de filtro de mes solo visible en Reposición ──
   var sb=document.getElementById('subbar-noc');
   if(sb) sb.style.display = (mod==='noc') ? '' : 'none';
+  var rfs=document.getElementById('repoFilterSlot');
+  if(rfs) rfs.style.display = (mod==='noc') ? '' : 'none';
 
   // ── Render ÚNICO por módulo (sin timers duplicados) ──
   setTimeout(function(){
