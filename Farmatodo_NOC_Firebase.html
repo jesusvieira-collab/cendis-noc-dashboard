@@ -2136,6 +2136,23 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 #mod-noc .ntab:hover{ color:#fff !important; background:rgba(255,255,255,.05) !important; }
 #mod-noc .ntab.on{ color:#fff !important; border-bottom-color:#418FDE !important; background:rgba(65,143,222,.16) !important; }
 </style>
+<style id="ftd-onepage-compact">
+/* Toggle métrica merma */
+.mm-btn{ border:none; background:transparent; color:#0A1F44; font-family:var(--font); font-size:11.5px; font-weight:800; padding:6px 12px; border-radius:6px; cursor:pointer; transition:.15s; }
+.mm-btn.on{ background:#001E62; color:#fff; }
+.mm-btn:hover:not(.on){ background:#e2e9f3; }
+/* One Page Almacenaje — titular + tarjetas compactas (conserva todos los indicadores) */
+.op-titular{ background:#0A2E6E; color:#fff; padding:12px 44px; font-size:14px; line-height:1.45; font-family:'Inter','Outfit',sans-serif; }
+.op-kgrid{ gap:12px !important; padding:0 30px 22px !important; }
+.op-kcard{ padding:13px 16px 11px !important; }
+.op-kcard-value{ font-size:33px !important; margin-bottom:2px !important; }
+.op-kcard-title{ font-size:11px !important; margin-bottom:5px !important; letter-spacing:.06em !important; }
+.op-kcard-desc{ font-size:11px !important; }
+.op-kcard-note{ font-size:11px !important; padding-top:6px !important; line-height:1.42 !important; }
+.op-kcard-progress-track{ height:4px !important; margin:6px 0 !important; }
+.op-kcard-ring{ width:26px !important; height:26px !important; font-size:13px !important; }
+@media(max-width:820px){ .op-titular{ padding:9px 14px; font-size:12px; } .op-kgrid{ grid-template-columns:1fr !important; padding:0 12px 16px !important; } }
+</style>
 </head>
 <body>
 <!-- ══ TOPBAR ══ -->
@@ -2686,8 +2703,10 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         <input id="merma_fecha" type="date" style="padding:8px 10px;border:1px solid rgba(0,71,200,.25);border-radius:8px;font-size:12px;color:#001F60;background:#F8FAFF;"></div>
       <div style="display:flex;flex-direction:column;gap:4px;"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Departamento</label>
         <select id="merma_dep" style="padding:8px 10px;border:1px solid rgba(0,71,200,.25);border-radius:8px;font-size:12px;color:#001F60;background:#F8FAFF;"><option value="ALM">Almacenaje</option><option value="REP">Reposición</option></select></div>
-      <div style="display:flex;flex-direction:column;gap:4px;"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Monto dañado</label>
-        <input id="merma_monto" type="text" inputmode="numeric" placeholder="ej. 1.250,50" style="padding:8px 10px;border:1px solid rgba(0,71,200,.25);border-radius:8px;font-size:12px;color:#001F60;background:#F8FAFF;width:170px;"></div>
+      <div style="display:flex;flex-direction:column;gap:4px;"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Unidades dañadas</label>
+        <input id="merma_unid" type="text" inputmode="numeric" placeholder="ej. 120" style="padding:8px 10px;border:1px solid rgba(0,71,200,.25);border-radius:8px;font-size:12px;color:#001F60;background:#F8FAFF;width:130px;"></div>
+      <div style="display:flex;flex-direction:column;gap:4px;"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;">Monto dañado ($)</label>
+        <input id="merma_monto" type="text" inputmode="numeric" placeholder="ej. 1.250,50" style="padding:8px 10px;border:1px solid rgba(0,71,200,.25);border-radius:8px;font-size:12px;color:#001F60;background:#F8FAFF;width:150px;"></div>
       <button onclick="guardarMerma()" class="btn btn-primary" style="padding:9px 18px;font-size:12px;font-weight:800;background:#00875A;border:none;color:#fff;border-radius:8px;cursor:pointer;">💾 Guardar</button>
       <span id="merma_msg" style="font-size:11px;font-weight:700;color:#00875A;"></span>
     </div>
@@ -2702,7 +2721,21 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     <span id="merma_cuadro_msg" style="font-size:11px;font-weight:700;color:#00875A;"></span>
   </div>
 
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+    <div style="font-size:11px;color:var(--muted);font-weight:700;">Métrica:</div>
+    <div id="merma_metric_bar" style="display:inline-flex;gap:3px;background:#eef2f7;border-radius:8px;padding:3px;">
+      <button class="mm-btn on" data-m="monto" onclick="setMermaMetric('monto')">💲 Monto $</button>
+      <button class="mm-btn" data-m="unid" onclick="setMermaMetric('unid')">📦 Unidades</button>
+    </div>
+  </div>
+
   <div class="kpi-strip" id="merma_kpis" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;"></div>
+
+  <div class="ccard" id="card_merma_detalle" style="margin-bottom:14px;">
+    <div class="ccard-hdr"><div><div class="ccard-title">Detalle mes a mes — unidades y monto ($)</div><div class="ccard-sub">Dañado por área (Almacenaje y Reposición) · fuente: equipo de inventario</div></div>
+      <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_merma_detalle','Merma_Detalle')">⬇ PNG</button></div></div>
+    <div id="merma_detalle" style="overflow:auto;"></div>
+  </div>
 
   <div class="ccard" id="card_merma_sem">
     <div class="ccard-hdr"><div><div class="ccard-title">Comparativo semanal de merma</div><div class="ccard-sub">Almacenaje vs Reposición · monto dañado por semana (el indicador se comparte semanal)</div></div>
@@ -3105,6 +3138,9 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         </div>
       </div>
     </div>
+
+    <!-- TITULAR EJECUTIVO (conclusión del mes) -->
+    <div class="op-titular" id="op-titular"></div>
 
     <!-- SECTION SEPARATOR -->
     <div class="op-sep-row">
@@ -4749,6 +4785,24 @@ function renderPersonal(){
 /* ═══ MERMA (dañado de carga) — captura semanal por departamento ═══ */
 var MERMA; try{ MERMA=JSON.parse(localStorage.getItem('ftd_merma')||'[]'); }catch(e){ MERMA=[]; } if(!Array.isArray(MERMA)) MERMA=[]; window.MERMA=MERMA;
 var MERMA_MESI=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+/* Semilla de dañado (equipo de inventario) Mar–Jul 2026 · unidades + monto USD, por área.
+   No destructiva: solo agrega meses/dep que no existan (por id mrow_<mes>_<dep>). */
+var MERMA_SEED=[
+  {id:'mrow_MAR_ALM',fecha:'2026-03-28',mes:'MAR',dep:'ALM',monto:7998,unid:1756},
+  {id:'mrow_ABR_ALM',fecha:'2026-04-28',mes:'ABR',dep:'ALM',monto:4354,unid:1072},
+  {id:'mrow_MAY_ALM',fecha:'2026-05-28',mes:'MAY',dep:'ALM',monto:4276,unid:981},
+  {id:'mrow_JUN_ALM',fecha:'2026-06-28',mes:'JUN',dep:'ALM',monto:5514,unid:1447},
+  {id:'mrow_JUL_ALM',fecha:'2026-07-28',mes:'JUL',dep:'ALM',monto:10998,unid:2226},
+  {id:'mrow_MAR_REP',fecha:'2026-03-28',mes:'MAR',dep:'REP',monto:1571,unid:455},
+  {id:'mrow_ABR_REP',fecha:'2026-04-28',mes:'ABR',dep:'REP',monto:1919,unid:387},
+  {id:'mrow_MAY_REP',fecha:'2026-05-28',mes:'MAY',dep:'REP',monto:3429,unid:732},
+  {id:'mrow_JUN_REP',fecha:'2026-06-28',mes:'JUN',dep:'REP',monto:2556,unid:579},
+  {id:'mrow_JUL_REP',fecha:'2026-07-28',mes:'JUL',dep:'REP',monto:3535,unid:762}
+];
+(function(){ var ids={}; MERMA.forEach(function(x){ if(x&&x.id) ids[x.id]=1; }); var add=false;
+  MERMA_SEED.forEach(function(s){ if(!ids[s.id]){ MERMA.push(s); add=true; } });
+  if(add){ try{ localStorage.setItem('ftd_merma', JSON.stringify(MERMA)); }catch(e){} }
+})();
 function _mermaMes(fecha){ var m=parseInt((fecha||'').slice(5,7),10); return MERMA_MESI[m-1]||''; }
 function _mermaFmt(n){ return Math.round(n||0).toLocaleString('es-VE'); }
 function _saveMerma(){
@@ -4765,12 +4819,15 @@ function _saveMerma(){
 function guardarMerma(){
   var fe=document.getElementById('merma_fecha'), de=document.getElementById('merma_dep'), mo=document.getElementById('merma_monto');
   if(!fe||!de||!mo) return;
+  var un=document.getElementById('merma_unid');
   var fecha=fe.value, dep=de.value, monto=(typeof _parseNumES==='function')?_parseNumES(mo.value):parseFloat(mo.value);
+  var unid=un?((typeof _parseNumES==='function')?_parseNumES(un.value):parseFloat(un.value)):0;
+  if(isNaN(unid)||unid<0) unid=0;
   if(!fecha){ alert('Selecciona la fecha.'); return; }
   if(isNaN(monto)||monto<0){ alert('Ingresa un monto válido.'); return; }
-  MERMA.push({ id:'m'+Date.now()+'_'+Math.floor(Math.random()*1000), fecha:fecha, mes:_mermaMes(fecha), dep:dep, monto:monto });
-  _saveMerma(); mo.value='';
-  var msg=document.getElementById('merma_msg'); if(msg){ msg.textContent='✓ Guardado: '+(dep==='ALM'?'Almacenaje':'Reposición')+' '+_mermaFmt(monto); setTimeout(function(){msg.textContent='';},3500); }
+  MERMA.push({ id:'m'+Date.now()+'_'+Math.floor(Math.random()*1000), fecha:fecha, mes:_mermaMes(fecha), dep:dep, monto:monto, unid:Math.round(unid) });
+  _saveMerma(); mo.value=''; if(un) un.value='';
+  var msg=document.getElementById('merma_msg'); if(msg){ msg.textContent='✓ Guardado: '+(dep==='ALM'?'Almacenaje':'Reposición')+' $'+_mermaFmt(monto)+(unid>0?(' · '+_mermaFmt(unid)+' uds'):''); setTimeout(function(){msg.textContent='';},3500); }
   renderMerma();
   try{ var er=document.getElementById('execReport'); if(typeof renderEjecutivo==='function' && er && er.offsetParent!==null) renderEjecutivo(); }catch(e){}
 }
@@ -4781,32 +4838,45 @@ function borrarMerma(id){
 }
 var _mermaChart=null;
 var _mermaSemChart=null;
+var _mermaMetric='monto';   // 'monto' ($) | 'unid' (unidades)
+function setMermaMetric(x){ _mermaMetric=x; try{ document.querySelectorAll('#merma_metric_bar .mm-btn').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-m')===x); }); }catch(e){} renderMerma(); }
 function _mermaAcumByMesDep(){
   var acc={};
   MERMA.forEach(function(r){ if(!r||!r.mes) return; var k=r.mes+'|'+r.dep; acc[k]=(acc[k]||0)+(+r.monto||0); });
   return acc;
 }
+// Acumulado por mes|dep con AMBAS métricas (monto y unidades)
+function _mermaAcum(){
+  var m={},u={};
+  MERMA.forEach(function(r){ if(!r||!r.mes) return; var k=r.mes+'|'+r.dep; m[k]=(m[k]||0)+(+r.monto||0); u[k]=(u[k]||0)+(+r.unid||0); });
+  return {m:m,u:u};
+}
 function renderCuadroMerma(){
   var cont=document.getElementById('merma_cuadro'); if(!cont) return;
   var MNL={ENE:'Enero',FEB:'Febrero',MAR:'Marzo',ABR:'Abril',MAY:'Mayo',JUN:'Junio',JUL:'Julio',AGO:'Agosto',SEP:'Septiembre',OCT:'Octubre',NOV:'Noviembre',DIC:'Diciembre'};
   var yr=(new Date()).getFullYear();
-  var acc=_mermaAcumByMesDep();
+  var A=_mermaAcum(); var accM=A.m, accU=A.u;
   var mesActualIdx=(new Date()).getMonth(); // 0-11
-  var h='<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--font);min-width:420px;">'
-    +'<thead><tr>'
-    +'<th style="text-align:left;padding:8px 10px;background:#001E62;color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-radius:6px 0 0 0;">Mes '+yr+'</th>'
-    +'<th style="text-align:right;padding:8px 10px;background:#C87000;color:#fff;font-size:10px;text-transform:uppercase;">Almacenaje</th>'
-    +'<th style="text-align:right;padding:8px 10px;background:#0047C8;color:#fff;font-size:10px;text-transform:uppercase;">Reposición</th>'
-    +'<th style="text-align:right;padding:8px 10px;background:#334155;color:#fff;font-size:10px;text-transform:uppercase;border-radius:0 6px 0 0;">Total</th>'
-    +'</tr></thead><tbody>';
+  function inp(id,val){ return '<input id="'+id+'" type="text" inputmode="numeric" value="'+(val>0?val.toLocaleString('es-VE'):'')+'" placeholder="0" style="width:78px;text-align:right;padding:6px 7px;border:1px solid rgba(0,71,200,.2);border-radius:6px;font-size:12px;color:#001F60;background:#F8FAFF;">'; }
+  var h='<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--font);min-width:560px;">'
+    +'<thead>'
+    +'<tr><th rowspan="2" style="text-align:left;padding:8px 10px;background:#001E62;color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;border-radius:6px 0 0 0;">Mes '+yr+'</th>'
+    +'<th colspan="2" style="text-align:center;padding:6px 8px;background:#C87000;color:#fff;font-size:10px;text-transform:uppercase;">Almacenaje</th>'
+    +'<th colspan="2" style="text-align:center;padding:6px 8px;background:#0047C8;color:#fff;font-size:10px;text-transform:uppercase;">Reposición</th>'
+    +'<th rowspan="2" style="text-align:right;padding:8px 10px;background:#334155;color:#fff;font-size:10px;text-transform:uppercase;vertical-align:middle;border-radius:0 6px 0 0;">Total $</th></tr>'
+    +'<tr><th style="text-align:right;padding:4px 7px;background:#B36400;color:#fff;font-size:9px;">Uds</th><th style="text-align:right;padding:4px 7px;background:#B36400;color:#fff;font-size:9px;">$</th>'
+    +'<th style="text-align:right;padding:4px 7px;background:#003BA8;color:#fff;font-size:9px;">Uds</th><th style="text-align:right;padding:4px 7px;background:#003BA8;color:#fff;font-size:9px;">$</th></tr>'
+    +'</thead><tbody>';
   MERMA_MESI.forEach(function(ab,i){
     if(i>mesActualIdx) return; // solo lo que va del año
-    var alm=acc[ab+'|ALM']||0, rep=acc[ab+'|REP']||0, tot=alm+rep;
+    var almM=accM[ab+'|ALM']||0, repM=accM[ab+'|REP']||0, almU=accU[ab+'|ALM']||0, repU=accU[ab+'|REP']||0, tot=almM+repM;
     var esActual=(i===mesActualIdx);
     h+='<tr style="border-bottom:1px solid rgba(0,48,135,.08);'+(esActual?'background:rgba(0,71,200,.05);':'')+'">'
       +'<td style="text-align:left;padding:6px 10px;font-weight:700;color:#001E62;">'+(MNL[ab]||ab)+(esActual?' <span style="font-size:9px;color:#0047C8;">(actual)</span>':'')+'</td>'
-      +'<td style="padding:5px 8px;text-align:right;"><input id="mc_ALM_'+ab+'" type="text" inputmode="numeric" value="'+(alm>0?alm.toLocaleString('es-VE'):'')+'" placeholder="0" style="width:110px;text-align:right;padding:6px 8px;border:1px solid rgba(0,71,200,.2);border-radius:6px;font-size:12px;color:#001F60;background:#F8FAFF;"></td>'
-      +'<td style="padding:5px 8px;text-align:right;"><input id="mc_REP_'+ab+'" type="text" inputmode="numeric" value="'+(rep>0?rep.toLocaleString('es-VE'):'')+'" placeholder="0" style="width:110px;text-align:right;padding:6px 8px;border:1px solid rgba(0,71,200,.2);border-radius:6px;font-size:12px;color:#001F60;background:#F8FAFF;"></td>'
+      +'<td style="padding:5px 6px;text-align:right;">'+inp('mc_ALMU_'+ab,almU)+'</td>'
+      +'<td style="padding:5px 6px;text-align:right;">'+inp('mc_ALM_'+ab,almM)+'</td>'
+      +'<td style="padding:5px 6px;text-align:right;">'+inp('mc_REPU_'+ab,repU)+'</td>'
+      +'<td style="padding:5px 6px;text-align:right;">'+inp('mc_REP_'+ab,repM)+'</td>'
       +'<td style="padding:6px 10px;text-align:right;font-weight:800;color:#001E62;">'+(tot>0?tot.toLocaleString('es-VE'):'—')+'</td>'
       +'</tr>';
   });
@@ -4821,15 +4891,17 @@ function guardarCuadroMerma(){
   MERMA_MESI.forEach(function(ab,i){
     if(i>mesActualIdx) return;
     ['ALM','REP'].forEach(function(dep){
-      var el=document.getElementById('mc_'+dep+'_'+ab); if(!el) return;
-      var raw=(el.value||'').trim();
-      if(raw==='') return; // celda vacía: no tocar ese mes/dep
-      var val=(typeof _parseNumES==='function')?_parseNumES(raw):parseFloat(raw);
-      if(isNaN(val)||val<0) return;
-      // reemplazar TODO lo de ese mes/dep por un único registro mensual
+      var elM=document.getElementById('mc_'+dep+'_'+ab);      // monto $
+      var elU=document.getElementById('mc_'+dep+'U_'+ab);     // unidades
+      var rawM=elM?(elM.value||'').trim():'', rawU=elU?(elU.value||'').trim():'';
+      if(rawM===''&&rawU==='') return; // ambas vacías: no tocar ese mes/dep
+      var pN=function(x){ return (typeof _parseNumES==='function')?_parseNumES(x):parseFloat(x); };
+      var valM=rawM===''?0:pN(rawM); var valU=rawU===''?0:pN(rawU);
+      if(isNaN(valM)||valM<0) valM=0; if(isNaN(valU)||valU<0) valU=0;
+      // reemplazar TODO lo de ese mes/dep por un único registro mensual (monto + unidades)
       MERMA=MERMA.filter(function(r){ return !(r && r.mes===ab && r.dep===dep); });
       window.MERMA=MERMA;
-      MERMA.push({ id:'mrow_'+ab+'_'+dep, fecha:yr+'-'+mesNum[ab]+'-28', mes:ab, dep:dep, monto:Math.round(val) });
+      MERMA.push({ id:'mrow_'+ab+'_'+dep, fecha:yr+'-'+mesNum[ab]+'-28', mes:ab, dep:dep, monto:Math.round(valM), unid:Math.round(valU) });
       cambios++;
     });
   });
@@ -4844,20 +4916,27 @@ function guardarCuadroMerma(){
 function renderMerma(){
   try{ renderCuadroMerma(); }catch(e){}
   var MN=(typeof MNOM!=='undefined')?MNOM:{};
+  var isU=(_mermaMetric==='unid');
+  var unitLbl=isU?'unidades':'USD';
+  var pfx=isU?'':'$';
+  function fmtV(v){ return pfx+_mermaFmt(v); }
   var byMes={};
-  MERMA.forEach(function(r){ if(!r||!r.mes) return; if(!byMes[r.mes]) byMes[r.mes]={ALM:0,REP:0}; byMes[r.mes][r.dep]=(byMes[r.mes][r.dep]||0)+(+r.monto||0); });
+  MERMA.forEach(function(r){ if(!r||!r.mes) return; if(!byMes[r.mes]) byMes[r.mes]={ALM:{m:0,u:0},REP:{m:0,u:0}}; var d=byMes[r.mes][r.dep]; if(d){ d.m+=(+r.monto||0); d.u+=(+r.unid||0);} });
   var meses=Object.keys(byMes).sort(function(a,b){ return MERMA_MESI.indexOf(a)-MERMA_MESI.indexOf(b); });
-  var totAlm=MERMA.filter(function(r){return r.dep==='ALM';}).reduce(function(s,r){return s+(+r.monto||0);},0);
-  var totRep=MERMA.filter(function(r){return r.dep==='REP';}).reduce(function(s,r){return s+(+r.monto||0);},0);
+  var totAlmM=0,totRepM=0,totAlmU=0,totRepU=0;
+  MERMA.forEach(function(r){ if(!r)return; if(r.dep==='ALM'){totAlmM+=(+r.monto||0);totAlmU+=(+r.unid||0);} else if(r.dep==='REP'){totRepM+=(+r.monto||0);totRepU+=(+r.unid||0);} });
   var mesUlt=meses[meses.length-1];
+  function V(dep,mm){ return isU?byMes[mm][dep].u:byMes[mm][dep].m; }
+
   var kp=document.getElementById('merma_kpis');
   if(kp){
     function box(v,l,c){ return '<div style="background:#F0F4FA;border:1px solid rgba(0,48,135,.12);border-radius:10px;padding:12px 14px;text-align:center;"><div style="font-family:var(--font);font-size:22px;font-weight:900;color:'+(c||'#001E62')+';line-height:1;">'+v+'</div><div style="font-size:9px;color:rgba(0,48,135,.55);text-transform:uppercase;letter-spacing:.05em;margin-top:5px;font-weight:700;">'+l+'</div></div>'; }
-    kp.innerHTML = box(_mermaFmt(totAlm+totRep),'Merma total acumulada','#001E62')
-      + box(_mermaFmt(totAlm),'Almacenaje','#C87000')
-      + box(_mermaFmt(totRep),'Reposición','#0047C8')
-      + box(mesUlt?_mermaFmt((byMes[mesUlt].ALM||0)+(byMes[mesUlt].REP||0)):'—', mesUlt?('Merma '+(MN[mesUlt]||mesUlt)):'Sin datos','#16a34a');
+    kp.innerHTML = box(fmtV(isU?(totAlmU+totRepU):(totAlmM+totRepM)),'Merma total ('+unitLbl+')','#001E62')
+      + box(fmtV(isU?totAlmU:totAlmM),'Almacenaje','#C87000')
+      + box(fmtV(isU?totRepU:totRepM),'Reposición','#0047C8')
+      + box(mesUlt?fmtV(isU?(byMes[mesUlt].ALM.u+byMes[mesUlt].REP.u):(byMes[mesUlt].ALM.m+byMes[mesUlt].REP.m)):'—', mesUlt?('Merma '+(MN[mesUlt]||mesUlt)):'Sin datos','#16a34a');
   }
+
   var lc=document.getElementById('merma_list');
   if(lc){
     if(!MERMA.length){ lc.innerHTML='<div style="font-size:11px;color:var(--muted);padding:6px 0;">Aún no hay registros de merma. Carga el primero con el formulario de arriba.</div>'; }
@@ -4869,28 +4948,66 @@ function renderMerma(){
           return '<div style="display:flex;align-items:center;gap:10px;font-size:11px;font-family:var(--font);background:#F6F9FE;border:1px solid rgba(0,48,135,.08);border-radius:6px;padding:5px 10px;">'
             +'<span style="color:var(--muted);min-width:82px;">'+(r.fecha||'')+'</span>'
             +'<span style="font-weight:800;color:'+dc+';min-width:90px;">'+dn+'</span>'
-            +'<span style="font-weight:800;color:#001E62;">'+_mermaFmt(r.monto)+'</span>'
+            +'<span style="font-weight:800;color:#001E62;">$'+_mermaFmt(r.monto)+'</span>'
+            +'<span style="color:var(--muted);">'+_mermaFmt(r.unid||0)+' uds</span>'
             +'<span onclick="borrarMerma(\''+r.id+'\')" style="cursor:pointer;color:#D63B2F;font-weight:900;margin-left:auto;font-size:13px;" title="Borrar">×</span>'
           +'</div>';
         }).join('')+'</div>';
     }
   }
+
+  // ── Detalle mes a mes: unidades y monto por área ──
+  var dt=document.getElementById('merma_detalle');
+  if(dt){
+    if(!meses.length){ dt.innerHTML='<div style="font-size:11px;color:var(--muted);padding:6px 0;">Sin datos de merma cargados.</div>'; }
+    else{
+      var tAu=0,tAm=0,tRu=0,tRm=0;
+      var body=meses.map(function(m){ var a=byMes[m].ALM,r=byMes[m].REP; tAu+=a.u;tAm+=a.m;tRu+=r.u;tRm+=r.m;
+        return '<tr style="border-bottom:1px solid rgba(0,48,135,.07);">'
+          +'<td style="text-align:left;padding:6px 10px;font-weight:700;color:#001E62;">'+(MN[m]||m)+'</td>'
+          +'<td style="text-align:right;padding:6px 8px;">'+_mermaFmt(a.u)+'</td>'
+          +'<td style="text-align:right;padding:6px 8px;font-weight:700;color:#C87000;">$'+_mermaFmt(a.m)+'</td>'
+          +'<td style="text-align:right;padding:6px 8px;">'+_mermaFmt(r.u)+'</td>'
+          +'<td style="text-align:right;padding:6px 8px;font-weight:700;color:#0047C8;">$'+_mermaFmt(r.m)+'</td>'
+          +'<td style="text-align:right;padding:6px 10px;font-weight:800;color:#001E62;">$'+_mermaFmt(a.m+r.m)+'</td></tr>';
+      }).join('');
+      dt.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--font);min-width:520px;">'
+        +'<thead><tr>'
+        +'<th style="text-align:left;padding:8px 10px;background:#001E62;color:#fff;font-size:10px;text-transform:uppercase;border-radius:6px 0 0 0;">Mes</th>'
+        +'<th style="text-align:right;padding:8px 8px;background:#C87000;color:#fff;font-size:10px;">Alm Uds</th>'
+        +'<th style="text-align:right;padding:8px 8px;background:#C87000;color:#fff;font-size:10px;">Alm $</th>'
+        +'<th style="text-align:right;padding:8px 8px;background:#0047C8;color:#fff;font-size:10px;">Rep Uds</th>'
+        +'<th style="text-align:right;padding:8px 8px;background:#0047C8;color:#fff;font-size:10px;">Rep $</th>'
+        +'<th style="text-align:right;padding:8px 10px;background:#334155;color:#fff;font-size:10px;border-radius:0 6px 0 0;">Total $</th>'
+        +'</tr></thead><tbody>'+body+'</tbody>'
+        +'<tfoot><tr style="background:#EEF3FB;">'
+        +'<td style="text-align:left;padding:8px 10px;font-weight:900;color:#001E62;">TOTAL</td>'
+        +'<td style="text-align:right;padding:8px 8px;font-weight:900;">'+_mermaFmt(tAu)+'</td>'
+        +'<td style="text-align:right;padding:8px 8px;font-weight:900;color:#C87000;">$'+_mermaFmt(tAm)+'</td>'
+        +'<td style="text-align:right;padding:8px 8px;font-weight:900;">'+_mermaFmt(tRu)+'</td>'
+        +'<td style="text-align:right;padding:8px 8px;font-weight:900;color:#0047C8;">$'+_mermaFmt(tRm)+'</td>'
+        +'<td style="text-align:right;padding:8px 10px;font-weight:900;color:#001E62;">$'+_mermaFmt(tAm+tRm)+'</td>'
+        +'</tr></tfoot></table>';
+    }
+  }
+
   var cv=document.getElementById('ax_merma');
   if(cv && typeof Chart!=='undefined'){
     var labels=meses.map(function(m){ return MN[m]||m; });
-    var dAlm=meses.map(function(m){ return Math.round(byMes[m].ALM||0); });
-    var dRep=meses.map(function(m){ return Math.round(byMes[m].REP||0); });
+    var dAlm=meses.map(function(m){ return Math.round(V('ALM',m)); });
+    var dRep=meses.map(function(m){ return Math.round(V('REP',m)); });
+    var vlf=function(v){ return (isU?'':'$')+v.toLocaleString('es-VE'); };
     if(_mermaChart){ try{_mermaChart.destroy();}catch(e){} _mermaChart=null; }
     _mermaChart=new Chart(cv,{ type:'bar',
       data:{ labels:labels, datasets:[
-        {label:'Almacenaje', data:dAlm, backgroundColor:'rgba(245,158,11,.78)', borderColor:'#C87000', borderWidth:1.5, borderRadius:5, borderSkipped:false, showValueLabels:true, valueLabelColor:'#C87000', valueLabelFormat:function(v){return v.toLocaleString('es-VE');}, valueLabelOffset:12},
-        {label:'Reposición', data:dRep, backgroundColor:'rgba(0,71,200,.72)', borderColor:'#0047C8', borderWidth:1.5, borderRadius:5, borderSkipped:false, showValueLabels:true, valueLabelColor:'#0047C8', valueLabelFormat:function(v){return v.toLocaleString('es-VE');}, valueLabelOffset:12}
+        {label:'Almacenaje', data:dAlm, backgroundColor:'rgba(245,158,11,.78)', borderColor:'#C87000', borderWidth:1.5, borderRadius:5, borderSkipped:false, showValueLabels:true, valueLabelColor:'#C87000', valueLabelFormat:vlf, valueLabelOffset:12},
+        {label:'Reposición', data:dRep, backgroundColor:'rgba(0,71,200,.72)', borderColor:'#0047C8', borderWidth:1.5, borderRadius:5, borderSkipped:false, showValueLabels:true, valueLabelColor:'#0047C8', valueLabelFormat:vlf, valueLabelOffset:12}
       ]},
       options:{ animation:false, responsive:true, maintainAspectRatio:false,
         layout:{padding:{top:24,right:10,left:6,bottom:4}},
         scales:{ y:{ beginAtZero:true, grace:'14%', ticks:{font:{size:10}} }, x:{ offset:true, ticks:{font:{size:11,weight:'700'}} } },
         plugins:{ legend:{ display:true, position:'bottom', labels:{usePointStyle:true,pointStyle:'circle',boxWidth:9,font:{size:11}} },
-          tooltip:{ callbacks:{ label:function(ctx){ return '  '+ctx.dataset.label+': '+Number(ctx.parsed.y).toLocaleString('es-VE'); } } } }
+          tooltip:{ callbacks:{ label:function(ctx){ return '  '+ctx.dataset.label+': '+(isU?'':'$')+Number(ctx.parsed.y).toLocaleString('es-VE')+' '+unitLbl; } } } }
       }
     });
     if(typeof AX!=='undefined') AX['ax_merma']=_mermaChart;
@@ -4905,23 +5022,24 @@ function renderMerma(){
       var day=d.getDay()||7; var mon=new Date(d); mon.setDate(d.getDate()-(day-1));
       var key=mon.toISOString().slice(0,10);
       if(!byWk[key]){ byWk[key]={ALM:0,REP:0}; wkOrder.push(key); }
-      byWk[key][r.dep]=(byWk[key][r.dep]||0)+(+r.monto||0);
+      byWk[key][r.dep]=(byWk[key][r.dep]||0)+(isU?(+r.unid||0):(+r.monto||0));
     });
     wkOrder.sort();
     var wLbl=wkOrder.map(function(k){ var p=k.split('-'); return 'Sem '+p[2]+'/'+p[1]; });
     var wAlm=wkOrder.map(function(k){ return Math.round(byWk[k].ALM||0); });
     var wRep=wkOrder.map(function(k){ return Math.round(byWk[k].REP||0); });
+    var vlf2=function(v){ return (isU?'':'$')+v.toLocaleString('es-VE'); };
     if(_mermaSemChart){ try{_mermaSemChart.destroy();}catch(e){} _mermaSemChart=null; }
     _mermaSemChart=new Chart(cvS,{ type:'bar',
       data:{ labels:wLbl, datasets:[
-        {label:'Almacenaje', data:wAlm, backgroundColor:'rgba(245,158,11,.78)', borderColor:'#C87000', borderWidth:1.5, borderRadius:5, borderSkipped:false, showValueLabels:true, valueLabelColor:'#C87000', valueLabelFormat:function(v){return v.toLocaleString('es-VE');}, valueLabelOffset:12},
-        {label:'Reposición', data:wRep, backgroundColor:'rgba(0,71,200,.72)', borderColor:'#0047C8', borderWidth:1.5, borderRadius:5, borderSkipped:false, showValueLabels:true, valueLabelColor:'#0047C8', valueLabelFormat:function(v){return v.toLocaleString('es-VE');}, valueLabelOffset:12}
+        {label:'Almacenaje', data:wAlm, backgroundColor:'rgba(245,158,11,.78)', borderColor:'#C87000', borderWidth:1.5, borderRadius:5, borderSkipped:false, showValueLabels:true, valueLabelColor:'#C87000', valueLabelFormat:vlf2, valueLabelOffset:12},
+        {label:'Reposición', data:wRep, backgroundColor:'rgba(0,71,200,.72)', borderColor:'#0047C8', borderWidth:1.5, borderRadius:5, borderSkipped:false, showValueLabels:true, valueLabelColor:'#0047C8', valueLabelFormat:vlf2, valueLabelOffset:12}
       ]},
       options:{ animation:false, responsive:true, maintainAspectRatio:false,
         layout:{padding:{top:24,right:10,left:6,bottom:4}},
         scales:{ y:{ beginAtZero:true, grace:'14%', ticks:{font:{size:10}} }, x:{ offset:true, ticks:{font:{size:10,weight:'700'},maxRotation:45,minRotation:0} } },
         plugins:{ legend:{ display:true, position:'bottom', labels:{usePointStyle:true,pointStyle:'circle',boxWidth:9,font:{size:11}} },
-          tooltip:{ callbacks:{ label:function(ctx){ return '  '+ctx.dataset.label+': '+Number(ctx.parsed.y).toLocaleString('es-VE'); } } } }
+          tooltip:{ callbacks:{ label:function(ctx){ return '  '+ctx.dataset.label+': '+(isU?'':'$')+Number(ctx.parsed.y).toLocaleString('es-VE')+' '+unitLbl; } } } }
       }
     });
     if(typeof AX!=='undefined') AX['ax_merma_sem']=_mermaSemChart;
@@ -5053,9 +5171,9 @@ function buildCard9(o){
     + '</div>'
   + '</div>';
 }
-function buildMermaCard(num, titulo, any, curVal, curMesFull, vals, lbls, deltaObj){
-  var val = any ? curVal.toLocaleString('es-VE') : '— sin merma cargada';
-  var sub = any ? ('Monto dañado · '+curMesFull) : 'Carga el monto dañado en la pestaña MERMA';
+function buildMermaCard(num, titulo, any, curVal, curMesFull, vals, lbls, deltaObj, curU){
+  var val = any ? ('$'+curVal.toLocaleString('es-VE')) : '— sin merma cargada';
+  var sub = any ? (((curU!=null?curU:0).toLocaleString('es-VE'))+' uds dañadas · '+curMesFull) : 'Carga monto y unidades en la pestaña MERMA';
   var up = deltaObj && deltaObj.up;
   var dcolor = (!deltaObj || deltaObj.up===null) ? 'rgba(13,45,107,.5)' : (up ? '#dc2626':'#16a34a');
   var sinAnt = !deltaObj || (deltaObj.pct===0 && (deltaObj.txt||'').indexOf('sin')>=0);
@@ -5208,8 +5326,8 @@ function renderEjecutivo(){
   const _cancPctAnt = (function(){ const i=_sMeses.indexOf(MA.mes); return i>0? _cancPctByMes[i-1]:0; })();
   const d9 = delta(_cancPctSel, _cancPctAnt);
   // ── MERMA por mes (Almacenaje + Reposición) para el One Page ──
-  const _mermaByMes={}, _mermaAlmMes={}, _mermaRepMes={};
-  if(typeof MERMA!=='undefined') MERMA.forEach(function(r){ if(!r||!r.mes)return; _mermaByMes[r.mes]=(_mermaByMes[r.mes]||0)+(+r.monto||0); if(r.dep==='ALM')_mermaAlmMes[r.mes]=(_mermaAlmMes[r.mes]||0)+(+r.monto||0); else _mermaRepMes[r.mes]=(_mermaRepMes[r.mes]||0)+(+r.monto||0); });
+  const _mermaByMes={}, _mermaAlmMes={}, _mermaRepMes={}, _mermaRepMesU={};
+  if(typeof MERMA!=='undefined') MERMA.forEach(function(r){ if(!r||!r.mes)return; _mermaByMes[r.mes]=(_mermaByMes[r.mes]||0)+(+r.monto||0); if(r.dep==='ALM')_mermaAlmMes[r.mes]=(_mermaAlmMes[r.mes]||0)+(+r.monto||0); else {_mermaRepMes[r.mes]=(_mermaRepMes[r.mes]||0)+(+r.monto||0); _mermaRepMesU[r.mes]=(_mermaRepMesU[r.mes]||0)+(+r.unid||0);} });
   const _MMESI=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
   const _MA2L={ENE:'Ene',FEB:'Feb',MAR:'Mar',ABR:'Abr',MAY:'May',JUN:'Jun',JUL:'Jul',AGO:'Ago',SEP:'Sep',OCT:'Oct',NOV:'Nov',DIC:'Dic'};
   const _MA2F={ENE:'Enero',FEB:'Febrero',MAR:'Marzo',ABR:'Abril',MAY:'Mayo',JUN:'Junio',JUL:'Julio',AGO:'Agosto',SEP:'Septiembre',OCT:'Octubre',NOV:'Noviembre',DIC:'Diciembre'};
@@ -5219,6 +5337,7 @@ function renderEjecutivo(){
   const _mermaRepAny=_repM.length>0;
   const _repCurAb=_repM[_repM.length-1];
   const _mermaRepSelV=Math.round((_repCurAb&&_mermaRepMes[_repCurAb])||0);
+  const _mermaRepSelU=Math.round((_repCurAb&&_mermaRepMesU[_repCurAb])||0);
   const _repPrevAb=_repM[_repM.length-2];
   const _mermaRepAnt=Math.round((_repPrevAb&&_mermaRepMes[_repPrevAb])||0);
   const d10 = delta(_mermaRepSelV, _mermaRepAnt);
@@ -5357,7 +5476,7 @@ function renderEjecutivo(){
 
       ${'<div style="grid-column:1/-1;">'+buildCard9({sMeses:_sMeses, pctByMes:_cancPctByMes, desp:(typeof DESP_DATA!=='undefined'?DESP_DATA:{}), pm:pm, repMes:MA.mes, repNombre:(MNOM[MA.mes]||MA.mes), cancPctAnual:_cancPctAnual, despAnualProm:_despAnualProm, cancAnualProm:_cancAnualProm})+'</div>'}
 
-      ${'<div style="grid-column:1/-1;">'+buildMermaCard('10','MERMA / DAÑADO — REPOSICIÓN', _mermaRepAny, _mermaRepSelV, (_repCurAb?_MA2F[_repCurAb]:''), _mermaRepVals, _mermaRepLbls, d10)+'</div>'}
+      ${'<div style="grid-column:1/-1;">'+buildMermaCard('10','MERMA / DAÑADO — REPOSICIÓN', _mermaRepAny, _mermaRepSelV, (_repCurAb?_MA2F[_repCurAb]:''), _mermaRepVals, _mermaRepLbls, d10, _mermaRepSelU)+'</div>'}
 
     </div>
 
@@ -9523,6 +9642,20 @@ function buildOnePage() {
   (document.getElementById('ohk-total')||{innerHTML:'',textContent:''}).textContent   = opFmt(d.avg_dbo+d.avg_dym,0);
   (document.getElementById('ohk-post4pm')||{innerHTML:'',textContent:''}).textContent = opFmt(d.avg_post4pm,0);
 
+  /* Titular ejecutivo — conclusión del mes (no reemplaza nada, se suma arriba) */
+  (function(){
+    var el=document.getElementById('op-titular'); if(!el) return;
+    var ef=d.avg_efect;
+    var estado = ef>=98?'sobre meta':ef>=95?'en meta':'bajo meta';
+    var color  = ef>=98?'#5FE0C0':ef>=95?'#FFC24B':'#FF8A8A';
+    var foco='';
+    if(pData && pData.avg_post4pm>0){
+      var dp=((d.avg_post4pm-pData.avg_post4pm)/pData.avg_post4pm*100);
+      if(dp>5) foco=' Foco → contenedores <span style="color:#FFC24B;font-weight:700;">post-4PM ('+(dp>0?'+':'')+dp.toFixed(0)+'%)</span>.';
+    }
+    el.innerHTML='<span style="color:'+color+';font-weight:800;">'+(d.label||'').toUpperCase()+' '+estado+':</span> cumplimiento '+opFmt(ef,1)+'% en '+d.noches+' noches operativas.'+foco;
+  })();
+
   /* KPI Cards */
   // Datos por mes (promedio mensual) para sparklines — tendencia del año
   var _HM={};
@@ -9697,8 +9830,8 @@ function buildOnePage() {
       var _MMESI=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
       var _F2A={ENERO:'ENE',FEBRERO:'FEB',MARZO:'MAR',ABRIL:'ABR',MAYO:'MAY',JUNIO:'JUN',JULIO:'JUL',AGOSTO:'AGO',SEPTIEMBRE:'SEP',OCTUBRE:'OCT',NOVIEMBRE:'NOV',DICIEMBRE:'DIC'};
       var _A2L={ENE:'Ene',FEB:'Feb',MAR:'Mar',ABR:'Abr',MAY:'May',JUN:'Jun',JUL:'Jul',AGO:'Ago',SEP:'Sep',OCT:'Oct',NOV:'Nov',DIC:'Dic'};
-      var byAbbr={};
-      (typeof MERMA!=='undefined'?MERMA:[]).forEach(function(r){ if(r&&r.dep==='ALM'&&r.mes){ byAbbr[r.mes]=(byAbbr[r.mes]||0)+(+r.monto||0); } });
+      var byAbbr={}, byAbbrU={};
+      (typeof MERMA!=='undefined'?MERMA:[]).forEach(function(r){ if(r&&r.dep==='ALM'&&r.mes){ byAbbr[r.mes]=(byAbbr[r.mes]||0)+(+r.monto||0); byAbbrU[r.mes]=(byAbbrU[r.mes]||0)+(+r.unid||0); } });
       var months=_MMESI.filter(function(a){return byAbbr[a]!=null;});
       var raw=months.map(function(a){return Math.round(byAbbr[a]);});
       var mx=Math.max.apply(null,raw.concat([1]));
@@ -9706,7 +9839,7 @@ function buildOnePage() {
       var lbls=months.map(function(a){return _A2L[a]||a;});
       var _F2F={ENE:'Enero',FEB:'Febrero',MAR:'Marzo',ABR:'Abril',MAY:'Mayo',JUN:'Junio',JUL:'Julio',AGO:'Agosto',SEP:'Septiembre',OCT:'Octubre',NOV:'Noviembre',DIC:'Diciembre'};
       var opAb=months.length?months[months.length-1]:(_F2A[OP_MES]||OP_MES);
-      var cur=Math.round(byAbbr[opAb]||0);
+      var cur=Math.round(byAbbr[opAb]||0), curU=Math.round(byAbbrU[opAb]||0);
       var prevAb=months[months.length-2];
       var prev=Math.round((prevAb&&byAbbr[prevAb])||0);
       var curFull=_F2F[opAb]||opAb;
@@ -9714,12 +9847,12 @@ function buildOnePage() {
       var deltaHtml=(any&&prev>0)?opDelta(cur,prev,true,_A2L[prevAb]||prevAb):'';
       return {
         num:'9.', icon:'🗑️', title:'MERMA / DAÑADO — ALMACENAJE', cls:'red',
-        value: any ? opFmt(cur,0) : '—', vcls:'amber',
-        desc: any ? ('Monto dañado · '+curFull) : 'Monto dañado del mes en Almacenaje · carga semanal',
+        value: any ? ('$'+opFmt(cur,0)) : '—', vcls:'amber',
+        desc: any ? (opFmt(curU,0)+' uds dañadas · '+curFull) : 'Monto y unidades dañadas del mes · carga semanal',
         progress: 0,
         spark: spark, rawSpark: raw, sparkLabels: lbls, invertSpark:true, showTrend:true,
         delta: deltaHtml,
-        note: any ? 'Monto dañado registrado en ALMACENAJE. Menos = mejor. Se carga en la pestaña MERMA (departamento Almacenaje). Línea = tendencia por mes.' : 'Sin merma de Almacenaje cargada. Regístrala en la pestaña MERMA seleccionando el departamento Almacenaje.'
+        note: any ? ('Dañado en ALMACENAJE: $'+opFmt(cur,0)+' · '+opFmt(curU,0)+' uds en '+curFull+'. Menos = mejor. Fuente: equipo de inventario (pestaña MERMA). Barras = monto $ por mes.') : 'Sin merma de Almacenaje cargada. Regístrala en la pestaña MERMA.'
       };
     })()
   ];
@@ -9734,7 +9867,7 @@ function buildOnePage() {
     var invC = c.invertSpark||false;
     var sparkSVG = '';
     if(raw.length>=2){
-      var W=200,HBAR=62,HLBL=19,SH=HBAR+HLBL,n=raw.length,gap=3;
+      var W=200,HBAR=44,HLBL=17,SH=HBAR+HLBL,n=raw.length,gap=3;
       var bw=(W-gap*(n-1))/n;
       var mx2=Math.max.apply(null,raw),mn2=Math.min.apply(null,raw);
       var rng2=mx2-mn2||1;
