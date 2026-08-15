@@ -1889,6 +1889,8 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     if (Array.isArray(mermaData) && typeof MERMA !== 'undefined') {
       var _mids={}; MERMA.forEach(function(x){ _mids[x.id]=1; });
       mermaData.forEach(function(r){ if(r && !_mids[r.id]) MERMA.push(r); });
+      // Re-aplicar semilla de dañado (Mar–Jul) y empujarla a la nube si faltaba
+      try { if(typeof _applyMermaSeed==='function' && _applyMermaSeed() && typeof window.fbSave==='function'){ window.fbSave('merma_data','main',MERMA); } }catch(e){}
       try { localStorage.setItem('ftd_merma', JSON.stringify(MERMA)); } catch(e){}
       try { if (typeof renderMerma === 'function') renderMerma(); } catch(e){}
       console.log('[Firebase] Merma cargada:', mermaData.length);
@@ -1923,6 +1925,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     window.fbListen('merma_data', 'main', function(nd){
       if(!Array.isArray(nd) || typeof MERMA==='undefined') return;
       MERMA.length=0; nd.forEach(function(r){ MERMA.push(r); });
+      try { if(typeof _applyMermaSeed==='function') _applyMermaSeed(); } catch(e){}
       try { localStorage.setItem('ftd_merma', JSON.stringify(MERMA)); } catch(e){}
       try { if (typeof renderMerma === 'function') renderMerma(); } catch(e){}
       try { var er=document.getElementById('execReport'); if(typeof renderEjecutivo==='function' && er && er.offsetParent!==null) renderEjecutivo(); } catch(e){}
@@ -4799,10 +4802,13 @@ var MERMA_SEED=[
   {id:'mrow_JUN_REP',fecha:'2026-06-28',mes:'JUN',dep:'REP',monto:2556,unid:579},
   {id:'mrow_JUL_REP',fecha:'2026-07-28',mes:'JUL',dep:'REP',monto:3535,unid:762}
 ];
-(function(){ var ids={}; MERMA.forEach(function(x){ if(x&&x.id) ids[x.id]=1; }); var add=false;
+function _applyMermaSeed(){ if(typeof MERMA_SEED==='undefined')return false; var ids={}; MERMA.forEach(function(x){ if(x&&x.id) ids[x.id]=1; }); var add=false;
   MERMA_SEED.forEach(function(s){ if(!ids[s.id]){ MERMA.push(s); add=true; } });
   if(add){ try{ localStorage.setItem('ftd_merma', JSON.stringify(MERMA)); }catch(e){} }
-})();
+  return add;
+}
+window._applyMermaSeed=_applyMermaSeed;
+_applyMermaSeed();
 function _mermaMes(fecha){ var m=parseInt((fecha||'').slice(5,7),10); return MERMA_MESI[m-1]||''; }
 function _mermaFmt(n){ return Math.round(n||0).toLocaleString('es-VE'); }
 function _saveMerma(){
