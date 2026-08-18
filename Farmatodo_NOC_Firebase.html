@@ -1866,6 +1866,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         }
       }
       console.log('[Firebase] MontaTrack db cargado');
+      try { if (typeof renderOperMetrics === 'function') renderOperMetrics(); } catch(e){}
     }
 
     // 4. Vitácora
@@ -2256,6 +2257,13 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   </div>
 
   <div class="kpi-strip" id="kpiDash"></div>
+
+  <div class="ccard" id="card_oper_noche" style="margin-bottom:14px;">
+    <div class="ccard-hdr"><div><div class="ccard-title">Paletas movidas por repositor por noche — Reposición</div><div class="ccard-sub">(DEMANDA DYM + ROP DYM) ÷ repositores (FTD+Servix) · por noche · mes a mes · fuente: Carga</div></div>
+      <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_oper_noche','Paletas_DYM_Repositor_Noche')">⬇ PNG</button></div></div>
+    <div id="hdr_oper_noche"></div>
+    <div style="position:relative;height:290px;"><canvas id="ax_oper_noche" role="img" aria-label="Paletas por hombre por noche"></canvas></div>
+  </div>
 
   <div class="grid-12">
     <!-- Sparkline evolución B×H/h -->
@@ -2953,6 +2961,22 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 
   <!-- ── KPI STRIP ── -->
   <div class="dash-kpi-strip" id="an-summary"></div>
+
+  <!-- ── OPERADORES: productividad (mes a mes) ── -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="ccard" id="card_oper_hora">
+      <div class="ccard-hdr"><div><div class="ccard-title">Productividad por hora por hombre — Operadores</div><div class="ccard-sub">Total paletas ÷ jornadas-operador ÷ 8 h · mes a mes · línea punteada = meta 22</div></div>
+        <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_oper_hora','Productividad_Hora_Hombre')">⬇ PNG</button></div></div>
+      <div id="hdr_oper_hora"></div>
+      <div style="position:relative;height:270px;"><canvas id="ax_oper_hora" role="img" aria-label="Productividad por hora por hombre"></canvas></div>
+    </div>
+    <div class="ccard" id="card_oper_dia">
+      <div class="ccard-hdr"><div><div class="ccard-title">Paletas movidas por hombre por día — Operadores</div><div class="ccard-sub">Total paletas ÷ jornadas-operador · mes a mes · línea punteada = meta 180</div></div>
+        <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_oper_dia','Paletas_Hombre_Dia')">⬇ PNG</button></div></div>
+      <div id="hdr_oper_dia"></div>
+      <div style="position:relative;height:270px;"><canvas id="ax_oper_dia" role="img" aria-label="Paletas por hombre por día"></canvas></div>
+    </div>
+  </div>
 
   <!-- ── ROW 1: Wide chart + side stat ── -->
   <div class="dash-grid dash-grid-3-1" style="margin-bottom:14px">
@@ -4335,6 +4359,8 @@ function renderDashboard(){
 
   // ── Tendencia + leyenda en las gráficas de este dashboard (Reposición NOC) ──
   if(typeof _applyTrendAndLegend==='function') setTimeout(_applyTrendAndLegend, 200);
+  // ── KPI Operadores (paletas/hombre/noche) ──
+  try{ if(typeof renderOperMetrics==='function') setTimeout(renderOperMetrics, 150); }catch(e){}
 
   // ── Vista por defecto MENSUAL: si el período activo no es diario, re-agregar por mes/semana ──
   if(typeof REPO_PERIOD!=='undefined' && REPO_PERIOD && REPO_PERIOD!=='dia'){
@@ -8809,6 +8835,7 @@ function setTab(b) {
   }
   if (b.dataset.tab === 'yoy') { setTimeout(function(){ if(typeof renderYoYAlm==='function') renderYoYAlm(); }, 150); }
   if (b.dataset.tab === 'mermaAlm') { setTimeout(function(){ if(typeof renderMerma==='function') renderMerma(); }, 160); }
+  if (b.dataset.tab === 'analytics') { setTimeout(function(){ if(typeof renderOperMetrics==='function') renderOperMetrics(); }, 260); }
   if (b.dataset.tab === 'onepage') {
     setTimeout(function(){
       if(typeof mergeV22toHIST==='function') try{mergeV22toHIST();}catch(e){}
@@ -14264,6 +14291,86 @@ document.addEventListener('click', function(e){
   if(w && w.classList.contains('open') && !w.contains(e.target)) w.classList.remove('open');
 });
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAcc(); });
+</script>
+<script>
+/* ── KPIs de OPERADORES en los dashboards (estilo B×H/hora) ─────────────
+   Fuente: sección Operadores (monta db). Promedio bruto/día por operador (Perfil A,
+   con la regla de traspaleta ya aplicada) = "paletas movidas por hombre por día/noche".
+   Dividido entre 8 h efectivas = "productividad por hora por hombre". */
+var _operCharts={};
+function _operMonthlySeries(){
+  var MAB={Enero:'ENE',Febrero:'FEB',Marzo:'MAR',Abril:'ABR',Mayo:'MAY',Junio:'JUN',Julio:'JUL',Agosto:'AGO',Septiembre:'SEP',Octubre:'OCT',Noviembre:'NOV',Diciembre:'DIC'};
+  var yr=(typeof latestYear==='function')?latestYear():'2026';
+  var months=(typeof getMonths==='function')?getMonths(yr):[];
+  var labels=[],perDia=[],perHora=[];
+  if(typeof getActiveDays!=='function' || typeof OPS==='undefined') return {labels:labels,perDia:perDia,perHora:perHora};
+  months.forEach(function(mo){
+    // CRITERIO: por cada día → paletas totales de Reposición (suma de movimientos de todos los
+    // operadores ese día) ÷ cantidad de operadores que movieron paletas ese día. Luego promedio del mes.
+    var days=getActiveDays(yr,mo); if(!days.length) return;
+    var dayVals=[];
+    days.forEach(function(dd){
+      var tot=0, ops=0;
+      OPS.forEach(function(op){
+        var raw=(db[yr]&&db[yr][mo]&&db[yr][mo][op.n]&&db[yr][mo][op.n][String(dd)]);
+        var num=parseFloat(String(raw==null?'':raw).replace(',','.'));
+        if(!isNaN(num)){ tot+=num; ops++; }   // solo paletas medidas (excluye traspaleta/libre/vacaciones/reposo)
+      });
+      if(ops>0) dayVals.push(tot/ops);
+    });
+    if(!dayVals.length) return;
+    var a=dayVals.reduce(function(s,v){ return s+v; },0)/dayVals.length;
+    labels.push(MAB[mo]||mo.slice(0,3).toUpperCase());
+    perDia.push(Math.round(a*10)/10);
+    perHora.push(Math.round(a/8*10)/10);
+  });
+  return {labels:labels,perDia:perDia,perHora:perHora};
+}
+function _evoChart(cid,hid,labels,data,meta,unit,serie,refLabel){
+  refLabel=refLabel||'Meta';
+  var h=document.getElementById(hid);
+  if(!data||!data.length){ if(h)h.innerHTML='<div style="font-size:11px;color:#7A90B8;padding:8px 0;">Aún no hay datos cargados para graficar.</div>'; return; }
+  var mx=Math.max.apply(null,data),mn=Math.min.apply(null,data),avg=data.reduce(function(s,v){return s+v;},0)/data.length,cnt=data.filter(function(v){return v>=meta;}).length;
+  if(h){ function st(v,l,c){return '<div style="text-align:center;"><div style="font-size:25px;font-weight:900;color:'+c+';line-height:1;">'+v+'</div><div style="font-size:10px;color:#7A90B8;text-transform:uppercase;letter-spacing:.05em;margin-top:3px;font-weight:700;">'+l+'</div></div>';}
+    h.innerHTML='<div style="display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;margin:4px 0 6px;">'+st((Math.round(mx*10)/10).toLocaleString('es-VE'),'Máximo','#1B4FA8')+st((Math.round(avg*10)/10).toLocaleString('es-VE'),'Promedio','#16a34a')+st((Math.round(mn*10)/10).toLocaleString('es-VE'),'Mínimo','#E74C3C')+st(cnt,'≥ '+refLabel.toLowerCase(),'#F39C12')+'</div>';
+  }
+  var cv=document.getElementById(cid); if(!cv||typeof Chart==='undefined')return;
+  var pc=data.map(function(v){return v>=meta?'#16a34a':(v>=meta*0.8?'#F39C12':'#E74C3C');});
+  if(_operCharts[cid]){ try{_operCharts[cid].destroy();}catch(e){} }
+  _operCharts[cid]=new Chart(cv,{type:'line',
+    data:{labels:labels,datasets:[
+      {label:serie,data:data,borderColor:'#0B1F4E',backgroundColor:'rgba(11,31,78,.06)',borderWidth:2.5,tension:0.4,cubicInterpolationMode:'monotone',fill:true,pointRadius:5,pointHoverRadius:8,pointBackgroundColor:pc,pointBorderColor:'#fff',pointBorderWidth:2,showValueLabels:true,valueLabelColor:'#0B1F4E',valueLabelFormat:function(v){return v.toLocaleString('es-VE');},valueLabelOffset:14},
+      {label:refLabel+' '+meta.toLocaleString('es-VE'),data:labels.map(function(){return meta;}),borderColor:'rgba(0,135,90,.55)',borderDash:[6,5],borderWidth:2,pointRadius:0,fill:false,tension:0}
+    ]},
+    options:{animation:false,responsive:true,maintainAspectRatio:false,layout:{padding:{top:20,right:12,left:6,bottom:2}},
+      plugins:{legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:9,font:{size:11}}},tooltip:{callbacks:{label:function(ctx){return '  '+ctx.dataset.label+': '+Number(ctx.parsed.y).toLocaleString('es-VE')+' '+unit;}}}},
+      scales:{y:{grace:'15%',grid:{color:'rgba(13,45,107,.07)'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:11,weight:'700'},color:'#7A90B8'}}}}
+  });
+  if(typeof AX!=='undefined')AX[cid]=_operCharts[cid];
+}
+// Reposición: paletas DYM (DEMANDA DYM + ROP DYM) ÷ repositores (M) por noche · desde Carga (datos)
+function _repoDymSeries(){
+  if(typeof datos==='undefined') return {labels:[],perDia:[]};
+  var MORDl=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  var by={};
+  datos.forEach(function(d){ if(!d||!d.mes)return; var rep=+d.M||0; var pal=(+d.ddym||0)+(+d.rop_dym||0); if(rep<=0||pal<=0)return; if(!by[d.mes])by[d.mes]={sum:0,n:0}; by[d.mes].sum+=pal/rep; by[d.mes].n++; });
+  var labels=[],perDia=[];
+  MORDl.forEach(function(m){ if(!by[m]||!by[m].n)return; labels.push(m); perDia.push(Math.round(by[m].sum/by[m].n*10)/10); });
+  return {labels:labels,perDia:perDia};
+}
+function renderOperMetrics(){
+  // ── Almacenaje › Analytics: SOLO datos de la sección Operadores ──
+  if(typeof rowsMonth==='function'){
+    var s=_operMonthlySeries();
+    _evoChart('ax_oper_hora','hdr_oper_hora',s.labels,s.perHora,22,'paletas/hombre/h','Productividad / hombre / hora','Meta');
+    _evoChart('ax_oper_dia','hdr_oper_dia',s.labels,s.perDia,180,'paletas/hombre','Paletas / hombre / día','Meta');
+  }
+  // ── Reposición: (DEMANDA DYM + ROP DYM) ÷ repositores por noche (desde Carga) ──
+  var r=_repoDymSeries();
+  var avg=r.perDia.length?Math.round(r.perDia.reduce(function(a,b){return a+b;},0)/r.perDia.length):0;
+  _evoChart('ax_oper_noche','hdr_oper_noche',r.labels,r.perDia,avg,'paletas/repositor','Paletas DYM / repositor / noche','Promedio');
+}
+window.renderOperMetrics=renderOperMetrics;
 </script>
 </body>
 </html>
