@@ -14348,14 +14348,18 @@ function _evoChart(cid,hid,labels,data,meta,unit,serie,refLabel){
   });
   if(typeof AX!=='undefined')AX[cid]=_operCharts[cid];
 }
-// Reposición: paletas DYM (DEMANDA DYM + ROP DYM) ÷ repositores (M) por noche · desde Carga (datos)
+// Reposición: paletas DYM (DEMANDA DYM + ROP DYM) ÷ repositores por noche.
+// DEMANDA DYM + ROP DYM viven en los registros de carga de Almacenaje (HIST: ddym + rop_dym);
+// los repositores (M = FTD+Servix) viven en los datos de Reposición. Se cruzan por mes.
 function _repoDymSeries(){
-  if(typeof datos==='undefined') return {labels:[],perDia:[]};
   var MORDl=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
-  var by={};
-  datos.forEach(function(d){ if(!d||!d.mes)return; var rep=+d.M||0; var pal=(+d.ddym||0)+(+d.rop_dym||0); if(rep<=0||pal<=0)return; if(!by[d.mes])by[d.mes]={sum:0,n:0}; by[d.mes].sum+=pal/rep; by[d.mes].n++; });
+  var ORD={ENERO:'ENE',FEBRERO:'FEB',MARZO:'MAR',ABRIL:'ABR',MAYO:'MAY',JUNIO:'JUN',JULIO:'JUL',AGOSTO:'AGO',SEPTIEMBRE:'SEP',OCTUBRE:'OCT',NOVIEMBRE:'NOV',DICIEMBRE:'DIC'};
+  var pal={};   // paletas DYM por noche (HIST)
+  if(typeof HIST!=='undefined') HIST.forEach(function(h){ if(!h||!h.date)return; var m=ORD[(h.date.split(' ')[0]||'').toUpperCase()]; if(!m)return; var v=(+h.ddym||0)+(+h.rop_dym||0); if(v<=0)return; if(!pal[m])pal[m]={s:0,n:0}; pal[m].s+=v; pal[m].n++; });
+  var rep={};   // repositores por noche (datos)
+  if(typeof datos!=='undefined') datos.forEach(function(d){ if(!d||!d.mes)return; var r=+d.M||0; if(r<=0)return; if(!rep[d.mes])rep[d.mes]={s:0,n:0}; rep[d.mes].s+=r; rep[d.mes].n++; });
   var labels=[],perDia=[];
-  MORDl.forEach(function(m){ if(!by[m]||!by[m].n)return; labels.push(m); perDia.push(Math.round(by[m].sum/by[m].n*10)/10); });
+  MORDl.forEach(function(m){ if(!pal[m]||!pal[m].n||!rep[m]||!rep[m].n)return; var palAvg=pal[m].s/pal[m].n, repAvg=rep[m].s/rep[m].n; if(repAvg<=0)return; labels.push(m); perDia.push(Math.round(palAvg/repAvg*10)/10); });
   return {labels:labels,perDia:perDia};
 }
 function renderOperMetrics(){
