@@ -5575,18 +5575,22 @@ function renderEjecutivo(){
 /* ── Mini sparkline SVG mensual para One Page NOC ── */
 function nocSparkSVG(data, invertColor, labels, showTrend) {
   if(!data||data.length<2) return '';
-  var W=200,HBAR=62,HLBL=19,H=HBAR+HLBL,n=data.length,gap=3;
+  // Estilo limpio (igual que la One Page de Almacenaje): número ENCIMA de cada
+  // barra, SIN pastilla negra, texto oscuro, columnas anchas y separadas para
+  // que no se vean como una franja de cajitas. Banda TOP para el número y banda
+  // inferior HLBL para el mes. avgY = línea de promedio anual (visible).
+  var W=280,TOP=17,HBAR=48,HLBL=15,H=TOP+HBAR+HLBL,n=data.length,gap=7;
   var bw=(W-gap*(n-1))/n;
   var mx=Math.max.apply(null,data),mn=Math.min.apply(null,data);
   var rng=mx-mn||1;
   var avg=data.reduce(function(s,v){return s+v;},0)/n;
-  var avgY=HBAR-2-Math.round((avg-mn)/rng*(HBAR-14));
+  var avgY=TOP+HBAR-2-Math.round((avg-mn)/rng*(HBAR-14));
   var bars=data.map(function(v,i){
-    var h=Math.max(18,Math.round((v-mn)/rng*(HBAR-14)+14));
-    var y=HBAR-h;
+    var h=Math.max(15,Math.round((v-mn)/rng*(HBAR-14)+14));
+    var y=TOP+HBAR-h;
     var x=+(i*(bw+gap)).toFixed(1);
     var above=v>=avg;
-    var fill=invertColor?(above?'#dc2626':'#16a34a'):(above?'#1A5CA8':'rgba(26,92,168,.35)');
+    var fill=invertColor?(above?'#dc2626':'#16a34a'):(above?'#1A5CA8':'rgba(26,92,168,.30)');
     var lbl=labels&&labels[i]?labels[i]:'';
     var rawV=v;
     var dispV;
@@ -5595,13 +5599,10 @@ function nocSparkSVG(data, invertColor, labels, showTrend) {
     else if(Math.abs(rawV)<1) dispV=(+rawV.toFixed(3)).toString();   // % proporcionales chicos: 0.105, 0.044
     else if(Math.abs(rawV)<10) dispV=(+rawV.toFixed(2)).toString();
     else dispV=(+rawV.toFixed(1)).toString();
-    var valY=y+h-5;
-    var tw=dispV.length*6.8;
     var cx=(x+bw/2).toFixed(1);
-    return '<rect x="'+x+'" y="'+y+'" width="'+bw.toFixed(1)+'" height="'+h+'" rx="2.5" fill="'+fill+'"/>'
-      +'<rect x="'+((x+bw/2-tw/2-1).toFixed(1))+'" y="'+((valY-10.5).toFixed(1))+'" width="'+((tw+2).toFixed(1))+'" height="13" rx="2" fill="rgba(0,0,0,.45)"/>'
-      +'<text x="'+cx+'" y="'+valY+'" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff" font-family="monospace">'+dispV+'</text>'
-      +(lbl?'<text x="'+cx+'" y="'+(HBAR+HLBL-1)+'" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0D2D6B" opacity=".6" font-family="Outfit,sans-serif">'+lbl+'</text>':'');
+    return '<rect x="'+x+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h+'" rx="2.5" fill="'+fill+'"/>'
+      +'<text x="'+cx+'" y="'+(y-3.5).toFixed(1)+'" text-anchor="middle" font-size="9" font-weight="800" fill="#0f2547" font-family="Outfit,sans-serif">'+dispV+'</text>'
+      +(lbl?'<text x="'+cx+'" y="'+(TOP+HBAR+HLBL-2)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#64748b" font-family="Outfit,sans-serif">'+lbl+'</text>':'');
   }).join('');
   // Linea de TENDENCIA LINEAL anual (regresion minimos cuadrados)
   var trendSVG='';
@@ -5611,15 +5612,15 @@ function nocSparkSVG(data, invertColor, labels, showTrend) {
     var den=n*sxx-sx*sx;
     if(den!==0){
       var sl=(n*sxy-sx*sy)/den, ic=(sy-sl*sx)/n;
-      var tY=function(val){ var hh=Math.max(0,(val-mn)/rng*(HBAR-14)+14); return (HBAR-hh).toFixed(1); };
+      var tY=function(val){ var hh=Math.max(0,(val-mn)/rng*(HBAR-14)+14); return (TOP+HBAR-hh).toFixed(1); };
       var x0=(bw/2).toFixed(1), y0=tY(ic);
       var xN=((n-1)*(bw+gap)+bw/2).toFixed(1), yN=tY(sl*(n-1)+ic);
-      trendSVG='<line x1="'+x0+'" y1="'+y0+'" x2="'+xN+'" y2="'+yN+'" stroke="#00875A" stroke-width="2" stroke-dasharray="6,4" opacity=".92" stroke-linecap="round"/>';
+      trendSVG='<line x1="'+x0+'" y1="'+y0+'" x2="'+xN+'" y2="'+yN+'" stroke="#00875A" stroke-width="2" stroke-dasharray="6,4" opacity=".9" stroke-linecap="round"/>';
     }
   }
   return '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:'+(H+2)+'px;display:block;margin:10px 0 2px;" preserveAspectRatio="none">'
     +bars
-    +'<line x1="0" y1="'+avgY+'" x2="'+W+'" y2="'+avgY+'" stroke="#0D2D6B" stroke-width="1" stroke-dasharray="5,3" opacity=".2"/>'
+    +'<line x1="0" y1="'+avgY+'" x2="'+W+'" y2="'+avgY+'" stroke="#1e293b" stroke-width="1.2" stroke-dasharray="5,3" opacity=".28"/>'
     +trendSVG
     +'</svg>';
 }
@@ -5652,7 +5653,7 @@ function buildKpiCard(num, titulo, icon, valor, sublabel, deltaObj, buenoCuandoS
       const signo = upAnual ? '+' : '';
       // Format annual avg nicely
       const fmtAvg = annualAvg>=1000?(annualAvg/1000).toFixed(1)+'K':annualAvg%1===0?Math.round(annualAvg).toString():(+annualAvg.toFixed(1)).toString();
-      vsAnualHtml = `<span style="font-family:var(--font);font-size:16px;font-weight:700;color:${clrAnual};margin-left:auto;white-space:nowrap;">${signo}${pctAnual.toFixed(1)}% vs anual &nbsp;·&nbsp; <span style="color:rgba(13,45,107,.65);font-weight:800;">x̄ ${fmtAvg}</span></span>`;
+      vsAnualHtml = `<span style="font-family:var(--font);font-size:13.5px;font-weight:700;color:${clrAnual};margin-left:auto;white-space:nowrap;">${signo}${pctAnual.toFixed(1)}% vs anual &nbsp;·&nbsp; <span style="color:rgba(13,45,107,.65);font-weight:800;">x̄ ${fmtAvg}</span></span>`;
     }
   }
 
@@ -5670,9 +5671,9 @@ function buildKpiCard(num, titulo, icon, valor, sublabel, deltaObj, buenoCuandoS
     <!-- Sparkline mensual -->
     ${sparkHtml}
     <!-- Delta vs mes anterior + vs promedio anual -->
-    <div style="display:flex;align-items:center;gap:6px;padding:7px 10px;background:rgba(13,45,107,.04);border-radius:6px;margin-top:8px;margin-bottom:10px;border-left:3px solid ${deltaColor};">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;padding:7px 10px;background:rgba(13,45,107,.04);border-radius:6px;margin-top:8px;margin-bottom:10px;border-left:3px solid ${deltaColor};">
       <span style="font-size:13px;">${deltaObj.icon}</span>
-      <span style="font-family:var(--font);font-size:16px;font-weight:700;color:${deltaColor};">
+      <span style="font-family:var(--font);font-size:15px;font-weight:700;color:${deltaColor};">
         ${sinAnterior ? '— Sin mes anterior para comparar' : deltaObj.pct.toFixed(2)+'% vs. Mes Anterior'}
       </span>
       ${vsAnualHtml}
