@@ -1786,6 +1786,8 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         // que sin esta llamada se queda desactualizado (ej. "Julio (8 dias)")
         // aunque las graficas ya muestren la jornada mas reciente.
         try { if (typeof actualizarMeses === 'function') actualizarMeses(); } catch(e) {}
+        // 3er lote de agosto (campo U) — el dato existe en el Excel del turno
+        try { if (typeof _applyAgoCancFix==='function' && _applyAgoCancFix() && typeof window.fbSave==='function') window.fbSave('noc_datos','main',datos); } catch(e) {}
         console.log('[Firebase] NOC datos cargados:', nocData.length, 'registros');
       }
     }
@@ -1903,6 +1905,8 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       if (typeof datos === 'undefined') return;
       datos.length = 0;
       newData.forEach(d => datos.push(d));
+      // 3er lote de agosto (campo U) por si la nube trae los registros sin U
+      try { if (typeof _applyAgoCancFix==='function') _applyAgoCancFix(); } catch(e) {}
       // Mismo motivo que en la carga inicial: sin esto, el selector de periodo
       // (mesSelect) y su badge se quedan mostrando el conteo de dias viejo
       // cuando otro dispositivo agrega una jornada nueva en tiempo real.
@@ -9770,7 +9774,7 @@ function buildOnePage() {
       value: opFmt(d.avg_efect,2)+'%', vcls:'green',
       desc: 'Cumplimiento promedio por noche',
       progress: d.avg_efect,
-      spark: efectSpark, rawSpark: _hmAvg('efect').map(function(v){return+(v*100).toFixed(1);}), sparkLabels:_hmLblShort, invertSpark:false,
+      spark: efectSpark, rawSpark: _hmAvg('efect').map(function(v){return+(v*100).toFixed(2);}), sparkLabels:_hmLblShort, invertSpark:false,
       delta: pData ? opDelta(d.avg_efect, pData.avg_efect, false, pData.label) : '',
       note: 'De '+d.noches+' jornadas, '+Math.round(d.noches*d.avg_efect/100)+' superaron el 95% de cumplimiento.'
     },
@@ -9892,7 +9896,7 @@ function buildOnePage() {
         value: opFmt(_libSel,1)+'%', vcls:'green',
         desc: 'Promedio de espacios libres (BO · BO/DYM · DYM · EA · O/S) por noche',
         progress: Math.min(100, _libSel),
-        spark: sparkFor('dbo'), rawSpark: _libMes.map(function(v){return +v.toFixed(1);}), sparkLabels:_hmLblShort, invertSpark:false, showTrend:true,
+        spark: sparkFor('dbo'), rawSpark: _libMes.map(function(v){return +v.toFixed(2);}), sparkLabels:_hmLblShort, invertSpark:false, showTrend:true,
         delta: '',
         note: _analisis+' Promedio anual: '+_libAnual.toFixed(1)+'% libre. Línea = tendencia por mes.'
       };
@@ -9939,30 +9943,30 @@ function buildOnePage() {
     var invC = c.invertSpark||false;
     var sparkSVG = '';
     if(raw.length>=2){
-      var W=200,HBAR=44,HLBL=17,SH=HBAR+HLBL,n=raw.length,gap=3;
+      // Layout con banda superior (TOP) para el numero ENCIMA de cada barra
+      // (estilo evolucion diaria): sin pastilla negra, texto oscuro, columnas
+      // anchas y separadas para que 8 valores nunca se vean agrupados.
+      var W=280,TOP=15,HBAR=42,HLBL=15,SH=TOP+HBAR+HLBL,n=raw.length,gap=6;
       var bw=(W-gap*(n-1))/n;
       var mx2=Math.max.apply(null,raw),mn2=Math.min.apply(null,raw);
       var rng2=mx2-mn2||1;
       var avg2=raw.reduce(function(s,v){return s+v;},0)/n;
-      var avgY2=HBAR-2-Math.round((avg2-mn2)/rng2*(HBAR-14));
+      var avgY2=TOP+HBAR-2-Math.round((avg2-mn2)/rng2*(HBAR-14));
       var bars2=raw.map(function(v,i){
-        var h=Math.max(18,Math.round((v-mn2)/rng2*(HBAR-14)+14));
-        var y=HBAR-h;
+        var h=Math.max(16,Math.round((v-mn2)/rng2*(HBAR-14)+14));
+        var y=TOP+HBAR-h;
         var x=+(i*(bw+gap)).toFixed(1);
         var above=v>=avg2;
         var fill=invC?(above?'#dc2626':'#16a34a'):(above?clsColor:'rgba('+
           ({green:'16,185,129',blue:'37,99,235',purple:'124,58,237',amber:'245,158,11',red:'239,68,68'}[c.cls]||'100,116,139')+
           ',.28)');
-        // Etiqueta compacta: enteros (o "1.2K" para miles). Sin decimales sueltos
-        // para que 8 valores no se enciman en el ancho de la mini-barra.
-        var dispV=v>=1000?(v/1000).toFixed(1)+'K':Math.round(v).toString();
-        var valY=y+h-4;
-        var tw=dispV.length*5.2;
+        // Conserva decimales (no redondear): 2 decimales cuando el valor los
+        // tiene, entero cuando es exacto, "1.2K" para miles.
+        var dispV=v>=1000?(v/1000).toFixed(1)+'K':(v%1===0?v.toString():v.toFixed(2));
         var lblTxt=lbl[i]||'';
-        return '<rect x="'+x+'" y="'+y+'" width="'+bw.toFixed(1)+'" height="'+h+'" rx="2.5" fill="'+fill+'"/>'
-          +'<rect x="'+(x+bw/2-tw/2-1).toFixed(1)+'" y="'+(valY-8.5).toFixed(1)+'" width="'+(tw+2).toFixed(1)+'" height="10.5" rx="2" fill="rgba(0,0,0,.45)"/>'
-          +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+valY+'" text-anchor="middle" font-size="9" font-weight="800" fill="#ffffff" font-family="monospace">'+dispV+'</text>'
-          +(lblTxt?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(HBAR+HLBL-1)+'" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1e293b" opacity=".6" font-family="Outfit,sans-serif">'+lblTxt+'</text>':'');
+        return '<rect x="'+x+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h+'" rx="2.5" fill="'+fill+'"/>'
+          +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-3.5).toFixed(1)+'" text-anchor="middle" font-size="9" font-weight="800" fill="#0f2547" font-family="Outfit,sans-serif">'+dispV+'</text>'
+          +(lblTxt?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(TOP+HBAR+HLBL-2)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#64748b" font-family="Outfit,sans-serif">'+lblTxt+'</text>':'');
       }).join('');
       // Linea de TENDENCIA LINEAL (regresion minimos cuadrados) para tarjetas con showTrend
       var trendSVG='';
@@ -9972,7 +9976,7 @@ function buildOnePage() {
         var _den=n*_sxx-_sx*_sx;
         if(_den!==0){
           var _sl=(n*_sxy-_sx*_sy)/_den, _ic=(_sy-_sl*_sx)/n;
-          function _tY(val){ var h=Math.max(0,(val-mn2)/rng2*(HBAR-14)+14); return (HBAR-h).toFixed(1); }
+          function _tY(val){ var h=Math.max(0,(val-mn2)/rng2*(HBAR-14)+14); return (TOP+HBAR-h).toFixed(1); }
           var _x0=(bw/2).toFixed(1), _y0=_tY(_ic);
           var _xN=((n-1)*(bw+gap)+bw/2).toFixed(1), _yN=_tY(_sl*(n-1)+_ic);
           trendSVG='<line x1="'+_x0+'" y1="'+_y0+'" x2="'+_xN+'" y2="'+_yN+'" stroke="#00875A" stroke-width="2" stroke-dasharray="6,4" opacity=".95" stroke-linecap="round"/>';
@@ -13651,6 +13655,21 @@ function _applyAgoFix(){
     });
   }
   return changed;
+}
+
+// Semilla 3er lote (campo U de Reposición) para agosto — el dato existe en el
+// Excel del turno pero nunca se cargó en datos[], así que la tarjeta "3ER LOTE"
+// del One Page se saltaba agosto. Se re-aplica en cada carga por fecha.
+var V22_AGO_CANC = {"2026-08-03":94,"2026-08-04":53,"2026-08-05":73,"2026-08-06":153,"2026-08-07":143,"2026-08-10":93,"2026-08-11":143,"2026-08-12":111,"2026-08-13":99,"2026-08-14":111,"2026-08-17":90,"2026-08-18":189,"2026-08-19":158,"2026-08-20":232,"2026-08-21":159,"2026-08-24":167,"2026-08-25":213,"2026-08-26":311,"2026-08-27":214};
+function _applyAgoCancFix(){
+  if(typeof datos==='undefined' || !Array.isArray(datos)) return false;
+  var ch=false;
+  datos.forEach(function(d){
+    if(d && d.fecha && V22_AGO_CANC.hasOwnProperty(d.fecha) && (+d.U||0)!==V22_AGO_CANC[d.fecha]){
+      d.U=V22_AGO_CANC[d.fecha]; ch=true;
+    }
+  });
+  return ch;
 }
 
 // ══ Unified subnav management ══
