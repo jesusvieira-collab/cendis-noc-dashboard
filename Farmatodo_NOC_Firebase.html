@@ -1937,6 +1937,8 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       if (typeof HIST === 'undefined') return;
       HIST.length = 0;
       newData.forEach(h => HIST.push(h));
+      // Re-aplicar corrección de agosto real por si la nube trae los días derivados
+      try { if (typeof _applyAgoFix === 'function') _applyAgoFix(); } catch(e) {}
       CUR = HIST.length - 1;
       if (CUR >= 0) D = Object.assign({}, HIST[CUR]);
       try { if (typeof render === 'function') render(); } catch(e) {}
@@ -1949,6 +1951,8 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     setTimeout(function() {
       try { if (typeof renderDashboard === 'function') renderDashboard(); } catch(e) {}
       try { if (typeof render === 'function') render(); } catch(e) {}
+      // Nube ya sincronizada y re-renderizada: quitar la capa de carga
+      try { if (window._hideBootCover) window._hideBootCover(); } catch(e) {}
     }, 500);
 
     // Auto-carga de julio 2026 (idempotente: solo agrega los días que falten)
@@ -2159,6 +2163,39 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 </style>
 </head>
 <body>
+<!-- ══ CAPA DE CARGA (anti-parpadeo: cubre hasta que los datos esten listos) ══ -->
+<style>
+  #boot-cover{position:fixed;inset:0;z-index:99999;background:#001E62;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    color:#fff;font-family:'Segoe UI',Helvetica,Arial,sans-serif;
+    /* Failsafe 100% CSS: pase lo que pase con el JS, la capa desaparece a los 5s */
+    animation:bootCoverFail 0s 5s forwards;}
+  #boot-cover .bc-spin{width:46px;height:46px;border-radius:50%;
+    border:4px solid rgba(255,255,255,.22);border-top-color:#418FDE;
+    animation:bootSpin .9s linear infinite;}
+  #boot-cover .bc-t1{font-size:15px;font-weight:800;letter-spacing:.06em;opacity:.95;}
+  #boot-cover .bc-t2{font-size:12px;font-weight:500;opacity:.7;}
+  #boot-cover.hide{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .35s ease;}
+  @keyframes bootSpin{to{transform:rotate(360deg);}}
+  @keyframes bootCoverFail{to{opacity:0;visibility:hidden;pointer-events:none;}}
+</style>
+<div id="boot-cover">
+  <div class="bc-spin"></div>
+  <div class="bc-t1">CARGANDO DATOS…</div>
+  <div class="bc-t2">Sincronizando con la nube · Farmatodo CENDIS</div>
+</div>
+<script>
+  // Oculta la capa de carga en cuanto haya datos renderizados. Se llama desde
+  // el render inicial (localStorage) y desde fbInit (nube). Failsafe extra por JS.
+  window._hideBootCover=function(){
+    try{
+      var c=document.getElementById('boot-cover');
+      if(c && !c.classList.contains('hide')) c.classList.add('hide');
+    }catch(e){}
+  };
+  // Cinturon y tirantes: si algo falla, quitarla a los 5s tambien por JS.
+  setTimeout(window._hideBootCover, 5000);
+</script>
 <!-- ══ TOPBAR ══ -->
 <div class="topbar" id="main-topbar" style="display:flex">
   <!-- Logo + título + Menú de acciones -->
@@ -5808,6 +5845,8 @@ window.addEventListener('DOMContentLoaded',()=>{
   setTimeout(function(){
     try{initRopMesFilter();}catch(e){}
     try{renderDashboard();}catch(e){}
+    // Datos ya pintados desde localStorage: quitar la capa de carga si hay datos
+    try{ if(typeof datos!=='undefined' && datos.length>0 && window._hideBootCover) window._hideBootCover(); }catch(e){}
   },300);
 });
 
@@ -9914,13 +9953,15 @@ function buildOnePage() {
         var fill=invC?(above?'#dc2626':'#16a34a'):(above?clsColor:'rgba('+
           ({green:'16,185,129',blue:'37,99,235',purple:'124,58,237',amber:'245,158,11',red:'239,68,68'}[c.cls]||'100,116,139')+
           ',.28)');
-        var dispV=v>=1000?(v/1000).toFixed(1)+'K':v%1===0?Math.round(v).toString():(+v.toFixed(1)).toString();
-        var valY=y+h-5;
-        var tw=dispV.length*6.8;
+        // Etiqueta compacta: enteros (o "1.2K" para miles). Sin decimales sueltos
+        // para que 8 valores no se enciman en el ancho de la mini-barra.
+        var dispV=v>=1000?(v/1000).toFixed(1)+'K':Math.round(v).toString();
+        var valY=y+h-4;
+        var tw=dispV.length*5.2;
         var lblTxt=lbl[i]||'';
         return '<rect x="'+x+'" y="'+y+'" width="'+bw.toFixed(1)+'" height="'+h+'" rx="2.5" fill="'+fill+'"/>'
-          +'<rect x="'+(x+bw/2-tw/2-1).toFixed(1)+'" y="'+(valY-10.5).toFixed(1)+'" width="'+(tw+2).toFixed(1)+'" height="13" rx="2" fill="rgba(0,0,0,.45)"/>'
-          +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+valY+'" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff" font-family="monospace">'+dispV+'</text>'
+          +'<rect x="'+(x+bw/2-tw/2-1).toFixed(1)+'" y="'+(valY-8.5).toFixed(1)+'" width="'+(tw+2).toFixed(1)+'" height="10.5" rx="2" fill="rgba(0,0,0,.45)"/>'
+          +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+valY+'" text-anchor="middle" font-size="9" font-weight="800" fill="#ffffff" font-family="monospace">'+dispV+'</text>'
           +(lblTxt?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(HBAR+HLBL-1)+'" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1e293b" opacity=".6" font-family="Outfit,sans-serif">'+lblTxt+'</text>':'');
       }).join('');
       // Linea de TENDENCIA LINEAL (regresion minimos cuadrados) para tarjetas con showTrend
@@ -13535,6 +13576,8 @@ function _nocToHist(d){
 function mergeV22toHIST() {
   if(typeof HIST === 'undefined') return false;
   var changed=false;
+  // Corrección de agosto real (fuerza los datos del turno sobre los derivados)
+  try{ if(typeof _applyAgoFix==='function' && _applyAgoFix()) changed=true; }catch(e){}
   var byDate={};
   HIST.forEach(function(h){ if(h && h.date) byDate[h.date]=h; });
   // 1) Merge del seed hardcodeado (comportamiento previo)
@@ -13566,6 +13609,49 @@ function mergeV22toHIST() {
   return changed;
 }
 
+// ══════════════════════════════════════════════════════════════════
+// SEMILLA DE CORRECCIÓN — AGOSTO 2026 (datos reales del turno de Almacenaje)
+// Los 18 días de agosto se habían quedado DERIVADOS de Reposición (Demanda
+// BO/DYM = 0, ROP = 0 en días 20-26, fecha interna corrupta 2026-07-24 y
+// total dañado el día 24) porque nunca se pegó el turno real de Almacenaje.
+// Esta semilla, extraída del Excel "Tareas_Ejecutadas1.1 AGOSTO.xlsx", fuerza
+// los valores reales en cada carga para que NO vuelva a degradarse. Preserva
+// doors/zones/personal existentes; solo pisa los campos operativos y la fecha.
+// ══════════════════════════════════════════════════════════════════
+var V22_AGO_FIX = [{"date":"AGOSTO 3","fecha":"2026-08-03","quedan":117,"turno":463,"alm_pr":346,"alm_real":346,"post4pm":109,"may3d":0,"unidades":102321,"afect":0,"ventanas":177,"mm":8,"intransit":77,"canceladas":600,"unloc":0,"items":19,"items_cero":7,"bo_pend":4,"bo_cero":0,"dym_pend":15,"dym_cero":7,"rop_bo":203,"rop_dym":55,"rop":258,"dbo":322,"ddym":640,"total":1566,"zones":[{"z":"BO","l":1052,"t":3528},{"z":"BO/DYM","l":836,"t":2910},{"z":"DYM","l":838,"t":4033},{"z":"EA","l":4839,"t":10200},{"z":"O/S","l":296,"t":2135}]},{"date":"AGOSTO 4","fecha":"2026-08-04","quedan":153,"turno":594,"alm_pr":441,"alm_real":441,"post4pm":86,"may3d":0,"unidades":77373,"afect":0,"ventanas":176,"mm":8,"intransit":29,"canceladas":336,"unloc":0,"items":38,"items_cero":3,"bo_pend":11,"bo_cero":1,"dym_pend":27,"dym_cero":2,"rop_bo":114,"rop_dym":115,"rop":229,"dbo":350,"ddym":714,"total":1734,"zones":[{"z":"BO","l":104,"t":3528},{"z":"BO/DYM","l":846,"t":2910},{"z":"DYM","l":776,"t":4033},{"z":"EA","l":4654,"t":10200},{"z":"O/S","l":132,"t":2135}]},{"date":"AGOSTO 5","fecha":"2026-08-05","quedan":150,"turno":545,"alm_pr":395,"alm_real":395,"post4pm":0,"may3d":0,"unidades":175641,"afect":0,"ventanas":343,"mm":9,"intransit":15,"canceladas":492,"unloc":3,"items":0,"items_cero":0,"bo_pend":0,"bo_cero":0,"dym_pend":0,"dym_cero":0,"rop_bo":136,"rop_dym":105,"rop":241,"dbo":486,"ddym":655,"total":1777,"zones":[{"z":"BO","l":1287,"t":3528},{"z":"BO/DYM","l":743,"t":2910},{"z":"DYM","l":821,"t":4033},{"z":"EA","l":4749,"t":10200},{"z":"O/S","l":189,"t":2135}]},{"date":"AGOSTO 6","fecha":"2026-08-06","quedan":55,"turno":467,"alm_pr":412,"alm_real":412,"post4pm":134,"may3d":0,"unidades":66088,"afect":0,"ventanas":272,"mm":9,"intransit":4,"canceladas":348,"unloc":2,"items":16,"items_cero":0,"bo_pend":4,"bo_cero":0,"dym_pend":12,"dym_cero":0,"rop_bo":161,"rop_dym":177,"rop":338,"dbo":332,"ddym":638,"total":1720,"zones":[{"z":"BO","l":913,"t":3528},{"z":"BO/DYM","l":657,"t":2910},{"z":"DYM","l":843,"t":4033},{"z":"EA","l":4675,"t":10200},{"z":"O/S","l":116,"t":2135}]},{"date":"AGOSTO 7","fecha":"2026-08-07","quedan":67,"turno":793,"alm_pr":726,"alm_real":726,"post4pm":212,"may3d":0,"unidades":97160,"afect":0,"ventanas":442,"mm":2,"intransit":0,"canceladas":838,"unloc":6,"items":4,"items_cero":0,"bo_pend":1,"bo_cero":0,"dym_pend":3,"dym_cero":0,"rop_bo":0,"rop_dym":0,"rop":0,"dbo":518,"ddym":780,"total":2024,"zones":[{"z":"BO","l":884,"t":3528},{"z":"BO/DYM","l":631,"t":2910},{"z":"DYM","l":829,"t":4033},{"z":"EA","l":4852,"t":10200},{"z":"O/S","l":118,"t":2135}]},{"date":"AGOSTO 10","fecha":"2026-08-10","quedan":469,"turno":786,"alm_pr":317,"alm_real":317,"post4pm":312,"may3d":16,"unidades":299076,"afect":0,"ventanas":142,"mm":5,"intransit":33,"canceladas":333,"unloc":4,"items":19,"items_cero":1,"bo_pend":2,"bo_cero":0,"dym_pend":17,"dym_cero":1,"rop_bo":95,"rop_dym":243,"rop":338,"dbo":377,"ddym":687,"total":1719,"zones":[{"z":"BO","l":868,"t":3528},{"z":"BO/DYM","l":842,"t":2910},{"z":"DYM","l":829,"t":4033},{"z":"EA","l":4742,"t":10200},{"z":"O/S","l":231,"t":2135}]},{"date":"AGOSTO 11","fecha":"2026-08-11","quedan":278,"turno":654,"alm_pr":376,"alm_real":376,"post4pm":155,"may3d":16,"unidades":272210,"afect":0,"ventanas":343,"mm":5,"intransit":15,"canceladas":1112,"unloc":6,"items":12,"items_cero":1,"bo_pend":2,"bo_cero":0,"dym_pend":10,"dym_cero":1,"rop_bo":165,"rop_dym":234,"rop":399,"dbo":372,"ddym":646,"total":1793,"zones":[{"z":"BO","l":851,"t":3528},{"z":"BO/DYM","l":782,"t":2910},{"z":"DYM","l":706,"t":4033},{"z":"EA","l":4691,"t":10200},{"z":"O/S","l":167,"t":2135}]},{"date":"AGOSTO 12","fecha":"2026-08-12","quedan":284,"turno":632,"alm_pr":348,"alm_real":348,"post4pm":212,"may3d":2,"unidades":182520,"afect":0,"ventanas":429,"mm":12,"intransit":6,"canceladas":428,"unloc":4,"items":34,"items_cero":0,"bo_pend":7,"bo_cero":0,"dym_pend":27,"dym_cero":0,"rop_bo":217,"rop_dym":108,"rop":325,"dbo":409,"ddym":696,"total":1778,"zones":[{"z":"BO","l":745,"t":3528},{"z":"BO/DYM","l":654,"t":2910},{"z":"DYM","l":629,"t":4033},{"z":"EA","l":4781,"t":10200},{"z":"O/S","l":149,"t":2135}]},{"date":"AGOSTO 13","fecha":"2026-08-13","quedan":159,"turno":1214,"alm_pr":1055,"alm_real":1055,"post4pm":345,"may3d":2,"unidades":542,"afect":0,"ventanas":676,"mm":18,"intransit":0,"canceladas":736,"unloc":14,"items":20,"items_cero":1,"bo_pend":10,"bo_cero":0,"dym_pend":10,"dym_cero":1,"rop_bo":0,"rop_dym":0,"rop":0,"dbo":667,"ddym":842,"total":2564,"zones":[{"z":"BO","l":624,"t":3528},{"z":"BO/DYM","l":503,"t":2910},{"z":"DYM","l":565,"t":4033},{"z":"EA","l":4641,"t":10200},{"z":"O/S","l":195,"t":2135}]},{"date":"AGOSTO 14","fecha":"2026-08-14","quedan":188,"turno":993,"alm_pr":805,"alm_real":805,"post4pm":232,"may3d":4,"unidades":52466,"afect":0,"ventanas":833,"mm":21,"intransit":0,"canceladas":1094,"unloc":20,"items":12,"items_cero":0,"bo_pend":8,"bo_cero":0,"dym_pend":4,"dym_cero":0,"rop_bo":0,"rop_dym":0,"rop":0,"dbo":914,"ddym":715,"total":2434,"zones":[{"z":"BO","l":708,"t":3528},{"z":"BO/DYM","l":553,"t":2910},{"z":"DYM","l":716,"t":4033},{"z":"EA","l":4593,"t":10200},{"z":"O/S","l":193,"t":2135}]},{"date":"AGOSTO 17","fecha":"2026-08-17","quedan":411,"turno":788,"alm_pr":377,"alm_real":377,"post4pm":211,"may3d":1,"unidades":335506,"afect":0,"ventanas":266,"mm":6,"intransit":37,"canceladas":978,"unloc":4,"items":36,"items_cero":1,"bo_pend":7,"bo_cero":0,"dym_pend":29,"dym_cero":1,"rop_bo":101,"rop_dym":156,"rop":257,"dbo":334,"ddym":838,"total":1806,"zones":[{"z":"BO","l":892,"t":3528},{"z":"BO/DYM","l":665,"t":2910},{"z":"DYM","l":780,"t":4033},{"z":"EA","l":4887,"t":10200},{"z":"O/S","l":204,"t":2135}]},{"date":"AGOSTO 18","fecha":"2026-08-18","quedan":400,"turno":714,"alm_pr":314,"alm_real":314,"post4pm":193,"may3d":1,"unidades":396897,"afect":0,"ventanas":442,"mm":6,"intransit":26,"canceladas":752,"unloc":0,"items":53,"items_cero":2,"bo_pend":23,"bo_cero":0,"dym_pend":30,"dym_cero":2,"rop_bo":96,"rop_dym":0,"rop":96,"dbo":415,"ddym":921,"total":1746,"zones":[{"z":"BO","l":853,"t":3528},{"z":"BO/DYM","l":551,"t":2910},{"z":"DYM","l":739,"t":4033},{"z":"EA","l":4982,"t":10200},{"z":"O/S","l":185,"t":2135}]},{"date":"AGOSTO 19","fecha":"2026-08-19","quedan":294,"turno":1176,"alm_pr":882,"alm_real":882,"post4pm":388,"may3d":9,"unidades":123131,"afect":0,"ventanas":530,"mm":12,"intransit":12,"canceladas":729,"unloc":1,"items":7,"items_cero":0,"bo_pend":1,"bo_cero":0,"dym_pend":6,"dym_cero":0,"rop_bo":178,"rop_dym":38,"rop":216,"dbo":533,"ddym":1022,"total":2653,"zones":[{"z":"BO","l":785,"t":3528},{"z":"BO/DYM","l":393,"t":2910},{"z":"DYM","l":771,"t":4033},{"z":"EA","l":5088,"t":10200},{"z":"O/S","l":165,"t":2135}]},{"date":"AGOSTO 20","fecha":"2026-08-20","quedan":385,"turno":689,"alm_pr":304,"alm_real":304,"post4pm":114,"may3d":1,"unidades":232215,"afect":0,"ventanas":406,"mm":32,"intransit":37,"canceladas":1666,"unloc":1,"items":35,"items_cero":0,"bo_pend":21,"bo_cero":0,"dym_pend":14,"dym_cero":0,"rop_bo":0,"rop_dym":0,"rop":0,"dbo":407,"ddym":881,"total":1592,"zones":[{"z":"BO","l":575,"t":3528},{"z":"BO/DYM","l":471,"t":2910},{"z":"DYM","l":810,"t":4033},{"z":"EA","l":4956,"t":10200},{"z":"O/S","l":235,"t":2135}]},{"date":"AGOSTO 21","fecha":"2026-08-21","quedan":112,"turno":959,"alm_pr":847,"alm_real":847,"post4pm":242,"may3d":3,"unidades":33548,"afect":0,"ventanas":498,"mm":34,"intransit":6,"canceladas":1032,"unloc":7,"items":0,"items_cero":0,"bo_pend":0,"bo_cero":0,"dym_pend":0,"dym_cero":0,"rop_bo":0,"rop_dym":0,"rop":0,"dbo":575,"ddym":846,"total":2268,"zones":[{"z":"BO","l":531,"t":3528},{"z":"BO/DYM","l":315,"t":2910},{"z":"DYM","l":918,"t":4033},{"z":"EA","l":5014,"t":10200},{"z":"O/S","l":272,"t":2135}]},{"date":"AGOSTO 24","fecha":"2026-08-24","quedan":240,"turno":996,"alm_pr":756,"alm_real":756,"post4pm":198,"may3d":22,"unidades":64977,"afect":0,"ventanas":382,"mm":40,"intransit":0,"canceladas":1014,"unloc":0,"items":0,"items_cero":0,"bo_pend":0,"bo_cero":0,"dym_pend":0,"dym_cero":0,"rop_bo":0,"rop_dym":0,"rop":0,"dbo":494,"ddym":801,"total":2051,"zones":[{"z":"BO","l":135,"t":3528},{"z":"BO/DYM","l":465,"t":2910},{"z":"DYM","l":900,"t":4033},{"z":"EA","l":5002,"t":10200},{"z":"O/S","l":170,"t":2135}]},{"date":"AGOSTO 25","fecha":"2026-08-25","quedan":339,"turno":732,"alm_pr":393,"alm_real":393,"post4pm":97,"may3d":2,"unidades":1003928,"afect":0,"ventanas":286,"mm":44,"intransit":0,"canceladas":631,"unloc":0,"items":0,"items_cero":0,"bo_pend":0,"bo_cero":0,"dym_pend":0,"dym_cero":0,"rop_bo":0,"rop_dym":0,"rop":0,"dbo":435,"ddym":779,"total":1607,"zones":[{"z":"BO","l":588,"t":3528},{"z":"BO/DYM","l":379,"t":2910},{"z":"DYM","l":934,"t":4033},{"z":"EA","l":4831,"t":10200},{"z":"O/S","l":170,"t":2135}]},{"date":"AGOSTO 26","fecha":"2026-08-26","quedan":731,"turno":1233,"alm_pr":502,"alm_real":502,"post4pm":293,"may3d":2,"unidades":976578,"afect":0,"ventanas":452,"mm":42,"intransit":52,"canceladas":826,"unloc":10,"items":0,"items_cero":0,"bo_pend":0,"bo_cero":0,"dym_pend":0,"dym_cero":0,"rop_bo":0,"rop_dym":0,"rop":0,"dbo":511,"ddym":932,"total":1945,"zones":[{"z":"BO","l":600,"t":3528},{"z":"BO/DYM","l":393,"t":2910},{"z":"DYM","l":1026,"t":4033},{"z":"EA","l":4696,"t":10200},{"z":"O/S","l":213,"t":2135}]}];
+
+// Aplica la corrección de agosto sobre HIST. Devuelve true si cambió algo.
+function _applyAgoFix(){
+  if(typeof HIST==='undefined' || !Array.isArray(V22_AGO_FIX)) return false;
+  var byDate={}; HIST.forEach(function(h){ if(h&&h.date) byDate[h.date]=h; });
+  var changed=false;
+  V22_AGO_FIX.forEach(function(fx){
+    var ex=byDate[fx.date];
+    if(ex){
+      // ¿Ya está correcto? (dbo/ddym reales y fecha buena) → no marcar cambio
+      var needs = (ex._derivedFromNoc===true) || (ex.dbo!==fx.dbo) || (ex.ddym!==fx.ddym) ||
+                  (ex.total!==fx.total) || (ex.fecha!==fx.fecha) || (ex.rop!==fx.rop) ||
+                  (ex.intransit!==fx.intransit);
+      // Pisar SOLO campos operativos; preservar doors/zones/personal existentes
+      for(var k in fx){ ex[k]=fx[k]; }
+      ex._derivedFromNoc=false;   // ya es dato real
+      if(needs) changed=true;
+    } else {
+      var rec=Object.assign({}, fx); rec._derivedFromNoc=false;
+      HIST.push(rec); byDate[fx.date]=rec; changed=true;
+    }
+  });
+  if(changed){
+    HIST.sort(function(a,b){
+      var ORDER=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+      var am=(a.date||'').split(' ')[0], bm=(b.date||'').split(' ')[0];
+      var ai=ORDER.indexOf(am), bi=ORDER.indexOf(bm);
+      if(ai!==bi) return ai-bi;
+      return parseInt((a.date||'').split(' ')[1]||0)-parseInt((b.date||'').split(' ')[1]||0);
+    });
+  }
+  return changed;
+}
 
 // ══ Unified subnav management ══
 var SUBNAVS = {
