@@ -1781,6 +1781,9 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       if (typeof datos !== 'undefined') {
         datos.length = 0;
         nocData.forEach(d => datos.push(d));
+        // Separar el mes por FECHA (corrige registros con mes mal etiquetado,
+        // ej. una jornada de septiembre guardada como agosto) y persistir si cambió.
+        try { if (typeof _normalizeDatosMes==='function' && _normalizeDatosMes()>0 && typeof window.fbSave==='function') window.fbSave('noc_datos','main',datos); } catch(e) {}
         // El selector "Filtrar periodo" (mesSelect) se construye una sola vez al
         // cargar la pagina (antes de que llegaran estos datos de Firebase), asi
         // que sin esta llamada se queda desactualizado (ej. "Julio (8 dias)")
@@ -1905,6 +1908,8 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       if (typeof datos === 'undefined') return;
       datos.length = 0;
       newData.forEach(d => datos.push(d));
+      // Separar el mes por FECHA (auto-corrige meses mal etiquetados en tiempo real)
+      try { if (typeof _normalizeDatosMes==='function') _normalizeDatosMes(); } catch(e) {}
       // 3er lote de agosto (campo U) por si la nube trae los registros sin U
       try { if (typeof _applyAgoCancFix==='function') _applyAgoCancFix(); } catch(e) {}
       // Mismo motivo que en la carga inicial: sin esto, el selector de periodo
@@ -3778,7 +3783,7 @@ function guardarRegistro() {
   }
   const D=B+C, G=E+F, I=D+H, K=I-J;
   const L=I>0?K/I:0, N=M>0?G/M:0, O=N/7, P=M>0?K/M:0, Q=M>0?K/M/7:0, R=D>0?G/D:0;
-  datos.push({fecha, mes:(document.getElementById('f_mes')||document.getElementById('u_mes')||{value:'JUN'}).value, B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,
+  datos.push({fecha, mes:_mesAbrFromFecha(fecha), B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,
               rop_paletas:ropPaletas, ventanas:ventanas, rop_area:ropArea});
   datos.sort((a,b)=>a.fecha.localeCompare(b.fecha));
   save(); toast('✓ Registro guardado · '+fecha+(ropPaletas?' · ROP: '+ropPaletas+' pal.':'')+(ventanas?' · Ventanas: '+ventanas:''));
@@ -4062,6 +4067,27 @@ function mkPlugins(opts){
 // ═══════════════════════════════════════════════════
 const MORD=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
 const MNOM={ENE:'Enero',FEB:'Febrero',MAR:'Marzo',ABR:'Abril',MAY:'Mayo',JUN:'Junio',JUL:'Julio',AGO:'Agosto',SEP:'Septiembre',OCT:'Octubre',NOV:'Noviembre',DIC:'Diciembre'};
+// ── Separación de mes AUTOMÁTICA a partir de la fecha ──
+// El mes de cada jornada SIEMPRE se deriva de su fecha (no de un selector), en
+// formato canónico de 3 letras (ENE..DIC). Acepta fecha ISO "2026-09-01" o
+// "DD-MM-AAAA" (01-09-2026). Así un registro de septiembre nunca cae en agosto.
+function _mesAbrFromFecha(f){
+  var A=['','ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+  f=String(f||'').trim(); var m=0;
+  var iso=f.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(iso){ m=parseInt(iso[2],10); }
+  else { var dmy=f.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/); if(dmy){ m=parseInt(dmy[2],10); } }
+  return A[m]||'';
+}
+// Recorre datos[] y corrige el campo .mes de cualquier jornada cuyo mes no
+// coincida con su fecha (auto-sanador: arregla cargas históricas mal etiquetadas).
+function _normalizeDatosMes(){
+  if(typeof datos==='undefined'||!Array.isArray(datos)) return 0;
+  var ch=0;
+  datos.forEach(function(d){ if(!d||!d.fecha) return; var mm=_mesAbrFromFecha(d.fecha); if(mm && d.mes!==mm){ d.mes=mm; ch++; } });
+  return ch;
+}
+try{ window._mesAbrFromFecha=_mesAbrFromFecha; window._normalizeDatosMes=_normalizeDatosMes; }catch(e){}
 
 function actualizarMeses(){
   // Poblar selector de AÑO (independiente de Reposición)
@@ -13390,7 +13416,7 @@ function guardarUnified(){
     var Dc=B+C, Gc=E+F, Ic=Dc+H, Kc=Ic-J;
     var Lc=Ic>0?Kc/Ic:0, Nc=M>0?Gc/M:0, Oc=Nc/7, Pc=M>0?Kc/M:0, Qc=M>0?Kc/M/7:0, Rc=Dc>0?Gc/Dc:0;
     datos=datos.filter(function(d){return d.fecha!==fecha;});
-    datos.push({fecha:fecha, mes:mes, B:B,C:C,D:Dc,E:E,F:F,G:Gc,H:H,I:Ic,J:J,K:Kc,
+    datos.push({fecha:fecha, mes:_mesAbrFromFecha(fecha), B:B,C:C,D:Dc,E:E,F:F,G:Gc,H:H,I:Ic,J:J,K:Kc,
                 L:Lc,M:M,N:Nc,O:Oc,P:Pc,Q:Qc,R:Rc,S:S_in,T:T,U:U,
                 rop_paletas:rop_paletas, ventanas:ventanas, rop_area:rop_area,
                 quedan:quedan, pr_turno:turno, pr_alm:alm_pr, post4pm:post4pm,
