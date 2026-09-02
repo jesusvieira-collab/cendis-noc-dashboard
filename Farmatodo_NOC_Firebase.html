@@ -2157,10 +2157,10 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 .op-titular{ background:#0A2E6E; color:#fff; padding:12px 44px; font-size:14px; line-height:1.45; font-family:'Inter','Outfit',sans-serif; }
 .op-kgrid{ gap:12px !important; padding:0 30px 22px !important; }
 .op-kcard{ padding:13px 16px 11px !important; }
-.op-kcard-value{ font-size:38px !important; margin-bottom:3px !important; }
-.op-kcard-title{ font-size:12.5px !important; margin-bottom:6px !important; letter-spacing:.06em !important; }
-.op-kcard-desc{ font-size:13px !important; }
-.op-kcard-note{ font-size:13px !important; padding-top:7px !important; line-height:1.5 !important; }
+.op-kcard-value{ font-size:41px !important; margin-bottom:3px !important; }
+.op-kcard-title{ font-size:13.5px !important; margin-bottom:6px !important; letter-spacing:.05em !important; }
+.op-kcard-desc{ font-size:14px !important; }
+.op-kcard-note{ font-size:14px !important; padding-top:7px !important; line-height:1.5 !important; }
 .op-kcard-progress-track{ height:4px !important; margin:6px 0 !important; }
 .op-kcard-ring{ width:26px !important; height:26px !important; font-size:13px !important; }
 @media(max-width:820px){ .op-titular{ padding:9px 14px; font-size:12px; } .op-kgrid{ grid-template-columns:1fr !important; padding:0 12px 16px !important; } }
@@ -3185,6 +3185,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     </div>
     <div style="display:flex;gap:8px">
       <button class="op-btn-png" onclick="opExportPNG()">🖼 PNG</button>
+      <button class="op-btn-png" onclick="opOnePageMobile()">📱 PNG Celular</button>
       <button class="op-btn-pdf" onclick="window.print()">📄 PDF</button>
     </div>
   </div>
@@ -10021,8 +10022,8 @@ function buildOnePage() {
         var dispV=v>=1000?(v/1000).toFixed(1)+'K':(v%1===0?v.toString():v.toFixed(2));
         var lblTxt=lbl[i]||'';
         return '<rect x="'+x+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h+'" rx="2.5" fill="'+fill+'"/>'
-          +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-3.5).toFixed(1)+'" text-anchor="middle" font-size="10" font-weight="800" fill="#0f2547" font-family="Outfit,sans-serif">'+dispV+'</text>'
-          +(lblTxt?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(TOP+HBAR+HLBL-2)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#64748b" font-family="Outfit,sans-serif">'+lblTxt+'</text>':'');
+          +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-3.5).toFixed(1)+'" text-anchor="middle" font-size="11" font-weight="800" fill="#0f2547" font-family="Outfit,sans-serif">'+dispV+'</text>'
+          +(lblTxt?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(TOP+HBAR+HLBL-2)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#64748b" font-family="Outfit,sans-serif">'+lblTxt+'</text>':'');
       }).join('');
       // Linea de TENDENCIA LINEAL (regresion minimos cuadrados) para tarjetas con showTrend
       var trendSVG='';
@@ -10128,6 +10129,61 @@ function opDoExport(el) {
     a.href = canvas.toDataURL('image/png');
     a.click();
   });
+}
+// One Page Almacenaje → 2 hojas para celular (mismo corte balanceado que Reposición)
+async function opOnePageMobile(){
+  var src=document.getElementById('op-report');
+  if(!src){ if(typeof toast==='function')toast('Abre primero el One Page de Almacenaje','warn'); return; }
+  if(typeof html2canvas==='undefined'){
+    var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload=function(){ opOnePageMobile(); }; document.head.appendChild(s); return;
+  }
+  if(typeof toast==='function') toast('Generando 2 hojas para celular...');
+  var W=760;
+  function badge(txt){ return '<div style="text-align:center;font-family:Inter,Outfit,sans-serif;font-size:16px;font-weight:800;color:#0D2D6B;letter-spacing:.06em;margin:10px 0 4px;">'+txt+'</div>'; }
+  function prep(clone){
+    clone.style.maxWidth=W+'px'; clone.style.width=W+'px'; clone.style.margin='0'; clone.style.boxShadow='none';
+    var g=clone.querySelector('.op-kgrid'); if(g){ g.style.gridTemplateColumns='repeat(2,1fr)'; }
+    clone.querySelectorAll('select,button,.dl-btn,.btn,.op-btn-png,.op-btn-pdf').forEach(function(b){ b.remove(); });
+  }
+  function gridOf(clone){ return clone.querySelector('.op-kgrid'); }
+  // 1) corte DINÁMICO balanceado: mide filas reales a 2 columnas
+  var mitad=6;
+  try{
+    var mClone=src.cloneNode(true); prep(mClone);
+    var md=document.createElement('div'); md.style.cssText='position:fixed;left:-99999px;top:0;z-index:-1;background:#fff;padding:14px;';
+    md.appendChild(mClone); document.body.appendChild(md);
+    await new Promise(function(r){ setTimeout(r,180); });
+    var mGrid=gridOf(mClone); var mCards=mGrid?Array.from(mGrid.children):[];
+    if(mCards.length>=4){
+      var rows=[];
+      mCards.forEach(function(c,idx){ var rc=c.getBoundingClientRect(),t=Math.round(rc.top),h=rc.height||300; var row=rows[rows.length-1]; if(row&&Math.abs(t-row.top)<10){row.h=Math.max(row.h,h);row.end=idx+1;}else rows.push({top:t,h:h,end:idx+1}); });
+      var totalH=rows.reduce(function(a,r){return a+r.h;},0),acc=0,bestDiff=Infinity;
+      mitad=rows.length?rows[Math.max(0,Math.ceil(rows.length/2)-1)].end:6;
+      for(var ri=0; ri<rows.length-1; ri++){ acc+=rows[ri].h; var diff=Math.abs(acc-(totalH-acc)); if(diff<bestDiff){ bestDiff=diff; mitad=rows[ri].end; } }
+    }
+    document.body.removeChild(md);
+  }catch(_e){ mitad=6; }
+  async function hoja(which){
+    var clone=src.cloneNode(true); prep(clone);
+    var grid=gridOf(clone); var cards=grid?Array.from(grid.children):[];
+    if(grid) grid.insertAdjacentHTML('beforebegin', badge(which===1?'HOJA 1 / 2':'HOJA 2 / 2'));
+    if(which===1){
+      cards.slice(mitad).forEach(function(c){ c.remove(); });
+      var nt=clone.querySelector('#op-notes-text'); if(nt){ var box=nt.closest('div'); (box||nt).remove(); } // notas solo en hoja 2
+    } else {
+      cards.slice(0,mitad).forEach(function(c){ c.remove(); });
+    }
+    var holder=document.createElement('div'); holder.style.cssText='position:fixed;left:-99999px;top:0;z-index:-1;background:#fff;padding:14px;';
+    holder.appendChild(clone); document.body.appendChild(holder);
+    await new Promise(function(r){ setTimeout(r,150); });
+    var cv=await html2canvas(clone,{backgroundColor:'#ffffff',scale:3,logging:false,useCORS:true});
+    document.body.removeChild(holder);
+    var a=document.createElement('a'); a.href=cv.toDataURL('image/png');
+    a.download='Farmatodo_Almacenaje_Celular_Hoja'+which+'de2_'+new Date().toISOString().split('T')[0]+'.png'; a.click();
+  }
+  try{ await hoja(1); await new Promise(function(r){ setTimeout(r,700); }); await hoja(2); if(typeof toast==='function') toast('✓ 2 hojas descargadas'); }
+  catch(e){ if(typeof toast==='function') toast('Error al generar hojas','err'); console.error(e); }
 }
 
 /* ─── CANVAS CARDS ─── */
