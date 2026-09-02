@@ -2769,7 +2769,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     <div class="ccard-hdr"><div><div class="ccard-title">Cuadro anual por mes — para el comparativo</div><div class="ccard-sub">Escribe el monto dañado total de cada mes por departamento y guarda. Ideal para cargar lo que va del año de una sola vez.</div></div>
       <div class="ccard-actions"><button onclick="guardarCuadroMerma()" class="btn btn-primary" style="padding:8px 16px;font-size:12px;font-weight:800;background:#00875A;border:none;color:#fff;border-radius:8px;cursor:pointer;">💾 Guardar cuadro</button></div></div>
     <div id="merma_cuadro" style="overflow:auto;"></div>
-    <div style="font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.5;">Nota: al guardar, el valor del cuadro <b>reemplaza</b> el total de ese mes/departamento (deja la celda vacía para no tocar ese mes). Usa este cuadro para cargar meses completos; el formulario de arriba es para cargas semanales del mes en curso.</div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.5;">Nota: al guardar, el valor del cuadro <b>reemplaza</b> el total de ese mes/departamento. Deja la celda <b>vacía</b> para no tocar ese mes; escribe <b>0</b> o usa el botón <b>🗑</b> para <b>limpiar</b> un mes (por ejemplo un mes que aún no manejas). El One Page muestra el <b>último mes con datos</b>. Usa este cuadro para cargar meses completos; el formulario de arriba es para cargas semanales del mes en curso.</div>
     <span id="merma_cuadro_msg" style="font-size:11px;font-weight:700;color:#00875A;"></span>
   </div>
 
@@ -4942,12 +4942,17 @@ window._applyMermaSeed=_applyMermaSeed;
 _applyMermaSeed();
 function _mermaMes(fecha){ var m=parseInt((fecha||'').slice(5,7),10); return MERMA_MESI[m-1]||''; }
 function _mermaFmt(n){ return Math.round(n||0).toLocaleString('es-VE'); }
-function _saveMerma(){
+function _saveMerma(touched){
+  // touched: mapa opcional {"MES|DEP":1} de celdas que se acaban de EDITAR o LIMPIAR
+  // a propósito. Al fusionar con lo remoto NO se resucitan registros de esas
+  // celdas (si no, una edición/limpieza "revivía" desde Firebase y parecía que
+  // no se podía editar). Para el resto de meses/dep sí se conservan los remotos
+  // (seguridad multi-dispositivo).
   try{ localStorage.setItem('ftd_merma', JSON.stringify(MERMA)); }catch(e){}
   try{
     if(typeof window.fbSave==='function' && typeof window.fbLoad==='function'){
       window.fbLoad('merma_data','main').then(function(remote){
-        if(Array.isArray(remote)){ var ids={}; MERMA.forEach(function(x){ids[x.id]=1;}); remote.forEach(function(r){ if(r && !ids[r.id]) MERMA.push(r); }); }
+        if(Array.isArray(remote)){ var ids={}; MERMA.forEach(function(x){ids[x.id]=1;}); remote.forEach(function(r){ if(!r) return; if(touched && touched[r.mes+'|'+r.dep]) return; if(!ids[r.id]) MERMA.push(r); }); }
         window.fbSave('merma_data','main',MERMA);
       }).catch(function(){ window.fbSave('merma_data','main',MERMA); });
     }
@@ -5009,7 +5014,7 @@ function renderCuadroMerma(){
     var almM=accM[ab+'|ALM']||0, repM=accM[ab+'|REP']||0, almU=accU[ab+'|ALM']||0, repU=accU[ab+'|REP']||0, tot=almM+repM;
     var esActual=(i===mesActualIdx);
     h+='<tr style="border-bottom:1px solid rgba(0,48,135,.08);'+(esActual?'background:rgba(0,71,200,.05);':'')+'">'
-      +'<td style="text-align:left;padding:6px 10px;font-weight:700;color:#001E62;">'+(MNL[ab]||ab)+(esActual?' <span style="font-size:9px;color:#0047C8;">(actual)</span>':'')+'</td>'
+      +'<td style="text-align:left;padding:6px 10px;font-weight:700;color:#001E62;white-space:nowrap;">'+(MNL[ab]||ab)+(esActual?' <span style="font-size:9px;color:#0047C8;">(actual)</span>':'')+' <button type="button" onclick="limpiarMesMerma(\''+ab+'\')" title="Limpiar merma de este mes (Almacenaje y Reposición)" style="border:none;background:transparent;color:#C0143C;cursor:pointer;font-size:12px;padding:0 2px;line-height:1;">🗑</button></td>'
       +'<td style="padding:5px 6px;text-align:right;">'+inp('mc_ALMU_'+ab,almU)+'</td>'
       +'<td style="padding:5px 6px;text-align:right;">'+inp('mc_ALM_'+ab,almM)+'</td>'
       +'<td style="padding:5px 6px;text-align:right;">'+inp('mc_REPU_'+ab,repU)+'</td>'
@@ -5024,14 +5029,14 @@ function guardarCuadroMerma(){
   var yr=(new Date()).getFullYear();
   var mesNum={ENE:'01',FEB:'02',MAR:'03',ABR:'04',MAY:'05',JUN:'06',JUL:'07',AGO:'08',SEP:'09',OCT:'10',NOV:'11',DIC:'12'};
   var mesActualIdx=(new Date()).getMonth();
-  var cambios=0;
+  var cambios=0; var touched={};
   MERMA_MESI.forEach(function(ab,i){
     if(i>mesActualIdx) return;
     ['ALM','REP'].forEach(function(dep){
       var elM=document.getElementById('mc_'+dep+'_'+ab);      // monto $
       var elU=document.getElementById('mc_'+dep+'U_'+ab);     // unidades
       var rawM=elM?(elM.value||'').trim():'', rawU=elU?(elU.value||'').trim():'';
-      if(rawM===''&&rawU==='') return; // ambas vacías: no tocar ese mes/dep
+      if(rawM===''&&rawU==='') return; // ambas vacías: no tocar ese mes/dep (usa 🗑 para limpiar)
       var pN=function(x){ return (typeof _parseNumES==='function')?_parseNumES(x):parseFloat(x); };
       var valM=rawM===''?0:pN(rawM); var valU=rawU===''?0:pN(rawU);
       if(isNaN(valM)||valM<0) valM=0; if(isNaN(valU)||valU<0) valU=0;
@@ -5039,16 +5044,31 @@ function guardarCuadroMerma(){
       MERMA=MERMA.filter(function(r){ return !(r && r.mes===ab && r.dep===dep); });
       window.MERMA=MERMA;
       MERMA.push({ id:'mrow_'+ab+'_'+dep, fecha:yr+'-'+mesNum[ab]+'-28', mes:ab, dep:dep, monto:Math.round(valM), unid:Math.round(valU) });
+      touched[ab+'|'+dep]=1; // marcar para que la edición persista (no se resucite desde remoto)
       cambios++;
     });
   });
   if(cambios>0){
-    _saveMerma(); renderMerma(); renderCuadroMerma();
+    _saveMerma(touched); renderMerma(); renderCuadroMerma();
     var m=document.getElementById('merma_cuadro_msg'); if(m){ m.textContent='✓ Cuadro guardado ('+cambios+' celdas)'; setTimeout(function(){m.textContent='';},4000); }
     try{ var er=document.getElementById('execReport'); if(typeof renderEjecutivo==='function' && er && er.offsetParent!==null) renderEjecutivo(); }catch(e){}
   } else {
     var m2=document.getElementById('merma_cuadro_msg'); if(m2){ m2.textContent='No hay celdas con valor para guardar'; setTimeout(function(){m2.textContent='';},3000); }
   }
+}
+function limpiarMesMerma(ab){
+  // Borra la merma de un mes (Almacenaje y Reposición) para corregir cargas
+  // erróneas. Persiste de verdad: marca ese mes como "touched" para que no se
+  // resucite desde Firebase.
+  var MNL={ENE:'Enero',FEB:'Febrero',MAR:'Marzo',ABR:'Abril',MAY:'Mayo',JUN:'Junio',JUL:'Julio',AGO:'Agosto',SEP:'Septiembre',OCT:'Octubre',NOV:'Noviembre',DIC:'Diciembre'};
+  if(!confirm('¿Limpiar la merma de '+(MNL[ab]||ab)+' (Almacenaje y Reposición)? Se quita del comparativo y del One Page. Esta acción se puede volver a cargar luego.')) return;
+  var before=MERMA.length;
+  MERMA=MERMA.filter(function(r){ return !(r && r.mes===ab); });
+  window.MERMA=MERMA;
+  var touched={}; touched[ab+'|ALM']=1; touched[ab+'|REP']=1;
+  _saveMerma(touched); renderMerma(); renderCuadroMerma();
+  var m=document.getElementById('merma_cuadro_msg'); if(m){ m.textContent='✓ '+(MNL[ab]||ab)+' limpiado ('+(before-MERMA.length)+' registro(s))'; setTimeout(function(){m.textContent='';},4000); }
+  try{ var er=document.getElementById('execReport'); if(typeof renderEjecutivo==='function' && er && er.offsetParent!==null) renderEjecutivo(); }catch(e){}
 }
 var _mermaCharts={};
 function _mermaAreaChart(cv, id, labels, data, label, accentM, accentB, isU){
@@ -9944,7 +9964,7 @@ function buildOnePage() {
       var _A2L={ENE:'Ene',FEB:'Feb',MAR:'Mar',ABR:'Abr',MAY:'May',JUN:'Jun',JUL:'Jul',AGO:'Ago',SEP:'Sep',OCT:'Oct',NOV:'Nov',DIC:'Dic'};
       var byAbbr={}, byAbbrU={};
       (typeof MERMA!=='undefined'?MERMA:[]).forEach(function(r){ if(r&&r.dep==='ALM'&&r.mes){ byAbbr[r.mes]=(byAbbr[r.mes]||0)+(+r.monto||0); byAbbrU[r.mes]=(byAbbrU[r.mes]||0)+(+r.unid||0); } });
-      var months=_MMESI.filter(function(a){return byAbbr[a]!=null;});
+      var months=_MMESI.filter(function(a){return (byAbbr[a]||0)>0;}); // solo meses con merma real (>0): ignora placeholders en 0 y muestra el último mes cargado
       var raw=months.map(function(a){return Math.round(byAbbr[a]);});
       var mx=Math.max.apply(null,raw.concat([1]));
       var spark=raw.map(function(v){return mx>0?v/mx:0.1;});
