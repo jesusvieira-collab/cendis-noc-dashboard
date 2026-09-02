@@ -2157,10 +2157,10 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 .op-titular{ background:#0A2E6E; color:#fff; padding:12px 44px; font-size:14px; line-height:1.45; font-family:'Inter','Outfit',sans-serif; }
 .op-kgrid{ gap:12px !important; padding:0 30px 22px !important; }
 .op-kcard{ padding:13px 16px 11px !important; }
-.op-kcard-value{ font-size:33px !important; margin-bottom:2px !important; }
-.op-kcard-title{ font-size:11px !important; margin-bottom:5px !important; letter-spacing:.06em !important; }
-.op-kcard-desc{ font-size:11px !important; }
-.op-kcard-note{ font-size:11px !important; padding-top:6px !important; line-height:1.42 !important; }
+.op-kcard-value{ font-size:38px !important; margin-bottom:3px !important; }
+.op-kcard-title{ font-size:12.5px !important; margin-bottom:6px !important; letter-spacing:.06em !important; }
+.op-kcard-desc{ font-size:13px !important; }
+.op-kcard-note{ font-size:13px !important; padding-top:7px !important; line-height:1.5 !important; }
 .op-kcard-progress-track{ height:4px !important; margin:6px 0 !important; }
 .op-kcard-ring{ width:26px !important; height:26px !important; font-size:13px !important; }
 @media(max-width:820px){ .op-titular{ padding:9px 14px; font-size:12px; } .op-kgrid{ grid-template-columns:1fr !important; padding:0 12px 16px !important; } }
@@ -9978,7 +9978,7 @@ function buildOnePage() {
       var any=months.length>0;
       var deltaHtml=(any&&prev>0)?opDelta(cur,prev,true,_A2L[prevAb]||prevAb):'';
       return {
-        num:'9.', icon:'🗑️', title:'MERMA / DAÑADO — ALMACENAJE', cls:'red',
+        num:'9.', icon:'🗑️', title:'MERMA / DAÑADO — ALMACENAJE', cls:'red', full:true,
         value: any ? ('$'+opFmt(cur,0)) : '—', vcls:'amber',
         desc: any ? (opFmt(curU,0)+' uds dañadas · '+curFull) : 'Monto y unidades dañadas del mes · carga semanal',
         progress: 0,
@@ -10021,8 +10021,8 @@ function buildOnePage() {
         var dispV=v>=1000?(v/1000).toFixed(1)+'K':(v%1===0?v.toString():v.toFixed(2));
         var lblTxt=lbl[i]||'';
         return '<rect x="'+x+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h+'" rx="2.5" fill="'+fill+'"/>'
-          +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-3.5).toFixed(1)+'" text-anchor="middle" font-size="9" font-weight="800" fill="#0f2547" font-family="Outfit,sans-serif">'+dispV+'</text>'
-          +(lblTxt?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(TOP+HBAR+HLBL-2)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#64748b" font-family="Outfit,sans-serif">'+lblTxt+'</text>':'');
+          +'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(y-3.5).toFixed(1)+'" text-anchor="middle" font-size="10" font-weight="800" fill="#0f2547" font-family="Outfit,sans-serif">'+dispV+'</text>'
+          +(lblTxt?'<text x="'+(x+bw/2).toFixed(1)+'" y="'+(TOP+HBAR+HLBL-2)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#64748b" font-family="Outfit,sans-serif">'+lblTxt+'</text>':'');
       }).join('');
       // Linea de TENDENCIA LINEAL (regresion minimos cuadrados) para tarjetas con showTrend
       var trendSVG='';
@@ -10066,6 +10066,26 @@ function buildOnePage() {
       }
     }
 
+    var deltaRow = c.delta?'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'+c.delta+vsAnualHtml+'</div>':'';
+    if(c.full){
+      // Tarjeta a todo el ancho (grid-column:1/-1): layout interno de 2 columnas
+      // (texto a la izquierda, barras a la derecha) para llenar el ancho sin
+      // dejar recuadro blanco. En móvil se apila por flex-wrap.
+      return '<div class="op-kcard op-kcard--full" style="grid-column:1/-1;">'+
+        '<div class="op-kcard-accent '+c.cls+'"></div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:16px 34px;align-items:center;">'+
+          '<div style="flex:1 1 260px;min-width:240px;">'+
+            '<div class="op-kcard-num">'+c.num+'<span class="op-kcard-badge">'+c.icon+'</span></div>'+
+            '<div class="op-kcard-headrow"><div class="op-kcard-ring '+c.cls+'">'+c.icon+'</div><div class="op-kcard-title" style="margin-bottom:0;">'+c.title+'</div></div>'+
+            '<div class="op-kcard-value">'+c.value+'</div>'+
+            '<div class="op-kcard-desc">'+c.desc+'</div>'+
+            deltaRow+
+          '</div>'+
+          '<div style="flex:2 1 420px;min-width:300px;">'+sparkSVG+'</div>'+
+        '</div>'+
+        '<div class="op-kcard-note">'+c.note+'</div>'+
+      '</div>';
+    }
     return '<div class="op-kcard">'+
       '<div class="op-kcard-accent '+c.cls+'"></div>'+
       '<div class="op-kcard-num">'+c.num+'<span class="op-kcard-badge">'+c.icon+'</span></div>'+
@@ -10077,7 +10097,7 @@ function buildOnePage() {
       '<div class="op-kcard-desc">'+c.desc+'</div>'+
       '<div class="op-kcard-progress-track"><div class="op-kcard-progress-fill '+c.cls+'" style="width:'+pct+'%;"></div></div>'+
       sparkSVG+
-      (c.delta?'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'+c.delta+vsAnualHtml+'</div>':'')+
+      deltaRow+
       '<div class="op-kcard-note">'+c.note+'</div>'+
     '</div>';
   }).join('');
