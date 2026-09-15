@@ -13886,13 +13886,21 @@ function _applyAgoFix(){
 // Excel del turno pero nunca se cargó en datos[], así que la tarjeta "3ER LOTE"
 // del One Page se saltaba agosto. Se re-aplica en cada carga por fecha.
 var V22_AGO_CANC = {"2026-08-03":94,"2026-08-04":53,"2026-08-05":73,"2026-08-06":153,"2026-08-07":143,"2026-08-10":93,"2026-08-11":143,"2026-08-12":111,"2026-08-13":99,"2026-08-14":111,"2026-08-17":90,"2026-08-18":189,"2026-08-19":158,"2026-08-20":232,"2026-08-21":159,"2026-08-24":167,"2026-08-25":213,"2026-08-26":311,"2026-08-27":214};
+// Semilla 3er lote de SEPTIEMBRE — extraída del Excel del turno. Se incrusta igual
+// que agosto porque el merge de save() deja ganar a lo local y una pestaña con el
+// dato viejo (U=0) puede pisar la carga en la nube; re-aplicándola en cada carga,
+// cualquier cliente restablece el valor correcto y nadie lo puede borrar de forma
+// permanente.
+var V22_SEP_CANC = {"2026-09-01":171,"2026-09-02":227,"2026-09-03":133,"2026-09-04":311,"2026-09-07":76,"2026-09-08":214,"2026-09-09":149,"2026-09-10":142,"2026-09-11":373};
 function _applyAgoCancFix(){
   if(typeof datos==='undefined' || !Array.isArray(datos)) return false;
   var ch=false;
+  var _MAPS=[V22_AGO_CANC, V22_SEP_CANC];
   datos.forEach(function(d){
-    if(d && d.fecha && V22_AGO_CANC.hasOwnProperty(d.fecha) && (+d.U||0)!==V22_AGO_CANC[d.fecha]){
-      d.U=V22_AGO_CANC[d.fecha]; ch=true;
-    }
+    if(!d || !d.fecha) return;
+    _MAPS.forEach(function(MAP){
+      if(MAP.hasOwnProperty(d.fecha) && (+d.U||0)!==MAP[d.fecha]){ d.U=MAP[d.fecha]; ch=true; }
+    });
   });
   return ch;
 }
