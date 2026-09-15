@@ -5491,11 +5491,13 @@ function renderEjecutivo(){
   const _sk1 = _skByMes(dd=>+(dd.reduce((s,d)=>s+d.L,0)/dd.length*100).toFixed(1)); // Cumplim %
   const _sk2 = _skByMes(dd=>Math.round(dd.reduce((s,d)=>s+(d.J||0),0)/dd.length));  // Intransit
   const _sk3 = _skByMes(dd=>Math.round(dd.reduce((s,d)=>s+(d.T||0),0)/dd.length));  // Canceladas
-  // 3er lote: solo meses con 3er lote capturado (para x̄ y "vs anual" correctos; excluye meses en 0)
+  // 3er lote: SOLO meses con 3er lote capturado (avgU>0). Un mes sin la columna
+  // "Col U — Cancel. 3er Lote" cargada (ej. Septiembre, del que sí está el TOTAL
+  // de canceladas pero no el desglose de 3er lote) NO debe pintar una barra en 0:
+  // arrastraba la x̄ y mostraba "-100% vs anual" falso. Aparece automáticamente en
+  // cuanto se cargue su 3er lote.
   const _sMesesU = _sMeses.filter(m=>datos.some(d=>d.mes===m && (+d.U||0)>0));
-  // 3er lote: incluir TODOS los meses (para que septiembre/mes en curso aparezca
-  // en el sparkline aunque su 3er lote aún no se haya cargado = barra en 0).
-  const _sk4 = _sMeses.map(m=>{ const dd=datos.filter(d=>d.mes===m); return Math.round(dd.reduce((s,d)=>s+(+d.U||0),0)/dd.length); });  // 3er lote
+  const _sk4 = _sMesesU.map(m=>{ const dd=datos.filter(d=>d.mes===m); return Math.round(dd.reduce((s,d)=>s+(+d.U||0),0)/dd.length); });  // 3er lote
   const _sk5 = _skByMes(dd=>Math.round(dd.reduce((s,d)=>s+(d.B||0),0)/dd.length));  // Tareas man
   const _sk6 = _skByMes(dd=>+(dd.reduce((s,d)=>s+(d.S||0),0)/dd.length*100).toFixed(2)); // FR
 
@@ -14111,9 +14113,9 @@ function renderChart_byPeriod(chartId, period) {
     // (promedio %, eje izquierdo). Antes solo habia 1 builder y quedaba cruzado:
     // escribia Fill Rate sobre Canceladas y multiplicaba Fill Rate x dias (99.8x20≈2000%),
     // desbordando el eje y montandose sobre la leyenda.
-    'ax_cancel_dia': [function(g){return g.T;}],
+    'ax_cancel_dia': [function(g){return g._n>0?Math.round(g.T/g._n):0;}],  // PROMEDIO mensual de canceladas/día (no suma)
     'ax_fill_dia':   [function(g){return g._n>0?+((g._sumS/g._n)*100).toFixed(2):0;}],
-    'ax_cancel_diario':[function(g){return g.T;}],
+    'ax_cancel_diario':[function(g){return g._n>0?Math.round(g.T/g._n):0;}],  // PROMEDIO mensual de canceladas/día (no suma)
     // ax_pers: Real (promedio) + Necesario (promedio aprox = prom(M)/prom(L))
     'ax_pers':    [function(g){return g._n>0?+(g.M/g._n).toFixed(0):0;},
                    function(g){var aM=g._n>0?g.M/g._n:0,aL=g._n>0?g._sumL/g._n:1; return aL<1?Math.ceil(aM/aL):Math.round(aM);}],
@@ -14133,7 +14135,7 @@ function renderChart_byPeriod(chartId, period) {
   // Datasets extra = lineas de referencia (Meta 150, Meta 100%, Promedio...).
   // Solo se multiplican x dias en graficas cuya barra principal es una SUMA
   // (canceladas diario). En las de PROMEDIO la meta es CONSTANTE y NO se escala.
-  var SUM_BASED = { 'ax_cancel_diario':1 };
+  var SUM_BASED = {};  // canceladas ahora se agregan por PROMEDIO, no por suma → las metas son constantes
   chart.data.datasets.forEach(function(ds,idx){
     if(idx>=builders.length && ds.data && ds.data[0]!=null){
       var dailyVal = ds.data[0];
