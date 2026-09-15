@@ -13217,7 +13217,11 @@ function calcNOC(){
 function _extractRepField(raw, labels) {
   var lines = raw.split(/\r?\n/);
   var ks = (typeof labels === 'string') ? [labels] : labels;
-  var wanted = ks.map(function(k){ return k.toUpperCase().replace(/\s+/g,' '); });
+  // Comparación INSENSIBLE A ESPACIOS: el Excel del turno escribe "CANCELADAS 3 ER
+  // LOTE" (con espacio entre 3 y ER) y antes no coincidía con "CANCELADAS 3ER LOTE",
+  // dejando el 3er lote sin cargar (bug de Septiembre). Quitando TODOS los espacios
+  // ambas variantes ("3 ER LOTE", "3ER LOTE", "3  ER  LOTE") coinciden.
+  var wanted = ks.map(function(k){ return k.toUpperCase().replace(/\s+/g,''); });
   var startIdx = 0;
   for (var s0 = 0; s0 < lines.length; s0++) {
     var hdr = (lines[s0].split('\t')[0] || '').trim().toUpperCase().replace(/\s+/g,' ');
@@ -13231,7 +13235,7 @@ function _extractRepField(raw, labels) {
       var _m = lines[i].match(/^(.*?)\s+((?:-?\d+(?:[.,]\d+)?\s*)+)$/);
       if (_m) { parts = [_m[1]].concat(_m[2].trim().split(/\s+/)); }
     }
-    var label = (parts[0] || '').trim().toUpperCase().replace(/\s+/g,' ');
+    var label = (parts[0] || '').trim().toUpperCase().replace(/\s+/g,'');
     if (wanted.indexOf(label) === -1) continue;
     for (var j = 1; j < parts.length; j++) {
       var s = (parts[j] || '').trim();
