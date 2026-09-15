@@ -1874,6 +1874,27 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       try { if (typeof renderOperMetrics === 'function') renderOperMetrics(); } catch(e){}
     }
 
+    // 3b. MontaTrack roster (perfil / excluir / agregar operadores)
+    const rosterData = await window.fbLoad('monta_roster', 'main');
+    if (rosterData && typeof MONTA_ROSTER !== 'undefined') {
+      MONTA_ROSTER = {perfil:rosterData.perfil||{}, excl:rosterData.excl||{}, extra:Array.isArray(rosterData.extra)?rosterData.extra:[], codes:rosterData.codes||{}};
+      try { localStorage.setItem('ftd_pms_roster', JSON.stringify(MONTA_ROSTER)); } catch(e){}
+      try { if (typeof rebuildOPS === 'function') rebuildOPS(); } catch(e){}
+      try { if (typeof paint === 'function') paint(); } catch(e){}
+      console.log('[Firebase] Roster operadores cargado');
+    }
+    // Sincronización en tiempo real del roster
+    try {
+      window.fbListen('monta_roster', 'main', function(rd){
+        if (!rd || typeof MONTA_ROSTER === 'undefined') return;
+        MONTA_ROSTER = {perfil:rd.perfil||{}, excl:rd.excl||{}, extra:Array.isArray(rd.extra)?rd.extra:[], codes:rd.codes||{}};
+        try { localStorage.setItem('ftd_pms_roster', JSON.stringify(MONTA_ROSTER)); } catch(e){}
+        try { if (typeof rebuildOPS === 'function') rebuildOPS(); } catch(e){}
+        try { if (typeof paint === 'function') paint(); } catch(e){}
+        try { if (typeof _rosterRefresh === 'function' && document.getElementById('rosterModalOv')) _rosterRefresh(); } catch(e){}
+      });
+    } catch(e){}
+
     // 4. Vitácora
     const vitData = await window.fbLoad('vit_data', 'main');
     if (vitData) {
@@ -10697,13 +10718,16 @@ buildNav();
 // =====================================================================
 const MONTA_MONTHS=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const PASILLOS=["","O/S","Alta","1 al 14","15 al 28","20 al 23","29 al 42","41","42","43","44","Almacenando","Almacenaje"];
-const OPS=[
+// Roster SEMILLA de operadores (perfil A/B/C). Es el punto de partida; el usuario
+// puede reasignar perfil, excluir o agregar operadores desde el panel "⚙ Operadores"
+// y esos cambios se guardan en la nube (colección monta_roster) por encima de esta base.
+const OPS_SEED=[
   {p:"A",n:"MARIO MARTINEZ"},{p:"A",n:"ANTONIO REINA"},{p:"A",n:"ONOFRE ANDRADE"},
   {p:"A",n:"JEFFERSON PERDOMO"},{p:"A",n:"OCTAVIO ENRIQUE PADILLA V"},{p:"A",n:"JOSE GOMEZ"},
   {p:"A",n:"VICTOR GUZMAN"},{p:"A",n:"FRANK VARELA"},{p:"A",n:"JIRMEN MENDEZ"},
-  {p:"A",n:"JOSE CARABALLO"},{p:"A",n:"DARWIN MORENO"},{p:"A",n:"LUIS MALAGUERA"},
-  {p:"A",n:"NICOLAS RAVELO"},{p:"A",n:"DANIEL URBANEJA"},{p:"A",n:"ARISTIDEZ RON"},
-  {p:"B",n:"LUINGI SEIJAS"},{p:"B",n:"JOSE GONZALEZ"},{p:"B",n:"YORDDY TORO"},
+  {p:"A",n:"LUINGI SEIJAS"},{p:"A",n:"JOSE GONZALEZ"},{p:"A",n:"DARWIN MORENO"},
+  {p:"A",n:"LUIS MALAGUERA"},{p:"A",n:"NICOLAS RAVELO"},{p:"A",n:"DANIEL URBANEJA"},{p:"A",n:"ARISTIDEZ RON"},
+  {p:"B",n:"JOSE CARABALLO"},{p:"B",n:"YORDDY TORO"},
   {p:"B",n:"JULIO ARRAEZ"},{p:"B",n:"RAMON GONZALEZ"},
   {p:"C",n:"JEFFERSON SANCHEZ"},{p:"C",n:"FREDDY REQUENA"},
 ];
@@ -10712,7 +10736,7 @@ const SECS=[
   {l:"Alta, Traspaleta y Traslados - Perfil B",f:o=>o.p==="B"},
   {l:"Solo Estanteria Alta - Perfil C",f:o=>o.p==="C"},
 ];
-const R105_MAP={
+const R105_MAP_SEED={
   "MAMARTINEZ":"MARIO MARTINEZ","AREINAC":"ANTONIO REINA","OAANDRADE":"ONOFRE ANDRADE",
   "JPERDOMO":"JEFFERSON PERDOMO","OEPADILLA":"OCTAVIO ENRIQUE PADILLA V","JGGOMEZ":"JOSE GOMEZ",
   "VAGUZMAN":"VICTOR GUZMAN","FVARELA":"FRANK VARELA","RDGONZALEZ":"RAMON GONZALEZ",
@@ -10723,6 +10747,37 @@ const R105_MAP={
   "FRREQUENA":"FREDDY REQUENA",
 };
 const EXCL=["vacaciones","reposo","libre",""];
+
+// =====================================================================
+// ROSTER EDITABLE (perfil / excluir / agregar operadores) — persistido
+// en la nube (monta_roster) + localStorage. Se aplica POR ENCIMA de OPS_SEED,
+// así cualquiera que abra la herramienta ve el mismo listado y nadie lo pierde.
+// =====================================================================
+let MONTA_ROSTER = { perfil:{}, excl:{}, extra:[], codes:{} };
+let OPS_ALL = [];      // todos (activos + excluidos) — para el panel de gestión
+let OPS = [];          // solo activos — lo que consume el resto del módulo
+let R105_MAP = {};     // seed + códigos de operadores agregados
+function rosterLoad(){
+  try{
+    var raw = localStorage.getItem('ftd_pms_roster');
+    if(raw){ var o=JSON.parse(raw)||{}; MONTA_ROSTER = {perfil:o.perfil||{}, excl:o.excl||{}, extra:Array.isArray(o.extra)?o.extra:[], codes:o.codes||{}}; }
+  }catch(e){}
+}
+function rosterSave(){
+  try{ if(typeof window.fbSave==='function') window.fbSave('monta_roster','main',MONTA_ROSTER); }catch(e){}
+  try{ localStorage.setItem('ftd_pms_roster', JSON.stringify(MONTA_ROSTER)); }catch(e){}
+}
+function rebuildOPS(){
+  var seen={}, all=[];
+  OPS_SEED.forEach(function(o){ if(!seen[o.n]){ seen[o.n]=1; all.push({p:o.p, n:o.n, _seed:true}); } });
+  (MONTA_ROSTER.extra||[]).forEach(function(o){ if(o && o.n && !seen[o.n]){ seen[o.n]=1; all.push({p:o.p||'A', n:o.n, _seed:false}); } });
+  all.forEach(function(o){ if(MONTA_ROSTER.perfil && MONTA_ROSTER.perfil[o.n]) o.p=MONTA_ROSTER.perfil[o.n]; });
+  OPS_ALL = all;
+  OPS = all.filter(function(o){ return !(MONTA_ROSTER.excl && MONTA_ROSTER.excl[o.n]); });
+  R105_MAP = {}; Object.keys(R105_MAP_SEED).forEach(function(k){ R105_MAP[k]=R105_MAP_SEED[k]; });
+  if(MONTA_ROSTER.codes){ Object.keys(MONTA_ROSTER.codes).forEach(function(k){ if(k) R105_MAP[k.toUpperCase()]=MONTA_ROSTER.codes[k]; }); }
+}
+rosterLoad(); rebuildOPS();
 
 // =====================================================================
 // BASE DE DATOS: Estructura Anio > Mes > Operador > {dia: valor}
@@ -11566,6 +11621,7 @@ function pEntry(){
         <button class="btn btnp" onclick="saveEntry()" style="padding:5px 11px;font-size:10px">Guardar</button>
         <button class="btn btno" onclick="exportExcel()" style="padding:5px 11px;font-size:10px">Exportar Excel</button>
         <button class="btn btng" onclick="if(confirm('Limpiar mes?')){clearMonth()}else{}" style="padding:5px 11px;font-size:10px">Limpiar</button>
+        <button class="btn btns" onclick="openRosterModal()" style="padding:5px 11px;font-size:10px" title="Agregar, excluir o cambiar perfil de operadores">⚙ Operadores</button>
       </div>
     </div>
     <div class="abar"></div>
@@ -11630,6 +11686,77 @@ function doExport(){
   XLSX.utils.book_append_sheet(wb,ws,"Productividad "+entMonth+" "+entYear);
   XLSX.writeFile(wb,"Productividad_"+entMonth+"_"+entYear+"_Farmatodo.xlsx");
   showToast("Excel exportado","success");
+}
+
+// =====================================================================
+// PANEL DE GESTIÓN DE OPERADORES (agregar / excluir / cambiar perfil)
+// =====================================================================
+function openRosterModal(){
+  var el=document.getElementById('rosterModalOv');
+  if(!el){ el=document.createElement('div'); el.id='rosterModalOv'; document.body.appendChild(el); }
+  el.style.cssText='position:fixed;inset:0;background:rgba(11,31,78,.55);z-index:99999;display:flex;align-items:flex-start;justify-content:center;padding:28px 12px;overflow:auto';
+  el.innerHTML=rosterModalHTML();
+  el.onclick=function(ev){ if(ev.target===el) closeRosterModal(); };
+}
+function closeRosterModal(){ var el=document.getElementById('rosterModalOv'); if(el) el.remove(); }
+function _rosterRefresh(){ var el=document.getElementById('rosterModalOv'); if(el) el.innerHTML=rosterModalHTML(); }
+function _rq(s){ return String(s).replace(/'/g,"\\'"); }
+function rosterModalHTML(){
+  var rows=OPS_ALL.map(function(o){
+    var ex=!!(MONTA_ROSTER.excl&&MONTA_ROSTER.excl[o.n]);
+    var sel=['A','B','C'].map(function(p){return '<option value="'+p+'"'+(o.p===p?' selected':'')+'>'+p+'</option>';}).join('');
+    return '<tr style="'+(ex?'opacity:.5;':'')+'border-top:1px solid #eef2f8">'
+      +'<td style="padding:6px 8px;font-weight:700;font-size:12px;white-space:nowrap">'+o.n+(o._seed?'':' <span style="color:#1B4FA8;font-size:9px">(agregado)</span>')+'</td>'
+      +'<td style="padding:6px 8px"><select onchange="rosterSetPerfil(\''+_rq(o.n)+'\',this.value)" style="padding:3px 6px;border:1px solid #cbd5e1;border-radius:5px;font-weight:700">'+sel+'</select></td>'
+      +'<td style="padding:6px 8px;text-align:center"><button onclick="rosterToggleExcl(\''+_rq(o.n)+'\')" style="padding:4px 10px;border-radius:6px;border:none;cursor:pointer;font-weight:700;font-size:11px;color:#fff;background:'+(ex?'#16a34a':'#dc2626')+'">'+(ex?'Reincorporar':'Excluir')+'</button></td>'
+      +'<td style="padding:6px 8px;text-align:center">'+(o._seed?'':'<button onclick="rosterRemoveExtra(\''+_rq(o.n)+'\')" title="Eliminar del listado" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:15px">🗑</button>')+'</td>'
+      +'</tr>';
+  }).join('');
+  return '<div onclick="event.stopPropagation()" style="background:#fff;border-radius:14px;max-width:660px;width:100%;box-shadow:0 12px 40px rgba(11,31,78,.35);overflow:hidden">'
+    +'<div style="background:#0B1F4E;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between">'
+      +'<div style="font-weight:800;font-size:15px">⚙ Gestionar operadores</div>'
+      +'<button onclick="closeRosterModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1">&times;</button>'
+    +'</div>'
+    +'<div style="padding:16px 20px">'
+      +'<div style="font-size:11px;color:#7A90B8;margin-bottom:12px;line-height:1.5">Cambia el perfil (A/B/C), <b>excluye</b> a quien no esté activo en el turno (se conserva su historial y se puede <b>reincorporar</b> cuando regrese), o <b>agrega</b> un operador nuevo. Todo se guarda y sincroniza con el equipo.</div>'
+      +'<div style="border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:16px;background:#F6F9FE">'
+        +'<div style="font-weight:800;font-size:12px;color:#1B4FA8;margin-bottom:8px">➕ Agregar operador</div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">'
+          +'<div style="flex:1;min-width:170px"><label style="font-size:10px;font-weight:700;color:#7A90B8;display:block;margin-bottom:3px">NOMBRE</label><input id="rosterNewName" type="text" placeholder="NOMBRE APELLIDO" style="width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;text-transform:uppercase;font-weight:600;box-sizing:border-box"></div>'
+          +'<div><label style="font-size:10px;font-weight:700;color:#7A90B8;display:block;margin-bottom:3px">PERFIL</label><select id="rosterNewPerfil" style="padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-weight:700"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></div>'
+          +'<div><label style="font-size:10px;font-weight:700;color:#7A90B8;display:block;margin-bottom:3px">CÓDIGO R105 (opc.)</label><input id="rosterNewCode" type="text" placeholder="XXXXX" style="width:110px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;text-transform:uppercase;font-weight:600;box-sizing:border-box"></div>'
+          +'<button onclick="rosterAddOp()" style="padding:7px 14px;background:#1B4FA8;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer">Agregar</button>'
+        +'</div>'
+        +'<div style="font-size:10px;color:#7A90B8;margin-top:6px">El <b>código R105</b> es opcional: sirve para que la importación del reporte R105 reconozca al operador automáticamente.</div>'
+      +'</div>'
+      +'<div style="max-height:46vh;overflow:auto;border:1px solid #e2e8f0;border-radius:10px">'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="background:#EAF0FA;position:sticky;top:0"><th style="padding:8px;text-align:left;font-size:10px;color:#7A90B8">OPERADOR</th><th style="padding:8px;font-size:10px;color:#7A90B8">PERFIL</th><th style="padding:8px;font-size:10px;color:#7A90B8">ESTADO</th><th style="padding:8px"></th></tr></thead>'
+        +'<tbody>'+rows+'</tbody></table>'
+      +'</div>'
+      +'<div style="margin-top:10px;font-size:11px;color:#7A90B8">Activos: <b style="color:#16a34a">'+OPS.length+'</b> · Excluidos: <b style="color:#dc2626">'+(OPS_ALL.length-OPS.length)+'</b></div>'
+    +'</div>'
+  +'</div>';
+}
+function rosterSetPerfil(name,p){ MONTA_ROSTER.perfil[name]=p; rebuildOPS(); rosterSave(); _rosterRefresh(); paint(); }
+function rosterToggleExcl(name){ if(MONTA_ROSTER.excl[name]) delete MONTA_ROSTER.excl[name]; else MONTA_ROSTER.excl[name]=true; rebuildOPS(); rosterSave(); _rosterRefresh(); paint(); }
+function rosterRemoveExtra(name){
+  if(!confirm('¿Eliminar a '+name+' del listado? (su historial se conserva; podrás volver a agregarlo)')) return;
+  MONTA_ROSTER.extra=(MONTA_ROSTER.extra||[]).filter(function(o){return o.n!==name;});
+  delete MONTA_ROSTER.perfil[name]; delete MONTA_ROSTER.excl[name];
+  rebuildOPS(); rosterSave(); _rosterRefresh(); paint();
+}
+function rosterAddOp(){
+  var n=(document.getElementById('rosterNewName').value||'').trim().toUpperCase().replace(/\s+/g,' ');
+  var p=document.getElementById('rosterNewPerfil').value||'A';
+  var code=(document.getElementById('rosterNewCode').value||'').trim().toUpperCase();
+  if(!n){ showToast('Escribe el nombre del operador','error'); return; }
+  var exists=OPS_ALL.some(function(o){return o.n===n;});
+  if(exists){ delete MONTA_ROSTER.excl[n]; MONTA_ROSTER.perfil[n]=p; }
+  else { MONTA_ROSTER.extra.push({n:n,p:p}); }
+  if(code){ MONTA_ROSTER.codes[code]=n; }
+  rebuildOPS(); rosterSave(); _rosterRefresh(); paint();
+  showToast(exists?(n+' actualizado'):(n+' agregado al listado'),'success');
 }
 
 // =====================================================================
