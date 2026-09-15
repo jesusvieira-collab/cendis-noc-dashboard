@@ -2306,7 +2306,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
 
   <div class="ccard" id="card_oper_noche" style="margin-bottom:14px;">
     <div class="ccard-hdr"><div><div class="ccard-title">Paletas movidas por repositor por noche — Reposición</div><div class="ccard-sub">(DEMANDA DYM + ROP DYM) ÷ repositores (FTD+Servix) · por noche · mes a mes · fuente: Carga</div></div>
-      <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_oper_noche','Paletas_DYM_Repositor_Noche')">⬇ PNG</button></div></div>
+      <div class="ccard-actions"><div class="chart-ctrl-bar" data-chart="ax_oper_noche"><button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_oper_noche')" title="Línea">📈</button><button class="chart-type-btn" data-type="bar" onclick="toggleChartType('ax_oper_noche')" title="Barra">📊</button></div><button class="dl-btn" onclick="dlCardImagen('card_oper_noche','Paletas_DYM_Repositor_Noche')">⬇ PNG</button></div></div>
     <div id="hdr_oper_noche"></div>
     <div style="position:relative;height:290px;"><canvas id="ax_oper_noche" role="img" aria-label="Paletas por hombre por noche"></canvas></div>
   </div>
@@ -2443,6 +2443,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         <div class="ccard-sub" id="alm_stats_sub">Contenedores PR almacenados por noche · formulario del turno</div>
       </div>
       <div class="ccard-actions">
+        <div class="chart-ctrl-bar" data-chart="alm_chart"><button class="chart-type-btn active" data-type="line" onclick="setRVType('alm_chart','line',this)" title="Línea">📈</button><button class="chart-type-btn" data-type="bar" onclick="setRVType('alm_chart','bar',this)" title="Barra">📊</button></div>
         <select id="alm_mes_filter" onchange="renderAlmacenado()" style="background:#F0F4FA;border:1px solid rgba(0,48,135,0.18);border-radius:6px;padding:3px 8px;color:rgba(0,48,135,0.7);font-size:9px;font-weight:700;font-family:var(--font);cursor:pointer;outline:none;letter-spacing:.02em;">
           <option value="ALL">📅 Todos los meses</option>
         </select>
@@ -2745,6 +2746,15 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_cancel_heatmap','Canceladas_heatmap')">⬇ PNG</button></div>
     </div>
     <div id="cancelHeatmap" style="padding:8px 0;"></div>
+  </div>
+  <!-- Cuadro de cancelaciones de los SÁBADOS + día de mayor cancelación -->
+  <div class="ccard" id="card_cancel_sabados" style="margin-top:12px;">
+    <div class="ccard-hdr">
+      <div><div class="ccard-title">🗓 Cancelaciones de los SÁBADOS — análisis de causas</div>
+      <div class="ccard-sub">Cada sábado del período y el día de la semana con mayor cancelación promedio</div></div>
+      <div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen('card_cancel_sabados','Canceladas_Sabados')">⬇ PNG</button></div>
+    </div>
+    <div id="cancelSabados" style="padding:6px 0;"></div>
   </div>
 </div>
 
@@ -4802,6 +4812,50 @@ function renderCanceladas(){
   // 7. Heatmap canceladas Lun-Vie
   renderCancelHeatmap(dd, avgCDS);
 
+  // 8. Cuadro de SÁBADOS + día de mayor cancelación (7 días de semana)
+  (function(){
+    var cont=document.getElementById('cancelSabados'); if(!cont) return;
+    var wSum=Array(7).fill(0), wCnt=Array(7).fill(0);
+    dd.forEach(function(d){ var w=ds(d.fecha); wSum[w]+=d.T; wCnt[w]++; });
+    var wAvg=wSum.map(function(s,i){ return wCnt[i]?Math.round(s/wCnt[i]):0; });
+    var maxAvg=Math.max.apply(null,wAvg), diaMax=DIAS[wAvg.indexOf(maxAvg)];
+    var sabs=dd.filter(function(d){ return ds(d.fecha)===6; }).sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||''); });
+    var sabAvg=sabs.length?Math.round(sabs.reduce(function(s,d){return s+d.T;},0)/sabs.length):0;
+    var sabMax=sabs.length?Math.max.apply(null,sabs.map(function(d){return d.T;})):0;
+    var rows=sabs.map(function(d){
+      var v=d.T, est=v>=2000?['#D63B2F','Crítico']:v>=800?['#E8A000','Alto']:['#00875A','Normal'];
+      var vsProm=avgC>0?Math.round((v-avgC)/avgC*100):0;
+      return '<tr style="border-bottom:1px solid rgba(13,45,107,.07);'+(v===sabMax&&sabMax>0?'background:rgba(214,59,47,.05);':'')+'">'
+        +'<td style="padding:6px 10px;font-weight:700;color:#0D2D6B;">'+ff(d.fecha)+' <span style="color:rgba(13,45,107,.45);font-weight:600;font-size:10px;">Sáb</span></td>'
+        +'<td style="padding:6px 10px;text-align:right;font-weight:800;color:'+est[0]+';">'+v.toLocaleString()+'</td>'
+        +'<td style="padding:6px 10px;text-align:right;color:'+(vsProm>0?'#D63B2F':'#00875A')+';font-weight:700;font-size:11px;">'+(vsProm>0?'+':'')+vsProm+'%</td>'
+        +'<td style="padding:6px 10px;text-align:center;"><span style="font-size:10px;font-weight:700;color:#fff;background:'+est[0]+';padding:2px 8px;border-radius:10px;">'+est[1]+'</span></td>'
+        +'</tr>';
+    }).join('');
+    if(!sabs.length) rows='<tr><td colspan="4" style="padding:14px;text-align:center;color:rgba(13,45,107,.5);">Sin sábados en el período filtrado.</td></tr>';
+    cont.innerHTML=
+      '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;">'
+      +'<div style="flex:1;min-width:150px;background:rgba(214,59,47,.06);border:1px solid rgba(214,59,47,.2);border-radius:8px;padding:10px 14px;">'
+        +'<div style="font-size:9px;font-weight:700;color:#D63B2F;text-transform:uppercase;letter-spacing:.05em;">Día de mayor cancelación</div>'
+        +'<div style="font-size:22px;font-weight:900;color:#D63B2F;font-family:var(--font);">'+diaMax+'</div>'
+        +'<div style="font-size:10px;color:rgba(13,45,107,.55);">'+maxAvg.toLocaleString()+' uds/día promedio</div>'
+      +'</div>'
+      +'<div style="flex:1;min-width:150px;background:rgba(0,71,200,.05);border:1px solid rgba(0,71,200,.18);border-radius:8px;padding:10px 14px;">'
+        +'<div style="font-size:9px;font-weight:700;color:#0047C8;text-transform:uppercase;letter-spacing:.05em;">Promedio sábados</div>'
+        +'<div style="font-size:22px;font-weight:900;color:#0047C8;font-family:var(--font);">'+sabAvg.toLocaleString()+'</div>'
+        +'<div style="font-size:10px;color:rgba(13,45,107,.55);">'+sabs.length+' sábado(s) · máx '+sabMax.toLocaleString()+'</div>'
+      +'</div>'
+      +'</div>'
+      +'<div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--font);min-width:420px;">'
+      +'<thead><tr style="background:#001E62;color:#fff;">'
+        +'<th style="text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;">Sábado</th>'
+        +'<th style="text-align:right;padding:7px 10px;font-size:10px;text-transform:uppercase;">Uds canceladas</th>'
+        +'<th style="text-align:right;padding:7px 10px;font-size:10px;text-transform:uppercase;">vs prom.</th>'
+        +'<th style="text-align:center;padding:7px 10px;font-size:10px;text-transform:uppercase;">Estado</th>'
+      +'</tr></thead><tbody>'+rows+'</tbody></table></div>'
+      +'<div style="font-size:10.5px;color:rgba(13,45,107,.5);margin-top:8px;line-height:1.5;">Los sábados concentran el cierre semanal. Usa este cuadro para anotar y determinar causas (quiebre de stock, intransit alto, falla de sistema).</div>';
+  })();
+
   // Aplicar tendencia + leyenda de inmediato (no esperar al intervalo de 3s),
   // asi la leyenda de estas graficas aparece desde el primer render, tambien
   // en movil.
@@ -5590,9 +5644,9 @@ function renderEjecutivo(){
 
       ${buildKpiCard('4','IMPACTO CANCELACIONES — 3ER LOTE','📊',
         Math.round(MA4.avgU).toLocaleString()+' uds',
-        `${MNOM[MA4.mes]||MA4.mes} · ${d4pct_act.toFixed(1)}% del total de cancelaciones`,
+        `${MNOM[MA4.mes]||MA4.mes} · ${d4pct_act.toFixed(1)}% del total${MA.mes!==MA4.mes?` · ${MNOM[MA.mes]||MA.mes} pendiente de cargar`:''}`,
         d4, false,
-        `El 3er lote captura ${d4pct_act.toFixed(1)}% de las cancelaciones${MP4?`. Mes anterior (${MNOM[MP4.mes]||MP4.mes}): ${d4pct_ant.toFixed(1)}%`:''}.`,
+        `El 3er lote captura ${d4pct_act.toFixed(1)}% de las cancelaciones${MP4?`. Mes anterior (${MNOM[MP4.mes]||MP4.mes}): ${d4pct_ant.toFixed(1)}%`:''}.${MA.mes!==MA4.mes?` Aún no se ha cargado el 3er lote de ${MNOM[MA.mes]||MA.mes}; se muestra el último mes con dato (${MNOM[MA4.mes]||MA4.mes}).`:''}`,
         _sk4
       )}
 
@@ -6181,17 +6235,19 @@ function renderAlmacenado() {
 
   var trend = _linearTrend(vals);
 
+  var aType = (window._chartType && window._chartType['alm_chart']==='bar') ? 'bar' : 'line';
   _almChart = new Chart(cv, {
     type: 'line',
     data: {
       labels: labels,
       datasets: [
         {
+          type: aType,
           label: 'PR almacenados',
           data: vals,
-          borderColor: '#149980',
-          backgroundColor: 'rgba(20,153,128,0.10)',
-          borderWidth: 2.5, fill:false, tension: 0.4, cubicInterpolationMode:'monotone', spanGaps:false,
+          borderColor: aType==='bar' ? ptColors : '#149980',
+          backgroundColor: aType==='bar' ? ptColors : 'rgba(20,153,128,0.10)',
+          borderWidth: 2.5, borderRadius: 5, borderSkipped: false, fill:false, tension: 0.4, cubicInterpolationMode:'monotone', spanGaps:false,
           pointRadius: vals.map(function(v){ return v>0?5:2; }),
           pointHoverRadius: 8,
           pointBackgroundColor: ptColors, pointBorderColor: ptColors, pointBorderWidth: 1.5,
@@ -6624,17 +6680,20 @@ function renderVentanas() {
   // Average reference line
   var avgLine = Array(vals.length).fill(avg);
   
+  var vType = (window._chartType && window._chartType['vent_chart']==='bar') ? 'bar' : 'line';
   _ventChart = new Chart(cv, {
     type: 'line',
     data: {
       labels: labels,
       datasets: [
         {
+          type: vType,
           label: 'Ventanas al cierre',
           data: vals,
-          borderColor: '#E8A000',
-          backgroundColor: 'rgba(245,158,11,0.10)',
+          borderColor: vType==='bar' ? ptColors : '#E8A000',
+          backgroundColor: vType==='bar' ? ptColors : 'rgba(245,158,11,0.10)',
           borderWidth: 2.5,
+          borderRadius: 5, borderSkipped: false,
           fill:false,
           tension: 0.4,
           cubicInterpolationMode:'monotone',
@@ -14127,6 +14186,7 @@ function setRVType(chartId, type, btnEl) {
   }
   if (chartId==='rop_chart' && typeof renderROP==='function') renderROP();
   else if (chartId==='vent_chart' && typeof renderVentanas==='function') renderVentanas();
+  else if (chartId==='alm_chart' && typeof renderAlmacenado==='function') renderAlmacenado();
 }
 
 function setRVPeriod(chartId, period, btnEl) {
@@ -14617,10 +14677,12 @@ function _evoChart(cid,hid,labels,data,meta,unit,serie,refLabel){
 function _repoDymSeries(){
   var MORDl=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
   var ORD={ENERO:'ENE',FEBRERO:'FEB',MARZO:'MAR',ABRIL:'ABR',MAYO:'MAY',JUNIO:'JUN',JULIO:'JUL',AGOSTO:'AGO',SEPTIEMBRE:'SEP',OCTUBRE:'OCT',NOVIEMBRE:'NOV',DICIEMBRE:'DIC'};
+  // Respetar el filtro de AÑO de la barra superior (antes mezclaba 2025+2026 por mes)
+  var _yr = (typeof anioFiltro!=='undefined')?anioFiltro:'ALL';
   var pal={};   // paletas DYM por noche (HIST)
-  if(typeof HIST!=='undefined') HIST.forEach(function(h){ if(!h||!h.date)return; var m=ORD[(h.date.split(' ')[0]||'').toUpperCase()]; if(!m)return; var v=(+h.ddym||0)+(+h.rop_dym||0); if(v<=0)return; if(!pal[m])pal[m]={s:0,n:0}; pal[m].s+=v; pal[m].n++; });
+  if(typeof HIST!=='undefined') HIST.forEach(function(h){ if(!h||!h.date)return; if(_yr!=='ALL' && h.fecha && String(h.fecha).slice(0,4)!==_yr) return; var m=ORD[(h.date.split(' ')[0]||'').toUpperCase()]; if(!m)return; var v=(+h.ddym||0)+(+h.rop_dym||0); if(v<=0)return; if(!pal[m])pal[m]={s:0,n:0}; pal[m].s+=v; pal[m].n++; });
   var rep={};   // repositores por noche (datos)
-  if(typeof datos!=='undefined') datos.forEach(function(d){ if(!d||!d.mes)return; var r=+d.M||0; if(r<=0)return; if(!rep[d.mes])rep[d.mes]={s:0,n:0}; rep[d.mes].s+=r; rep[d.mes].n++; });
+  if(typeof datos!=='undefined') datos.forEach(function(d){ if(!d||!d.mes)return; if(_yr!=='ALL' && (d.fecha||'').slice(0,4)!==_yr) return; var r=+d.M||0; if(r<=0)return; if(!rep[d.mes])rep[d.mes]={s:0,n:0}; rep[d.mes].s+=r; rep[d.mes].n++; });
   var labels=[],perDia=[];
   MORDl.forEach(function(m){ if(!pal[m]||!pal[m].n||!rep[m]||!rep[m].n)return; var palAvg=pal[m].s/pal[m].n, repAvg=rep[m].s/rep[m].n; if(repAvg<=0)return; labels.push(m); perDia.push(Math.round(palAvg/repAvg*10)/10); });
   return {labels:labels,perDia:perDia};
