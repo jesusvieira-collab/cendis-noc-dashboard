@@ -2313,10 +2313,14 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
   <button class="ntab" data-page="merma"      onclick="nocTab(this,'merma')">🗑️ MERMA</button>
   <button class="ntab" data-page="yoy"        onclick="nocTab(this,'yoy')">📅 AÑO VS AÑO</button>
   <button class="ntab" data-page="ejecutivo"  onclick="nocTab(this,'ejecutivo')">📋 EJECUTIVO</button>
+  <button class="ntab" data-page="gerencial"  onclick="nocTab(this,'gerencial')">🎯 GERENCIAL</button>
 </nav>
 <div class="main">
 
 <!-- ════ DASHBOARD ════ -->
+<div id="page-gerencial" class="page">
+  <div id="gerWrap" style="max-width:1180px;margin:0 auto;padding:4px 2px 30px;"></div>
+</div>
 <div id="page-dashboard" class="page active">
   <div class="sec-header">
     <h2>Dashboard Ejecutivo NOC</h2>
@@ -3744,6 +3748,7 @@ function showPage(id, btn) {
   else if (id === 'merma') { setTimeout(function(){ if(typeof renderMerma==='function') renderMerma(); }, 60); }
   else if (id === 'yoy') { setTimeout(function(){ if(typeof renderYoYRepo==='function') renderYoYRepo(); }, 60); }
   else if (id === 'ejecutivo') renderEjecutivo();
+  else if (id === 'gerencial') { setTimeout(function(){ if(typeof renderGerencial==='function') renderGerencial(); }, 40); }
   else if (id === 'recomendaciones') renderRecos();
   else if (id === 'carga') setTimeout(function(){ if(typeof renderTablaUnificada==='function') renderTablaUnificada(); else renderTabla(); }, 80);
   else if (id === 'analytics_v22') {
@@ -14101,6 +14106,162 @@ function snavClick(btn, mod, idx) {
 }
 
 // ══ NOC tab navigation ══
+/* ═══════════════════════════════════════════════════════════════════
+   SECCIÓN GERENCIAL — One Page Reposición + Almacenaje (PNG para WhatsApp)
+   Formato VERTICAL/móvil: cabecera degradada aprovechada + 4 macro-KPIs 2x2 +
+   tarjetas ricas con sparkline (buildKpiCard) + banda Logros / Foco.
+   Curada a indicadores de gestión. Clasifica el mes elegido vs el anterior.
+   ═══════════════════════════════════════════════════════════════════ */
+var GER_EMBLEMA='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 121.113 125.231" style="width:100%;height:100%;display:block"><g transform="translate(-274.914,-212.531)"><path fill="#FFFFFF" fill-rule="evenodd" d="M 274.914 212.531 L 396.027 212.531 L 396.027 337.762 L 274.914 337.762 Z M 278.156 215.773 L 392.785 215.773 L 392.785 334.52 L 278.156 334.52 Z"/><path fill="#FFFFFF" d="M 355.723 334.48 C 357.199 329.133 358.008 323.523 358.008 317.719 C 358.008 282.898 329.805 254.676 294.965 254.676 C 289.148 254.676 283.508 255.496 278.145 256.973 L 278.145 334.48 Z M 335.555 320.691 C 330.094 327.109 319.922 328.559 313.488 323.109 C 307.102 317.664 306.328 308.055 311.754 301.637 C 318.035 294.242 342.586 283.281 342.844 283.309 C 343.293 283.355 341.402 313.789 335.555 320.691 M 309.715 261.34 C 319.457 263.168 341.734 279.398 341.844 279.66 C 342.047 280.055 314.008 293.906 304.883 292.215 C 296.414 290.621 289.934 282.297 291.504 273.836 C 293.086 265.344 301.246 259.773 309.715 261.34 "/><path fill="#FFFFFF" d="M 348.461 271.805 C 348.629 271.578 349.84 243.504 346.027 234.09 C 342.738 225.93 333.438 221.961 325.27 225.281 C 317.09 228.582 313.488 238.734 316.793 246.914 C 320.348 255.707 348.223 272.211 348.461 271.805 "/><path fill="#FFFFFF" d="M 376.469 225.281 C 368.297 221.961 359.004 225.93 355.719 234.09 C 351.887 243.504 353.105 271.578 353.285 271.805 C 353.523 272.215 381.391 255.707 384.941 246.914 C 388.25 238.73 384.648 228.586 376.469 225.281 "/></g></svg>';
+var GER_MC=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+var GER_MF=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+var GER_MN=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+if(typeof window._gerMes==='undefined') window._gerMes=null;
+
+function _gerFmt(v,kind){ if(v==null||isNaN(v)) return '—'; if(kind==='pct') return (Math.round(v*10)/10).toFixed(1)+'%'; if(kind==='pct2') return (Math.round(v*100)/100).toFixed(2)+'%'; if(kind==='dec1') return (Math.round(v*10)/10).toFixed(1); return Math.round(v).toLocaleString('es-VE'); }
+function _repoStats(code){ var md=datos.filter(function(d){return d.mes===code;}); if(!md.length) return null; return {dias:md.length, L:avg(md,'L')*100, S:avg(md,'S')*100, J:avg(md,'J'), T:avg(md,'T'), U:avg(md,'U'), O:avg(md,'O'), B:avg(md,'B'), M:avg(md,'M'), totG:md.reduce(function(s,d){return s+(d.G||0);},0)}; }
+function _almExtra(st){ if(!st||!st.valid||!st.valid.length) return {rop:0,total:0,alm:0,pct:0}; var v=st.valid,n=v.length; var rop=v.reduce(function(a,r){return a+(+r.rop||0);},0)/n; var tot=v.reduce(function(a,r){return a+(+r.total||0);},0)/n; var alm=v.reduce(function(a,r){return a+(+r.alm_real||0);},0)/n; return {rop:rop,total:tot,alm:alm,pct:tot>0?rop/tot*100:0}; }
+function _gDelta(cur,prev){ if(prev==null||prev===0||isNaN(prev)||isNaN(cur)) return {pct:0,txt:'— sin mes anterior',icon:'🟰',up:null}; var pct=((cur-prev)/Math.abs(prev))*100; return {pct:pct,txt:(pct>=0?'+':'')+pct.toFixed(2)+'% vs. Mes Anterior',icon:(pct>0.05?'⬆️':pct<-0.05?'⬇️':'🟰'),up:pct>0}; }
+function _gTrend(label,cur,prev,higher,kind){ if(prev==null||isNaN(cur)||isNaN(prev)) return {st:'nd'}; var diff=cur-prev, fav=higher?diff>0:diff<0; var isPP=(kind==='pct'||kind==='pct2'); var mag=isPP?Math.abs(diff):(prev!==0?Math.abs(diff/prev*100):0); var thr=isPP?0.2:3; var chg=isPP?((diff>=0?'+':'')+diff.toFixed(1)+' pp'):((diff>=0?'+':'')+(prev!==0?(diff/prev*100).toFixed(1):'0')+'%'); if(mag<thr) return {st:'mant',chg:chg}; return {st:fav?'mej':'foco',chg:chg,mej:label+': '+_gerFmt(prev,kind)+' → <b>'+_gerFmt(cur,kind)+'</b> ('+chg+')',foco:'<b>'+label+'</b> '+_gerFmt(cur,kind)+' ('+chg+') — vigilar el próximo mes'}; }
+function _gerMacro(arr){ return arr.map(function(k){ return '<div style="text-align:center;padding:11px 8px;background:rgba(0,0,0,.22);border-radius:10px;border:1px solid rgba(255,255,255,.1)"><div style="font-family:var(--font);font-size:26px;font-weight:900;color:'+k.c+';line-height:1">'+k.v+'</div><div style="font-family:var(--font);font-size:11px;color:rgba(255,255,255,.55);margin-top:5px;text-transform:uppercase;letter-spacing:.05em">'+k.l+'</div></div>'; }).join(''); }
+function _gerNarr(kpis){
+  var logros=[], foco=[];
+  kpis.forEach(function(k){ var t=_gTrend(k.label,k.cur,k.prev,k.higher,k.kind); if(t.st==='mej') logros.push(t.mej); if(t.st==='foco') foco.push(t.foco); });
+  kpis.forEach(function(k){ if(k.bench!=null && k.cur!=null && !isNaN(k.cur)){ var ok=k.higher?k.cur>=k.bench:k.cur<=k.bench; if(ok) logros.push('<b>'+k.label+'</b> en '+_gerFmt(k.cur,k.kind)+' — sobre meta '+k.benchTxt); } });
+  logros=logros.filter(function(v,i,a){return a.indexOf(v)===i;}).slice(0,3);
+  foco=foco.filter(function(v,i,a){return a.indexOf(v)===i;}).slice(0,3);
+  if(!logros.length) logros=['Operación estable respecto al mes anterior.'];
+  if(!foco.length) foco=['Sin desvíos relevantes; mantener el estándar alcanzado.'];
+  return {logros:logros, foco:foco};
+}
+function _gerLamina(o){
+  var now=new Date().toLocaleDateString('es-VE',{year:'numeric',month:'long',day:'numeric'});
+  var n=_gerNarr(o.kpis);
+  var logros=n.logros.map(function(t){return '<li style="margin:3px 0">'+t+'</li>';}).join('');
+  var foco=n.foco.map(function(t){return '<li style="margin:3px 0">'+t+'</li>';}).join('');
+  var cardsHtml=o.cards.map(function(c,i){ var span=(o.cards.length%2===1 && i===o.cards.length-1)?' style="grid-column:1/-1"':''; return '<div'+span+'>'+c+'</div>'; }).join('');
+  return ''
+  +'<div id="'+o.idCard+'" class="ger-lam" style="max-width:600px;margin:0 auto;background:#F4F7FB;border:1px solid rgba(13,45,107,.12);border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(13,45,107,.14);font-family:var(--font)">'
+    // ── Cabecera degradada aprovechada ──
+    +'<div style="background:linear-gradient(135deg,#0D2D6B 0%,#1A5CA8 100%);padding:18px 20px 16px;position:relative;overflow:hidden">'
+      +'<div style="position:absolute;right:-40px;top:-40px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.05)"></div>'
+      +'<div style="position:absolute;left:30%;bottom:-50px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.035)"></div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;gap:12px">'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.55);letter-spacing:.14em;text-transform:uppercase;margin-bottom:7px">FARMATODO · CENTRO DE DISTRIBUCIÓN</div>'
+          +'<div style="font-size:22px;font-weight:900;color:#fff;line-height:1.12">RESUMEN GERENCIAL</div>'
+          +'<div style="font-size:22px;font-weight:900;color:#7FC6F0;line-height:1.12;margin-bottom:7px">'+o.titulo+'</div>'
+          +'<div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.72)">'+o.mesLbl+' · '+o.base+(o.prevNombre?' · vs '+o.prevNombre.toUpperCase():'')+'</div>'
+        +'</div>'
+        +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto">'
+          +'<div style="width:46px;height:46px">'+GER_EMBLEMA+'</div>'
+          +'<div style="text-align:right"><div style="font-size:8.5px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em">Generado</div><div style="font-size:10px;color:rgba(255,255,255,.65)">'+now+'</div></div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px;position:relative">'+_gerMacro(o.macros)+'</div>'
+    +'</div>'
+    // ── separador ──
+    +'<div style="text-align:center;padding:13px 0 9px"><div style="display:inline-flex;align-items:center;gap:8px;font-size:10px;font-weight:700;color:rgba(13,45,107,.5);text-transform:uppercase;letter-spacing:.1em"><div style="width:34px;height:1px;background:rgba(13,45,107,.2)"></div>INDICADORES CLAVE DE GESTIÓN<div style="width:34px;height:1px;background:rgba(13,45,107,.2)"></div></div></div>'
+    // ── tarjetas 2 columnas ──
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:0 13px">'+cardsHtml+'</div>'
+    // ── banda Logros / Foco (apilada) ──
+    +'<div style="display:grid;grid-template-columns:1fr;gap:9px;padding:12px 13px 4px">'
+      +'<div style="background:#F0FBF4;border:1px solid #CDEBD8;border-left:4px solid #1E8E4E;border-radius:10px;padding:11px 15px"><div style="font-size:12px;font-weight:900;color:#0D2D6B;letter-spacing:.03em;margin-bottom:4px">🏆 LOGROS DEL MES</div><ul style="margin:0;padding-left:17px;font-size:12px;color:#243B53;line-height:1.5">'+logros+'</ul></div>'
+      +'<div style="background:#FDF3F3;border:1px solid #F3D3D3;border-left:4px solid #C4323C;border-radius:10px;padding:11px 15px"><div style="font-size:12px;font-weight:900;color:#0D2D6B;letter-spacing:.03em;margin-bottom:4px">🎯 FOCO PRÓXIMO MES</div><ul style="margin:0;padding-left:17px;font-size:12px;color:#243B53;line-height:1.5">'+foco+'</ul></div>'
+    +'</div>'
+    // ── pie ──
+    +'<div style="margin:10px 15px 15px;padding-top:9px;border-top:1px solid rgba(13,45,107,.08);display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:9.5px;color:rgba(13,45,107,.5)"><span>'+o.fuente+'</span><span>Farmatodo · Uso interno</span></div>'
+  +'</div>';
+}
+function gerSetMes(v){ window._gerMes=parseInt(v,10); renderGerencial(); }
+function gerPNG(cardId,name){
+  var el=document.getElementById(cardId); if(!el){ try{toast('Lámina no encontrada','err');}catch(e){} return; }
+  var mi=(window._gerMes!=null?window._gerMes:0);
+  function go(){ html2canvas(el,{scale:3,backgroundColor:'#F4F7FB',useCORS:true,logging:false}).then(function(cv){ var a=document.createElement('a'); a.download='Farmatodo_Gerencial_'+name+'_'+GER_MF[mi]+'_'+new Date().toISOString().split('T')[0]+'.png'; a.href=cv.toDataURL('image/png'); a.click(); try{toast('PNG descargado ✓');}catch(e){} }).catch(function(){ try{toast('No se pudo generar el PNG','err');}catch(e){} }); }
+  if(typeof html2canvas==='undefined'){ var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; s.onload=go; s.onerror=function(){ try{toast('Necesitas internet para generar el PNG','err');}catch(e){} }; document.head.appendChild(s); } else go();
+}
+function renderGerencial(){
+  var wrap=document.getElementById('gerWrap'); if(!wrap) return;
+  if(typeof datos==='undefined'){ wrap.innerHTML='<div style="padding:30px;text-align:center;color:#64748B">Cargando datos…</div>'; return; }
+  var present=[];
+  for(var i=0;i<12;i++){ var hasR=datos.some(function(d){return d.mes===GER_MC[i];}); var hasA=(typeof HIST!=='undefined') && HIST.some(function(h){return (h.date||'').split(' ')[0]===GER_MF[i] && (h.total>0||h.turno>0);}); if(hasR||hasA) present.push(i); }
+  if(!present.length){ wrap.innerHTML='<div style="padding:30px;text-align:center;color:#64748B">Aún no hay datos cargados para el resumen.</div>'; return; }
+  var sel=(window._gerMes!=null && present.indexOf(window._gerMes)>=0)? window._gerMes : present[present.length-1];
+  window._gerMes=sel;
+  var optsHtml=present.map(function(i){return '<option value="'+i+'"'+(i===sel?' selected':'')+'>'+GER_MN[i]+' 2026</option>';}).join('');
+  var toolbar='<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 2px 16px;max-width:600px;margin-left:auto;margin-right:auto"><div style="font-size:20px;font-weight:900;color:#0D2D6B;font-family:var(--font)">🎯 Resumen Gerencial</div><div style="font-size:12px;color:#64748B;flex:1;min-width:120px">Formato móvil · para compartir por WhatsApp</div><label style="font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase">Mes:</label><select onchange="gerSetMes(this.value)" style="padding:7px 12px;border:1px solid rgba(13,45,107,.25);border-radius:8px;font-weight:800;color:#0D2D6B;background:#fff;font-family:var(--font)">'+optsHtml+'</select></div>';
+
+  /* ── LÁMINA REPOSICIÓN ── */
+  var rc=_repoStats(GER_MC[sel]), repoHtml;
+  if(!rc){ repoHtml='<div style="max-width:600px;margin:0 auto;background:#fff;border:1px dashed #cbd5e1;border-radius:12px;padding:20px;color:#64748B;font-size:13px">Sin datos de Reposición para '+GER_MN[sel]+'.</div>'; }
+  else {
+    var rPrevIdx=null; for(var a=present.indexOf(sel)-1;a>=0;a--){ if(datos.some(function(d){return d.mes===GER_MC[present[a]];})){ rPrevIdx=present[a]; break; } }
+    var rp=(rPrevIdx!=null)?_repoStats(GER_MC[rPrevIdx]):null, rPrevLbl=(rPrevIdx!=null)?GER_MN[rPrevIdx]:null;
+    var rMonths=present.filter(function(i){return i<=sel && datos.some(function(d){return d.mes===GER_MC[i];});});
+    var serL=rMonths.map(function(i){var s=_repoStats(GER_MC[i]);return s?+(s.L).toFixed(1):0;});
+    var serS=rMonths.map(function(i){var s=_repoStats(GER_MC[i]);return s?+(s.S).toFixed(2):0;});
+    var serJ=rMonths.map(function(i){var s=_repoStats(GER_MC[i]);return s?Math.round(s.J):0;});
+    var serT=rMonths.map(function(i){var s=_repoStats(GER_MC[i]);return s?Math.round(s.T):0;});
+    var dL=_gDelta(rc.L,rp?rp.L:null), dS=_gDelta(rc.S,rp?rp.S:null), dJ=_gDelta(rc.J,rp?rp.J:null), dT=_gDelta(rc.T,rp?rp.T:null);
+    var maxJ=Math.max.apply(null,datos.filter(function(d){return d.mes===GER_MC[sel];}).map(function(d){return d.J||0;}));
+    var cards=[
+      buildKpiCard('1','CUMPLIMIENTO DE TAREAS','✅',rc.L.toFixed(1)+'%','nivel de servicio',dL,true,'De '+rc.dias+' jornadas, '+datos.filter(function(d){return d.mes===GER_MC[sel]&&d.L>=0.95;}).length+' sobre 95%. Meta ≥95%.',serL),
+      buildKpiCard('2','FILL RATE DESPACHADO','⭐',rc.S.toFixed(2)+'%','servicio al cliente',dS,true,'Benchmark 98–99%. '+(rc.S>=98?'✅ Sobre meta.':'⚠ Bajo meta.'),serS),
+      buildKpiCard('3','INTRANSIT POR NOCHE','📦',Math.round(rc.J)+' paletas','en tránsito por turno',dJ,false,'Máx: '+maxJ+' paletas en una noche. '+(rc.J>80?'⚠ Nivel crítico.':'Nivel manejable.'),serJ),
+      buildKpiCard('4','UNIDADES CANCELADAS / DÍA','🚫',Math.round(rc.T).toLocaleString()+' uds','quiebres promedio/día',dT,false,'Menos canceladas = mejor anaquel. '+(rp?('Mes ant.: '+Math.round(rp.T).toLocaleString()+' uds.'):''),serT)
+    ];
+    var kpisR=[
+      {label:'Cumplimiento',cur:rc.L,prev:rp?rp.L:null,higher:true,kind:'pct',bench:95,benchTxt:'≥95%'},
+      {label:'Fill Rate',cur:rc.S,prev:rp?rp.S:null,higher:true,kind:'pct2',bench:98,benchTxt:'≥98%'},
+      {label:'Intransit/noche',cur:rc.J,prev:rp?rp.J:null,higher:false,kind:'int'},
+      {label:'Canceladas/día',cur:rc.T,prev:rp?rp.T:null,higher:false,kind:'int'}
+    ];
+    repoHtml='<div style="max-width:600px;margin:0 auto 8px;display:flex;justify-content:flex-end"><button onclick="gerPNG(\'gerLamRepo\',\'Reposicion\')" style="background:#0D2D6B;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:800;font-size:12px;cursor:pointer;font-family:var(--font)">⬇ Descargar PNG</button></div>'
+      +_gerLamina({idCard:'gerLamRepo',titulo:'REPOSICIÓN NOCTURNA',mesLbl:GER_MN[sel].toUpperCase()+' 2026',base:rc.dias+' jornadas',prevNombre:rPrevLbl,
+        macros:[
+          {l:'Fill Rate',v:rc.S.toFixed(2)+'%',c:'#7FC6F0'},
+          {l:'Cumplimiento',v:rc.L.toFixed(1)+'%',c:rc.L>=95?'#4ED98A':'#F7C948'},
+          {l:'Intransit/noche',v:Math.round(rc.J),c:rc.J>80?'#F7C948':'#fff'},
+          {l:'Canceladas/día',v:Math.round(rc.T).toLocaleString(),c:'#fff'}
+        ],cards:cards,kpis:kpisR,fuente:'NOC 3-en-1 · Reposición · R031/R121/R049'});
+  }
+
+  /* ── LÁMINA ALMACENAJE ── */
+  var ac=(typeof opGetStats==='function')?opGetStats(GER_MF[sel]):null, almHtml;
+  if(!ac){ almHtml='<div style="max-width:600px;margin:0 auto;background:#fff;border:1px dashed #cbd5e1;border-radius:12px;padding:20px;color:#64748B;font-size:13px">Sin datos de Almacenaje para '+GER_MN[sel]+'.</div>'; }
+  else {
+    var aPrevIdx=null; for(var b=present.indexOf(sel)-1;b>=0;b--){ var st=opGetStats(GER_MF[present[b]]); if(st){ aPrevIdx=present[b]; break; } }
+    var ap=(aPrevIdx!=null)?opGetStats(GER_MF[aPrevIdx]):null, aPrevLbl=(aPrevIdx!=null)?GER_MN[aPrevIdx]:null;
+    var ex=_almExtra(ac), exP=_almExtra(ap);
+    var aMonths=present.filter(function(i){return i<=sel;}).filter(function(i){return !!opGetStats(GER_MF[i]);});
+    var serE=aMonths.map(function(i){var s=opGetStats(GER_MF[i]);return s?+(s.avg_efect).toFixed(2):0;});
+    var serP=aMonths.map(function(i){var s=opGetStats(GER_MF[i]);return s?Math.round(s.avg_pend):0;});
+    var serRop=aMonths.map(function(i){var e=_almExtra(opGetStats(GER_MF[i]));return +(e.pct).toFixed(1);});
+    var dE=_gDelta(ac.avg_efect,ap?ap.avg_efect:null), dP=_gDelta(ac.avg_pend,ap?ap.avg_pend:null), dR=_gDelta(ex.pct,exP?exP.pct:null);
+    var cardsA=[
+      buildKpiCard('1','EFECTIVIDAD DE ALMACENAJE','✅',ac.avg_efect.toFixed(1)+'%','tareas sin pendientes',dE,true,'Meta ≥98%. '+(ac.avg_efect>=98?'✅ Sobre meta.':'⚠ Bajo meta.'),serE),
+      buildKpiCard('2','PUESTOS PENDIENTES / NOCHE','📦',Math.round(ac.avg_pend).toLocaleString(),'en cero al cierre',dP,false,'Menor exposición = menos quiebre al día siguiente. '+(ap?('Mes ant.: '+Math.round(ap.avg_pend)+'.'):''),serP),
+      buildKpiCard('3','ROP — PARTICIPACIÓN EN TAREAS','🔄',_gerFmt(ex.pct,'pct'),Math.round(ex.rop).toLocaleString()+' tareas ROP · '+Math.round(ac.avg_total).toLocaleString()+' totales',dR,null,'Resurtido de puestos (ROP) como % del total de tareas del turno. Paletas almacenadas: '+Math.round(ac.avg_alm).toLocaleString()+'/noche.',serRop)
+    ];
+    var kpisA=[
+      {label:'Efectividad',cur:ac.avg_efect,prev:ap?ap.avg_efect:null,higher:true,kind:'pct',bench:98,benchTxt:'≥98%'},
+      {label:'Puestos pendientes/noche',cur:ac.avg_pend,prev:ap?ap.avg_pend:null,higher:false,kind:'int'},
+      {label:'Tareas ejecutadas/noche',cur:ac.avg_total,prev:ap?ap.avg_total:null,higher:true,kind:'int'},
+      {label:'Paletas almacenadas/noche',cur:ac.avg_alm,prev:ap?ap.avg_alm:null,higher:true,kind:'int'}
+    ];
+    almHtml='<div style="max-width:600px;margin:0 auto 8px;display:flex;justify-content:flex-end"><button onclick="gerPNG(\'gerLamAlm\',\'Almacenaje\')" style="background:#0D2D6B;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:800;font-size:12px;cursor:pointer;font-family:var(--font)">⬇ Descargar PNG</button></div>'
+      +_gerLamina({idCard:'gerLamAlm',titulo:'ALMACENAJE NOCTURNO',mesLbl:GER_MN[sel].toUpperCase()+' 2026',base:ac.noches+' noches',prevNombre:aPrevLbl,
+        macros:[
+          {l:'Efectividad',v:ac.avg_efect.toFixed(1)+'%',c:ac.avg_efect>=98?'#4ED98A':'#F7C948'},
+          {l:'Tareas ejecutadas',v:Math.round(ac.avg_total).toLocaleString(),c:'#fff'},
+          {l:'Paletas almacenadas',v:Math.round(ac.avg_alm).toLocaleString(),c:'#7FC6F0'},
+          {l:'ROP (% del total)',v:_gerFmt(ex.pct,'pct'),c:'rgba(255,255,255,.9)'}
+        ],cards:cardsA,kpis:kpisA,fuente:'NOC 3-en-1 · Almacenaje · R031/R092'});
+  }
+
+  wrap.innerHTML=toolbar+repoHtml+'<div style="height:34px"></div>'+almHtml;
+}
+
 function nocTab(btn, page) {
   // Update active ntab
   document.querySelectorAll('#nav-noc .ntab').forEach(function(b){
