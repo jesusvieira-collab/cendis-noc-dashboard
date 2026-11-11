@@ -1932,6 +1932,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       window.TEMPORALES = TEMPORALES;
       try { localStorage.setItem('ftd_temporales', JSON.stringify(TEMPORALES)); } catch(e){}
       try { if (typeof renderTemporales === 'function') renderTemporales(); } catch(e){}
+      try { if (typeof renderDashTemporales === 'function') renderDashTemporales(); } catch(e){}
       console.log('[Firebase] Temporales cargados:', tmpData.length, 'jornadas');
     }
     try {
@@ -1942,6 +1943,7 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
         window.TEMPORALES = TEMPORALES;
         try { localStorage.setItem('ftd_temporales', JSON.stringify(TEMPORALES)); } catch(e){}
         try { if (typeof renderTemporales === 'function') renderTemporales(); } catch(e){}
+        try { if (typeof renderDashTemporales === 'function') renderDashTemporales(); } catch(e){}
       });
     } catch(e){}
 
@@ -2518,6 +2520,20 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     <div style="position:relative;height:260px;"><canvas id="ax_alm_chart"></canvas></div>
   </div>
 
+  <!-- ── Temporales en estatus I con más de 3 días ── -->
+  <div class="ccard" id="card_dash_tmp3" style="margin-top:14px;">
+    <div class="ccard-hdr">
+      <div><div class="ccard-title">Temporales en estatus I con m&aacute;s de 3 d&iacute;as</div>
+      <div class="ccard-sub" id="dash_tmp3_sub">Contenedores en ubicaci&oacute;n temporal sin movimiento &middot; apilados por tipo &middot; se alimenta desde CARGA</div></div>
+      <div class="ccard-actions">
+        <button class="expand-btn" onclick="expandChart('ax_dash_tmp3','Temporales +3 d&iacute;as','Contenedores','')">&#x2922; Expandir</button>
+        <button class="dl-btn" onclick="dlCardImagen('card_dash_tmp3','Temporales3dias')">&#x2B07; PNG</button>
+      </div>
+    </div>
+    <div id="dash_tmp3_kpis" style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap;"></div>
+    <div style="position:relative;height:260px;"><canvas id="ax_dash_tmp3" role="img" aria-label="Temporales con mas de 3 dias"></canvas></div>
+  </div>
+
 </div>
 </div>
 </div>
@@ -2633,6 +2649,24 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     </div>
   </div>
 
+  <!-- ── Temporales en estatus I con más de 3 días (carga del reporte de ubicaciones) ── -->
+  <div class="fsec" style="border-left:3px solid #001E62;margin-top:16px;">
+    <div class="fsec-title" style="color:#001E62;">&#x1F4E6; Temporales en estatus I con m&aacute;s de 3 d&iacute;as &mdash; carga del reporte de ubicaciones</div>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Carga el reporte de ubicaciones en <b>.xlsx</b> o <b>.csv</b>. Se toman los contenedores en <b>estatus I</b> que están en ubicación temporal (<b>PR</b> puertas/PRBH/PRCD/PRDEV, <b>Ventanas</b> VT, <b>IN-TRANSIT</b>, <b>RECSTAGE</b>, <b>UNLOCATEDLOC</b>) y se mide su antigüedad por la columna <b>ÚLTIMA MODIFICACIÓN</b>: los que llevan <b>más de 3 días sin moverse</b> son los que entran al indicador. Cada carga guarda una <b>jornada</b> para el comparativo diario y el <b>% de efectividad</b> (reducción de +3 días contra la jornada anterior).</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+      <input type="file" id="tmp_file" accept=".xlsx,.xls,.csv" style="display:none" onchange="tmpLoadFile(this.files[0])">
+      <button onclick="document.getElementById('tmp_file').click()" style="padding:9px 18px;font-size:12px;font-weight:800;background:#001E62;border:none;color:#fff;border-radius:8px;cursor:pointer;">&#x1F4C2; Cargar tabla (Excel/CSV)</button>
+      <div><label style="display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;">Fecha de la jornada</label>
+        <input id="tmp_fecha" type="date" style="padding:8px 10px;border:1px solid rgba(0,71,200,.25);border-radius:8px;font-size:12px;color:#001F60;background:#F8FAFF;">
+      </div>
+      <div><label style="display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;">Umbral (d&iacute;as)</label>
+        <input id="tmp_dias" type="number" min="1" max="60" step="1" value="3" onchange="tmpReumbral()" style="padding:8px 10px;border:1px solid rgba(0,71,200,.25);border-radius:8px;font-size:12px;color:#001F60;background:#F8FAFF;width:80px;">
+      </div>
+      <div id="tmp_msg" style="font-size:11px;color:#001E62;font-weight:700;min-height:14px;"></div>
+    </div>
+    <div id="tmp_panel" style="margin-top:14px;"></div>
+  </div>
+
   <!-- Tabla histórico NOC (ya existe) -->
   <div style="margin-top:16px;" id="u_tabla_wrap"></div>
 
@@ -2655,20 +2689,6 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
     <div id="desp_list" style="margin-top:12px;"></div>
   </div>
 
-  <!-- ── Temporales en estatus I (carga del reporte de ubicaciones) ── -->
-  <div class="fsec" style="border-left:3px solid #001E62;margin-top:16px;">
-    <div class="fsec-title" style="color:#001E62;">&#x1F4E6; Temporales en estatus I &mdash; carga del reporte de ubicaciones</div>
-    <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Carga el reporte de ubicaciones en <b>.xlsx</b> o <b>.csv</b>. Se cuentan los contenedores en <b>estatus I</b> que están en ubicación temporal y se clasifican en <b>PR</b> (puertas, PRBH/PRCD/PRDEV), <b>Ventanas</b> (VT), <b>IN-TRANSIT</b>, <b>RECSTAGE</b> y <b>UNLOCATEDLOC</b>. Cada carga guarda una <b>jornada</b> para el comparativo diario y el <b>% de efectividad</b> (reducción contra la jornada anterior).</p>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
-      <input type="file" id="tmp_file" accept=".xlsx,.xls,.csv" style="display:none" onchange="tmpLoadFile(this.files[0])">
-      <button onclick="document.getElementById('tmp_file').click()" style="padding:9px 18px;font-size:12px;font-weight:800;background:#001E62;border:none;color:#fff;border-radius:8px;cursor:pointer;">&#x1F4C2; Cargar tabla (Excel/CSV)</button>
-      <div><label style="display:block;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:3px;">Fecha de la jornada</label>
-        <input id="tmp_fecha" type="date" style="padding:8px 10px;border:1px solid rgba(0,71,200,.25);border-radius:8px;font-size:12px;color:#001F60;background:#F8FAFF;">
-      </div>
-      <div id="tmp_msg" style="font-size:11px;color:#001E62;font-weight:700;min-height:14px;"></div>
-    </div>
-    <div id="tmp_panel" style="margin-top:14px;"></div>
-  </div>
 </div>
 
 <div id="page-demanda" class="page">
@@ -4362,7 +4382,7 @@ async function descargarTodas(){
 // DASHBOARD
 // ═══════════════════════════════════════════════════
 function renderDashboard(){
-  setTimeout(function(){ renderROP(); renderVentanas(); if(typeof renderAlmacenado==='function') renderAlmacenado(); }, 200);
+  setTimeout(function(){ renderROP(); renderVentanas(); if(typeof renderAlmacenado==='function') renderAlmacenado(); if(typeof renderDashTemporales==='function') renderDashTemporales(); }, 200);
   setChartDefaults();
   const dd=filtroDatos();
   if(!dd.length){(document.getElementById('kpiDash')||{innerHTML:''}).innerHTML=emptyMsg();return;}
@@ -14376,28 +14396,82 @@ function _tmpCsvRows(txt){
   if(cur!==''||row.length){ row.push(cur); out.push(row); }
   return out;
 }
+function tmpUmbral(){
+  var e=document.getElementById('tmp_dias'); var v=e?parseFloat(e.value):3;
+  return (isFinite(v)&&v>0)?v:3;
+}
+/* Fecha tipo "4/11/26 11:03" (d/m/aa) o ISO */
+function _tmpFecha(v){
+  if(v==null) return null;
+  if(v instanceof Date) return isNaN(v.getTime())?null:v;
+  var s=v.toString().trim(); if(!s) return null;
+  var m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:[ ,]+(\d{1,2}):(\d{2}))?/);
+  if(m){
+    var d=+m[1], mo=+m[2], y=+m[3], h=m[4]?+m[4]:0, mi=m[5]?+m[5]:0;
+    if(y<100) y+=2000;
+    if(mo>12 && d<=12){ var t=d; d=mo; mo=t; }
+    var dt=new Date(y,mo-1,d,h,mi);
+    return isNaN(dt.getTime())?null:dt;
+  }
+  var m2=s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{1,2}):(\d{2}))?/);
+  if(m2) return new Date(+m2[1],+m2[2]-1,+m2[3],m2[4]?+m2[4]:0,m2[5]?+m2[5]:0);
+  var n=parseFloat(s);              /* serial de Excel */
+  if(isFinite(n) && n>20000 && n<80000) return new Date(Math.round((n-25569)*86400000));
+  return null;
+}
 function tmpParseRows(rows, fname){
   var msg=document.getElementById('tmp_msg');
   if(!rows||rows.length<2){ if(msg) msg.textContent='El archivo está vacío'; return; }
   function norm(s){ return (s==null?'':s).toString().toUpperCase()
     .replace(/[ÁÀÄÂ]/g,'A').replace(/[ÉÈËÊ]/g,'E').replace(/[ÍÌÏÎ]/g,'I')
     .replace(/[ÓÒÖÔ]/g,'O').replace(/[ÚÙÜÛ]/g,'U').replace(/\s+/g,' ').trim(); }
-  var hdr=(rows[0]||[]).map(norm), iU=-1, iE=-1;
+  var hdr=(rows[0]||[]).map(norm), iU=-1, iE=-1, iM=-1, iC=-1;
   hdr.forEach(function(h,i){
     if(iU<0 && h.indexOf('UBICACION')>=0) iU=i;
     if(iE<0 && h.indexOf('ESTATUS')>=0) iE=i;
+    if(iM<0 && h.indexOf('ULTIMA MODIFICACION')>=0) iM=i;
+    if(iC<0 && h.indexOf('CONTENEDOR')>=0 && h.indexOf('ESTATUS')<0) iC=i;
   });
   if(iU<0||iE<0){ if(msg) msg.textContent='No encontré las columnas UBICACIÓN y ESTATUS DEL CONTENEDOR'; return; }
-  var cnt={pr:0,vt:0,it:0,rs:0,ul:0}, tot=0, enI=0, det={};
+  if(iM<0){ if(msg) msg.textContent='No encontré la columna ÚLTIMA MODIFICACIÓN (necesaria para medir los días)'; return; }
+
+  /* 1ra pasada: recolectar temporales en I con su fecha de última modificación */
+  var enI=0, items=[], ref=null;
   for(var r=1;r<rows.length;r++){
     var row=rows[r]; if(!row) continue;
     if((row[iE]==null?'':row[iE]).toString().trim().toUpperCase()!=='I') continue;
     enI++;
-    var k=tmpCat(row[iU]);
-    if(k){ cnt[k]++; tot++; var u=(row[iU]||'').toString().trim().toUpperCase(); det[u]=(det[u]||0)+1; }
+    var k=tmpCat(row[iU]); if(!k) continue;
+    var dt=_tmpFecha(row[iM]);
+    if(dt && (!ref || dt>ref)) ref=dt;
+    items.push({k:k, ub:(row[iU]||'').toString().trim().toUpperCase(),
+                ctn:(iC>=0?(row[iC]||''):'').toString().trim(), dt:dt});
   }
-  window._tmpPend={cnt:cnt,total:tot,enI:enI,det:det,archivo:fname||''};
-  if(msg) msg.textContent='Leído: '+_tmpNum(enI)+' en estatus I · '+_tmpNum(tot)+' en ubicación temporal';
+  if(!ref) ref=new Date();
+  window._tmpItems={items:items, enI:enI, ref:ref, archivo:fname||''};
+  tmpReumbral();
+}
+/* Recalcula los conteos con el umbral actual (sin releer el archivo) */
+function tmpReumbral(){
+  var S=window._tmpItems; var msg=document.getElementById('tmp_msg');
+  if(!S){ renderTemporales(); return; }
+  var U=tmpUmbral(), ref=S.ref;
+  var cnt={pr:0,vt:0,it:0,rs:0,ul:0}, cnt3={pr:0,vt:0,it:0,rs:0,ul:0};
+  var tot=0, tot3=0, sinF=0, lista=[], edad={d1:0,d3:0,d7:0,dX:0};
+  S.items.forEach(function(it){
+    cnt[it.k]++; tot++;
+    if(!it.dt){ sinF++; return; }
+    var dias=(ref-it.dt)/86400000;
+    if(dias<1) edad.d1++; else if(dias<3) edad.d3++; else if(dias<7) edad.d7++; else edad.dX++;
+    if(dias>U){
+      cnt3[it.k]++; tot3++;
+      if(lista.length<400) lista.push({ub:it.ub,ctn:it.ctn,k:it.k,d:dias});
+    }
+  });
+  lista.sort(function(a,b){ return b.d-a.d; });
+  window._tmpPend={cnt:cnt,total:tot,cnt3:cnt3,total3:tot3,enI:S.enI,edad:edad,sinF:sinF,
+                   umbral:U, corte:ref.toISOString(), lista:lista, archivo:S.archivo};
+  if(msg) msg.innerHTML='Le&iacute;do: '+_tmpNum(S.enI)+' en estatus I &middot; '+_tmpNum(tot)+' en ubicaci&oacute;n temporal &middot; <b style="color:#C4323C;">'+_tmpNum(tot3)+' con m&aacute;s de '+U+' d&iacute;as</b>';
   renderTemporales();
 }
 function tmpGuardar(){
@@ -14405,47 +14479,74 @@ function tmpGuardar(){
   var fe=document.getElementById('tmp_fecha');
   var fecha=(fe&&fe.value)?fe.value:new Date().toISOString().slice(0,10);
   TEMPORALES=TEMPORALES.filter(function(x){ return x && x.fecha!==fecha; });
-  TEMPORALES.push({fecha:fecha,pr:p.cnt.pr,vt:p.cnt.vt,it:p.cnt.it,rs:p.cnt.rs,ul:p.cnt.ul,total:p.total,enI:p.enI});
+  TEMPORALES.push({fecha:fecha,
+    pr:p.cnt.pr,vt:p.cnt.vt,it:p.cnt.it,rs:p.cnt.rs,ul:p.cnt.ul,total:p.total,
+    pr3:p.cnt3.pr,vt3:p.cnt3.vt,it3:p.cnt3.it,rs3:p.cnt3.rs,ul3:p.cnt3.ul,total3:p.total3,
+    enI:p.enI, umbral:p.umbral, corte:p.corte, lista:(p.lista||[]).slice(0,150)});
   TEMPORALES.sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||''); });
-  window.TEMPORALES=TEMPORALES; _tmpSave(); window._tmpPend=null;
+  window.TEMPORALES=TEMPORALES; _tmpSave(); window._tmpPend=null; window._tmpItems=null;
   try{ toast('Jornada '+fecha+' guardada'); }catch(e){}
   renderTemporales();
+  if(typeof renderDashTemporales==='function') renderDashTemporales();
 }
 function tmpBorrar(fecha){
   if(!confirm('¿Eliminar la jornada '+fecha+'?')) return;
   TEMPORALES=TEMPORALES.filter(function(x){ return x && x.fecha!==fecha; });
   window.TEMPORALES=TEMPORALES; _tmpSave(); renderTemporales();
+  if(typeof renderDashTemporales==='function') renderDashTemporales();
 }
 function _tmpFechaCorta(f){ var p=(f||'').split('-'); return p.length===3?(p[2]+'/'+p[1]):f; }
-function _tmpStrip(c, total, prev){
+/* Normaliza una jornada guardada o la vista previa a {c3, total3, c, total} */
+function _tmpNorm(o){
+  if(!o) return null;
+  if(o.cnt3) return {c3:o.cnt3,total3:o.total3||0,c:o.cnt,total:o.total||0,umbral:o.umbral||3};
+  return {c3:{pr:+o.pr3||0,vt:+o.vt3||0,it:+o.it3||0,rs:+o.rs3||0,ul:+o.ul3||0},
+          total3:+o.total3||0,
+          c:{pr:+o.pr||0,vt:+o.vt||0,it:+o.it||0,rs:+o.rs||0,ul:+o.ul||0},
+          total:+o.total||0, umbral:+o.umbral||3};
+}
+/* Tira de KPIs enfocada en los temporales con más de N días */
+function _tmpStrip(cur, prev){
+  var a=_tmpNorm(cur), p=_tmpNorm(prev); if(!a) return '';
   var cls={pr:'k6',vt:'k1',it:'k3',rs:'k5',ul:'k4'};
   var h='<div class="kpi-strip" style="grid-template-columns:repeat(6,1fr);margin-bottom:0;">';
   TMP_CATS.forEach(function(cat){
-    var v=c[cat.k]||0, pc=total>0?(v/total*100):0, extra='';
-    if(prev){ var pv=prev[cat.k]||0; if(pv>0){ var dd=(v-pv)/pv*100;
-      extra=' · <span style="color:var('+(dd<0?'--success':(dd>0?'--danger':'--muted'))+');font-weight:700;">'+(dd<0?'▼':(dd>0?'▲':'■'))+Math.abs(dd).toFixed(0)+'%</span>'; } }
+    var v=a.c3[cat.k]||0, base=a.c[cat.k]||0;
+    var pc=a.total3>0?(v/a.total3*100):0, extra='';
+    if(p){ var pv=p.c3[cat.k]||0;
+      if(pv>0){ var dd=(v-pv)/pv*100;
+        extra=' · <span style="color:var('+(dd<0?'--success':(dd>0?'--danger':'--muted'))+');font-weight:700;">'+(dd<0?'▼':(dd>0?'▲':'■'))+Math.abs(dd).toFixed(0)+'%</span>'; }
+      else if(v>0) extra=' · <span style="color:var(--danger);font-weight:700;">nuevo</span>'; }
     h+='<div class="kpi '+cls[cat.k]+'"><div class="kpi-label">'+cat.l+'</div><div class="kpi-val">'+_tmpNum(v)+'</div>'
-      +'<div class="kpi-delta neu">'+pc.toFixed(1)+'% del total'+extra+'</div></div>';
+      +'<div class="kpi-delta neu">'+pc.toFixed(1)+'% de los +'+a.umbral+'d'+extra+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);margin-top:2px;">de '+_tmpNum(base)+' temporales</div></div>';
   });
   var dt='<div class="kpi-delta neu">primera jornada</div>';
-  if(prev && prev.total>0){ var ef=(prev.total-total)/prev.total*100;
+  if(p && p.total3>0){ var ef=(p.total3-a.total3)/p.total3*100;
     dt='<div class="kpi-delta '+(ef>0.05?'pos':(ef<-0.05?'neg':'neu'))+'">'+(ef>=0?'▼ ':'▲ ')+Math.abs(ef).toFixed(1)+'% vs jornada ant.</div>'; }
-  h+='<div class="kpi k2"><div class="kpi-label">Total temporales</div><div class="kpi-val">'+_tmpNum(total)+'</div>'+dt+'</div>';
+  var pcT=a.total>0?(a.total3/a.total*100):0;
+  h+='<div class="kpi k2"><div class="kpi-label">Total +'+a.umbral+' d&iacute;as</div><div class="kpi-val">'+_tmpNum(a.total3)+'</div>'+dt
+    +'<div style="font-size:9px;color:var(--muted);margin-top:2px;">'+pcT.toFixed(1)+'% de '+_tmpNum(a.total)+' temporales</div></div>';
   return h+'</div>';
 }
 function renderTemporales(){
   var box=document.getElementById('tmp_panel'); if(!box) return;
   var fe=document.getElementById('tmp_fecha');
   if(fe && !fe.value) fe.value=new Date().toISOString().slice(0,10);
+  var U=tmpUmbral();
   var h='', p=window._tmpPend;
 
   /* Vista previa del archivo cargado */
   if(p){
+    var pn=_tmpNorm(p);
     h+='<div class="ccard" style="margin-bottom:12px;">'
       +'<div class="ccard-hdr"><div><div class="ccard-title">Vista previa del archivo</div>'
-      +'<div class="ccard-sub">'+(p.archivo?p.archivo+' · ':'')+_tmpNum(p.enI)+' contenedores en estatus I · '+_tmpNum(p.total)+' en ubicación temporal</div></div>'
+      +'<div class="ccard-sub">'+(p.archivo?p.archivo+' · ':'')+_tmpNum(p.enI)+' contenedores en estatus I · '+_tmpNum(p.total)+' en ubicación temporal · corte '+_tmpCorte(p.corte)
+      +(p.sinF?' · '+_tmpNum(p.sinF)+' sin fecha':'')+'</div></div>'
       +'<div class="ccard-actions"><button onclick="tmpGuardar()" style="padding:7px 15px;font-size:11px;font-weight:800;background:#00875A;border:none;color:#fff;border-radius:7px;cursor:pointer;font-family:var(--font);">&#x1F4BE; Guardar jornada</button></div></div>'
-      +_tmpStrip(p.cnt,p.total,null)
+      +_tmpStrip(p,null)
+      +_tmpEdadBar(p.edad,p.total)
+      +_tmpDetalle(p.lista,U,'tmp_det_prev')
       +'</div>';
   }
 
@@ -14456,33 +14557,34 @@ function renderTemporales(){
 
   /* Jornada actual */
   var cur=TEMPORALES[TEMPORALES.length-1], prev=TEMPORALES.length>1?TEMPORALES[TEMPORALES.length-2]:null;
-  var efect=(prev&&prev.total>0)?((prev.total-cur.total)/prev.total*100):null;
+  var cn=_tmpNorm(cur), pn2=_tmpNorm(prev);
+  var efect=(pn2&&pn2.total3>0)?((pn2.total3-cn.total3)/pn2.total3*100):null;
   var efCol=(efect==null)?'--muted':(efect>0.05?'--success':(efect<-0.05?'--danger':'--muted'));
-  var sub='Jornada '+_tmpFechaCorta(cur.fecha)+' · '+_tmpNum(cur.total)+' contenedores';
-  if(efect!=null) sub+=' · <span style="color:var('+efCol+');font-weight:700;">efectividad '+(efect>=0?'+':'')+efect.toFixed(1)+'%</span> ('+_tmpNum(prev.total)+' → '+_tmpNum(cur.total)+')';
+  var sub='Jornada '+_tmpFechaCorta(cur.fecha)+' · '+_tmpNum(cn.total3)+' contenedores con más de '+(cur.umbral||U)+' días sin movimiento';
+  if(efect!=null) sub+=' · <span style="color:var('+efCol+');font-weight:700;">efectividad '+(efect>=0?'+':'')+efect.toFixed(1)+'%</span> ('+_tmpNum(pn2.total3)+' → '+_tmpNum(cn.total3)+')';
   h+='<div class="ccard" id="card_temporales" style="margin-bottom:12px;">'
-    +'<div class="ccard-hdr"><div><div class="ccard-title">Temporales en estatus I</div><div class="ccard-sub">'+sub+'</div></div>'
-    +'<div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen(\'card_temporales\',\'Temporales\')">&#x2B07; PNG</button></div></div>'
-    +_tmpStrip(cur,cur.total,prev)
+    +'<div class="ccard-hdr"><div><div class="ccard-title">Temporales en estatus I con más de '+(cur.umbral||U)+' días</div><div class="ccard-sub">'+sub+'</div></div>'
+    +'<div class="ccard-actions"><button class="dl-btn" onclick="dlCardImagen(\'card_temporales\',\'Temporales3dias\')">&#x2B07; PNG</button></div></div>'
+    +_tmpStrip(cur,prev)
     +'</div>';
 
   /* Gráficas */
   h+='<div class="grid-2" style="margin-bottom:12px;">'
     +'<div class="ccard" id="card_tmp_trend">'
-      +'<div class="ccard-hdr"><div><div class="ccard-title">Evolución de temporales por jornada</div>'
-      +'<div class="ccard-sub">Total de contenedores en estatus I en ubicación temporal · verde = bajó vs jornada anterior</div></div>'
+      +'<div class="ccard-hdr"><div><div class="ccard-title">Evolución de temporales con más de '+(cur.umbral||U)+' días</div>'
+      +'<div class="ccard-sub">Línea roja = contenedores +'+(cur.umbral||U)+'d · línea gris = total de temporales · verde = bajó vs jornada anterior</div></div>'
       +'<div class="ccard-actions">'
         +'<div class="chart-ctrl-bar" data-chart="ax_tmp_trend">'
           +'<button class="chart-type-btn active" data-type="line" onclick="toggleChartType(\'ax_tmp_trend\')" title="Línea">&#x1F4C8;</button>'
           +'<button class="chart-type-btn" data-type="bar" onclick="toggleChartType(\'ax_tmp_trend\')" title="Barra">&#x1F4CA;</button>'
         +'</div>'
-        +'<button class="expand-btn" onclick="expandChart(\'ax_tmp_trend\',\'Temporales por jornada\',\'Contenedores\',\'\')">&#x2922; Expandir</button>'
+        +'<button class="expand-btn" onclick="expandChart(\'ax_tmp_trend\',\'Temporales +'+(cur.umbral||U)+' días\',\'Contenedores\',\'\')">&#x2922; Expandir</button>'
         +'<button class="dl-btn" onclick="dlCardImagen(\'card_tmp_trend\',\'TemporalesTendencia\')">&#x2B07; PNG</button>'
       +'</div></div>'
       +'<div style="position:relative;height:220px;"><canvas id="ax_tmp_trend" role="img" aria-label="Temporales por jornada"></canvas></div>'
     +'</div>'
     +'<div class="ccard" id="card_tmp_mix">'
-      +'<div class="ccard-hdr"><div><div class="ccard-title">Composición por tipo de temporal</div>'
+      +'<div class="ccard-hdr"><div><div class="ccard-title">Composición de los +'+(cur.umbral||U)+' días por tipo</div>'
       +'<div class="ccard-sub">PR · Ventanas · In-Transit · Recstage · Unlocated apilados por jornada</div></div>'
       +'<div class="ccard-actions">'
         +'<button class="expand-btn" onclick="expandChart(\'ax_tmp_mix\',\'Composición de temporales\',\'Contenedores\',\'\')">&#x2922; Expandir</button>'
@@ -14492,23 +14594,35 @@ function renderTemporales(){
     +'</div>'
   +'</div>';
 
+  /* Detalle de la última jornada guardada */
+  if(cur.lista && cur.lista.length){
+    h+='<div class="ccard" style="margin-bottom:12px;">'
+      +'<div class="ccard-hdr"><div><div class="ccard-title">Contenedores con más de '+(cur.umbral||U)+' días — jornada '+_tmpFechaCorta(cur.fecha)+'</div>'
+      +'<div class="ccard-sub">Ordenados del más antiguo al más reciente</div></div></div>'
+      +_tmpDetalle(cur.lista,(cur.umbral||U),'tmp_det_cur')+'</div>';
+  }
+
   /* Estadística diaria */
   h+='<div class="ccard">'
     +'<div class="ccard-hdr"><div><div class="ccard-title">Estadística diaria por temporal</div>'
-    +'<div class="ccard-sub">Efectividad = reducción de temporales respecto a la jornada anterior · bajo cada cantidad, su participación en el total</div></div></div>'
+    +'<div class="ccard-sub">Solo contenedores con más de '+(cur.umbral||U)+' días sin movimiento · efectividad = reducción respecto a la jornada anterior</div></div></div>'
     +'<div style="overflow-x:auto;"><table><thead><tr><th>Jornada</th>';
   TMP_CATS.forEach(function(c){ h+='<th class="num">'+c.l+'</th>'; });
-  h+='<th class="num">Total</th><th class="num">Efectividad</th><th></th></tr></thead><tbody>';
+  h+='<th class="num">+'+(cur.umbral||U)+' días</th><th class="num">Total temp.</th><th class="num">% +'+(cur.umbral||U)+'d</th><th class="num">Efectividad</th><th></th></tr></thead><tbody>';
   for(var i=TEMPORALES.length-1;i>=0;i--){
-    var t=TEMPORALES[i], pr2=(i>0)?TEMPORALES[i-1]:null;
-    var ef=(pr2&&pr2.total>0)?((pr2.total-t.total)/pr2.total*100):null;
+    var t=TEMPORALES[i], tn=_tmpNorm(t);
+    var pr2=(i>0)?_tmpNorm(TEMPORALES[i-1]):null;
+    var ef=(pr2&&pr2.total3>0)?((pr2.total3-tn.total3)/pr2.total3*100):null;
     var ec=(ef==null)?'--muted':(ef>0.05?'--success':(ef<-0.05?'--danger':'--muted'));
     h+='<tr><td style="font-weight:700;color:var(--navy);white-space:nowrap;">'+t.fecha+'</td>';
     TMP_CATS.forEach(function(c){
-      var v=t[c.k]||0, pc=t.total>0?(v/t.total*100):0;
+      var v=tn.c3[c.k]||0, pc=tn.total3>0?(v/tn.total3*100):0;
       h+='<td class="num">'+_tmpNum(v)+' <span style="color:var(--muted);font-size:10px;">'+pc.toFixed(0)+'%</span></td>';
     });
-    h+='<td class="num" style="font-weight:900;color:var(--navy);">'+_tmpNum(t.total)+'</td>'
+    var pct=tn.total>0?(tn.total3/tn.total*100):0;
+    h+='<td class="num" style="font-weight:900;color:var(--navy);">'+_tmpNum(tn.total3)+'</td>'
+      +'<td class="num" style="color:var(--muted);">'+_tmpNum(tn.total)+'</td>'
+      +'<td class="num">'+pct.toFixed(1)+'%</td>'
       +'<td class="num" style="font-weight:800;color:var('+ec+');">'+(ef==null?'—':(ef>=0?'+':'')+ef.toFixed(1)+'%')+'</td>'
       +'<td style="text-align:center;"><span onclick="tmpBorrar(\''+t.fecha+'\')" title="Borrar jornada" style="cursor:pointer;color:#D63B2F;font-weight:900;font-size:13px;">×</span></td></tr>';
   }
@@ -14517,51 +14631,96 @@ function renderTemporales(){
   try{ setTimeout(_tmpCharts,40); }catch(e){}
 }
 
+function _tmpCorte(iso){
+  if(!iso) return '—';
+  var d=new Date(iso); if(isNaN(d.getTime())) return '—';
+  function z(n){ return (n<10?'0':'')+n; }
+  return z(d.getDate())+'/'+z(d.getMonth()+1)+' '+z(d.getHours())+':'+z(d.getMinutes());
+}
+/* Barra de distribución por antigüedad */
+function _tmpEdadBar(e,total){
+  if(!e || !total) return '';
+  var segs=[{k:'d1',l:'menos de 1 día',c:'#00875A'},{k:'d3',l:'1 a 3 días',c:'#418FDE'},
+            {k:'d7',l:'3 a 7 días',c:'#E8A000'},{k:'dX',l:'más de 7 días',c:'#C4323C'}];
+  var h='<div style="margin-top:14px;"><div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Antigüedad de los temporales (última modificación)</div>'
+    +'<div style="display:flex;height:16px;border-radius:5px;overflow:hidden;border:1px solid var(--border);">';
+  segs.forEach(function(s){ var v=e[s.k]||0, pc=v/total*100;
+    if(pc>0) h+='<div title="'+s.l+': '+_tmpNum(v)+'" style="width:'+pc.toFixed(2)+'%;background:'+s.c+';"></div>'; });
+  h+='</div><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;">';
+  segs.forEach(function(s){ var v=e[s.k]||0;
+    h+='<span style="font-size:10px;color:var(--muted);"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+s.c+';margin-right:4px;"></span>'+s.l+': <b style="color:var(--navy);">'+_tmpNum(v)+'</b></span>'; });
+  return h+'</div></div>';
+}
+/* Tabla de detalle de los contenedores envejecidos */
+function _tmpDetalle(lista,U,id){
+  if(!lista || !lista.length) return '<div style="font-size:11px;color:var(--success);font-weight:700;margin-top:12px;">Sin contenedores con más de '+U+' días. ✔</div>';
+  var lab={pr:'PR',vt:'Ventana',it:'In-Transit',rs:'Recstage',ul:'Unlocated'};
+  var col={pr:'#001E62',vt:'#418FDE',it:'#E8A000',rs:'#6A3FD1',ul:'#C4323C'};
+  var h='<div style="margin-top:12px;"><div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">'
+    +'Detalle — '+_tmpNum(lista.length)+' contenedor'+(lista.length===1?'':'es')+' con más de '+U+' días</div>'
+    +'<div id="'+id+'" style="max-height:260px;overflow:auto;"><table><thead><tr><th>Contenedor</th><th>Ubicación</th><th>Tipo</th><th class="num">Días sin movimiento</th></tr></thead><tbody>';
+  lista.forEach(function(it){
+    h+='<tr><td style="font-weight:700;color:var(--navy);">'+(it.ctn||'—')+'</td><td>'+(it.ub||'—')+'</td>'
+      +'<td><span style="display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:800;color:#fff;background:'+(col[it.k]||'#555')+';">'+(lab[it.k]||it.k)+'</span></td>'
+      +'<td class="num" style="font-weight:800;color:'+(it.d>7?'#C4323C':'var(--navy)')+';">'+it.d.toFixed(1)+'</td></tr>';
+  });
+  return h+'</tbody></table></div></div>';
+}
+
 function _tmpCharts(){
   if(typeof Chart==='undefined' || typeof AX==='undefined') return;
   if(!TEMPORALES.length) return;
+  var N=TEMPORALES.map(_tmpNorm);
   var lbl=TEMPORALES.map(function(t){ return _tmpFechaCorta(t.fecha); });
-  var tot=TEMPORALES.map(function(t){ return +t.total||0; });
+  var a3=N.map(function(n){ return n.total3; });
+  var at=N.map(function(n){ return n.total; });
 
-  /* 1. Evolución del total */
+  /* 1. Evolución: +N días vs total de temporales */
   var c1=document.getElementById('ax_tmp_trend');
   if(c1){
     try{ killAx('ax_tmp_trend'); }catch(e){}
-    var pcol=tot.map(function(v,i){
-      if(i===0) return '#1A5CA8';
-      var p=tot[i-1];
-      return v<p?'#00875A':(v>p?'#E74C3C':'#1A5CA8');
+    var pcol=a3.map(function(v,i){
+      if(i===0) return '#C4323C';
+      var p=a3[i-1];
+      return v<p?'#00875A':(v>p?'#C4323C':'#1A5CA8');
     });
-    AX['ax_tmp_trend']=new Chart(c1,{type:'line',data:{labels:lbl,datasets:[{
-      label:'Temporales', data:tot,
-      showValueLabels:true, valueLabelColor:'#0D2D6B',
-      valueLabelFormat:function(v){ return Math.round(v).toLocaleString('es-VE'); },
-      valueLabelOffset:13,
-      borderColor:'#0047C8', backgroundColor:'rgba(26,92,168,0.10)',
-      pointBackgroundColor:pcol, pointBorderColor:'#ffffff', pointBorderWidth:2,
-      borderWidth:2.5, tension:0.3, cubicInterpolationMode:'monotone', fill:true,
-      pointRadius:5, pointHoverRadius:9
-    }]},options:{
-      _showAvgLine:true, responsive:true, maintainAspectRatio:false, animation:false,
+    AX['ax_tmp_trend']=new Chart(c1,{type:'line',data:{labels:lbl,datasets:[
+      {label:'Con más de 3 días', data:a3,
+       showValueLabels:true, valueLabelColor:'#C4323C',
+       valueLabelFormat:function(v){ return Math.round(v).toLocaleString('es-VE'); },
+       valueLabelOffset:13,
+       borderColor:'#C4323C', backgroundColor:'rgba(196,50,60,0.10)',
+       pointBackgroundColor:pcol, pointBorderColor:'#ffffff', pointBorderWidth:2,
+       borderWidth:2.5, tension:0.3, cubicInterpolationMode:'monotone', fill:true,
+       pointRadius:5, pointHoverRadius:9},
+      {label:'Total temporales (eje der.)', data:at, yAxisID:'y1',
+       borderColor:'rgba(0,48,135,0.35)', backgroundColor:'transparent',
+       pointBackgroundColor:'rgba(0,48,135,0.35)', pointBorderColor:'#ffffff', pointBorderWidth:1,
+       borderWidth:1.6, borderDash:[5,4], tension:0.3, fill:false,
+       pointRadius:3, pointHoverRadius:7}
+    ]},options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
       layout:{padding:{top:18}},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){
-        var i=ctx.dataIndex, s=' '+Math.round(ctx.raw).toLocaleString('es-VE')+' temporales';
-        if(i>0 && tot[i-1]>0){ var d=(tot[i-1]-tot[i])/tot[i-1]*100; s+='  ('+(d>=0?'+':'')+d.toFixed(1)+'% efectividad)'; }
-        return s;
-      }}}},
+      plugins:{legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:12,font:{size:10,weight:'600'},color:'rgba(0,48,135,0.72)'}},
+        tooltip:{callbacks:{label:function(ctx){
+          var i=ctx.dataIndex, s=' '+ctx.dataset.label+': '+Math.round(ctx.raw).toLocaleString('es-VE');
+          if(ctx.datasetIndex===0 && i>0 && a3[i-1]>0){ var d=(a3[i-1]-a3[i])/a3[i-1]*100; s+='  ('+(d>=0?'+':'')+d.toFixed(1)+'% efectividad)'; }
+          return s;
+        }}}},
       scales:{
         x:{grid:{color:'rgba(0,48,135,0.06)',drawTicks:false},ticks:{maxRotation:45,maxTicksLimit:20,font:{size:10}}},
-        y:{beginAtZero:true,grace:'12%',grid:{color:'rgba(13,45,107,.07)'},ticks:{font:{size:10},callback:function(v){return (+v).toLocaleString('es-VE');}}}
+        y:{beginAtZero:true,grace:'18%',position:'left',grid:{color:'rgba(13,45,107,.07)'},ticks:{font:{size:10},color:'#C4323C',callback:function(v){return (+v).toLocaleString('es-VE');}}},
+        y1:{beginAtZero:true,grace:'12%',position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:10},color:'rgba(0,48,135,0.45)',callback:function(v){return (+v).toLocaleString('es-VE');}}}
       }
     }});
   }
 
-  /* 2. Composición apilada por tipo */
+  /* 2. Composición apilada por tipo (solo +N días) */
   var c2=document.getElementById('ax_tmp_mix');
   if(c2){
     try{ killAx('ax_tmp_mix'); }catch(e){}
     AX['ax_tmp_mix']=new Chart(c2,{type:'bar',data:{labels:lbl,datasets:TMP_CATS.map(function(c){
-      return {label:c.l, data:TEMPORALES.map(function(t){ return +t[c.k]||0; }),
+      return {label:c.l, data:N.map(function(n){ return n.c3[c.k]||0; }),
               backgroundColor:c.c, borderRadius:3, borderSkipped:false, stack:'t',
               maxBarThickness:46};
     })},options:{
@@ -14569,7 +14728,7 @@ function _tmpCharts(){
       plugins:{
         legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:12,font:{size:10,weight:'600'},color:'rgba(0,48,135,0.72)'}},
         tooltip:{callbacks:{label:function(ctx){
-          var t=TEMPORALES[ctx.dataIndex], v=+ctx.raw||0, pc=(t&&t.total>0)?(v/t.total*100):0;
+          var n=N[ctx.dataIndex], v=+ctx.raw||0, pc=(n&&n.total3>0)?(v/n.total3*100):0;
           return ' '+ctx.dataset.label+': '+v.toLocaleString('es-VE')+'  ('+pc.toFixed(1)+'%)';
         }}}
       },
@@ -14579,6 +14738,62 @@ function _tmpCharts(){
       }
     }});
   }
+}
+
+/* ── Tarjeta del Dashboard principal ── */
+function renderDashTemporales(){
+  var cv=document.getElementById('ax_dash_tmp3'); if(!cv) return;
+  var kp=document.getElementById('dash_tmp3_kpis');
+  var sb=document.getElementById('dash_tmp3_sub');
+  var T=(typeof TEMPORALES!=='undefined' && Array.isArray(TEMPORALES))?TEMPORALES:[];
+  if(!T.length){
+    if(kp) kp.innerHTML='<div style="font-size:11px;color:var(--muted);">Sin jornadas cargadas — ve a <b>CARGA</b> y sube el reporte de ubicaciones.</div>';
+    try{ killAx('ax_dash_tmp3'); }catch(e){}
+    return;
+  }
+  var N=T.map(_tmpNorm);
+  var cur=N[N.length-1], prev=N.length>1?N[N.length-2]:null;
+  var U=(T[T.length-1].umbral)||3;
+  var ef=(prev&&prev.total3>0)?((prev.total3-cur.total3)/prev.total3*100):null;
+  if(sb) sb.innerHTML='Contenedores en ubicación temporal sin movimiento por más de '+U+' días · apilados por tipo · '+T.length+' jornada'+(T.length===1?'':'s')+' cargada'+(T.length===1?'':'s');
+  if(kp){
+    var box=function(lab,val,col){ return '<div style="background:rgba('+col+',.08);border:1px solid rgba('+col+',.25);border-radius:6px;padding:6px 14px;">'
+      +'<div style="font-size:9px;font-weight:700;color:rgb('+col+');text-transform:uppercase;letter-spacing:.06em;">'+lab+'</div>'
+      +'<div style="font-size:20px;font-weight:900;color:rgb('+col+');font-family:var(--font);">'+val+'</div></div>'; };
+    var pc=cur.total>0?(cur.total3/cur.total*100):0;
+    var peor=null, pk=null;
+    TMP_CATS.forEach(function(c){ var v=cur.c3[c.k]||0; if(peor==null||v>peor){ peor=v; pk=c.l; } });
+    kp.innerHTML=box('Con +'+U+' días',_tmpNum(cur.total3),'196,50,60')
+      +box('% del total temporal',pc.toFixed(1)+'%','0,30,98')
+      +box('Efectividad vs ant.',(ef==null?'—':(ef>=0?'+':'')+ef.toFixed(1)+'%'),(ef==null?'110,120,140':(ef>=0?'0,135,90':'196,50,60')))
+      +box('Mayor foco',(pk||'—')+' · '+_tmpNum(peor||0),'232,160,0');
+  }
+  if(typeof Chart==='undefined' || typeof AX==='undefined') return;
+  try{ killAx('ax_dash_tmp3'); }catch(e){}
+  var lbl=T.map(function(t){ return _tmpFechaCorta(t.fecha); });
+  AX['ax_dash_tmp3']=new Chart(cv,{type:'bar',data:{labels:lbl,datasets:TMP_CATS.map(function(c){
+      return {label:c.l, data:N.map(function(n){ return n.c3[c.k]||0; }),
+              backgroundColor:c.c, borderRadius:3, borderSkipped:false, stack:'t', maxBarThickness:54};
+    }).concat([{label:'Total +'+U+'d', type:'line', data:N.map(function(n){ return n.total3; }),
+      borderColor:'#C4323C', backgroundColor:'transparent', borderWidth:2,
+      pointRadius:4, pointHoverRadius:8, pointBackgroundColor:'#C4323C', pointBorderColor:'#fff', pointBorderWidth:2,
+      tension:0.3, fill:false, order:0}])
+  },options:{
+    responsive:true, maintainAspectRatio:false, animation:false,
+    plugins:{
+      legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:12,font:{size:10,weight:'600'},color:'rgba(0,48,135,0.72)'}},
+      tooltip:{callbacks:{label:function(ctx){
+        var n=N[ctx.dataIndex], v=+ctx.raw||0;
+        if(ctx.dataset.type==='line') return ' Total +'+U+'d: '+v.toLocaleString('es-VE');
+        var pc=(n&&n.total3>0)?(v/n.total3*100):0;
+        return ' '+ctx.dataset.label+': '+v.toLocaleString('es-VE')+'  ('+pc.toFixed(1)+'%)';
+      }}}
+    },
+    scales:{
+      x:{stacked:true,grid:{display:false},ticks:{maxRotation:45,maxTicksLimit:24,font:{size:10}}},
+      y:{stacked:true,beginAtZero:true,grid:{color:'rgba(13,45,107,.07)'},ticks:{font:{size:10},callback:function(v){return (+v).toLocaleString('es-VE');}}}
+    }
+  }});
 }
 
 function nocTab(btn, page) {
