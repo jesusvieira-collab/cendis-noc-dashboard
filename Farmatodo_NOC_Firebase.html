@@ -2526,12 +2526,56 @@ textarea#paste::placeholder{color:var(--s4);font-style:italic}
       <div><div class="ccard-title">Temporales en estatus I con m&aacute;s de 3 d&iacute;as</div>
       <div class="ccard-sub" id="dash_tmp3_sub">Contenedores en ubicaci&oacute;n temporal sin movimiento &middot; apilados por tipo &middot; se alimenta desde CARGA</div></div>
       <div class="ccard-actions">
+        <div class="chart-ctrl-bar" id="tmp3-vista-bar">
+          <button class="period-btn active" data-p="dia"    onclick="tmpSetPeriod('dia',this)">D&iacute;a</button>
+          <button class="period-btn"        data-p="semana" onclick="tmpSetPeriod('semana',this)">Semana</button>
+          <button class="period-btn"        data-p="mes"    onclick="tmpSetPeriod('mes',this)">Mes</button>
+        </div>
         <button class="expand-btn" onclick="expandChart('ax_dash_tmp3','Temporales +3 d&iacute;as','Contenedores','')">&#x2922; Expandir</button>
         <button class="dl-btn" onclick="dlCardImagen('card_dash_tmp3','Temporales3dias')">&#x2B07; PNG</button>
       </div>
     </div>
     <div id="dash_tmp3_kpis" style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap;"></div>
     <div style="position:relative;height:260px;"><canvas id="ax_dash_tmp3" role="img" aria-label="Temporales con mas de 3 dias"></canvas></div>
+  </div>
+
+  <!-- ── Evolución del total de temporales +3 días ── -->
+  <div class="ccard" id="card_dash_tmp3_evo" style="margin-top:14px;">
+    <div class="ccard-hdr">
+      <div><div class="ccard-title">Evoluci&oacute;n de temporales con m&aacute;s de 3 d&iacute;as</div>
+      <div class="ccard-sub" id="dash_tmp3_evo_sub">L&iacute;nea roja = contenedores +3d &middot; l&iacute;nea gris = total de temporales (eje der.) &middot; verde = baj&oacute; vs el per&iacute;odo anterior</div></div>
+      <div class="ccard-actions">
+        <div class="chart-ctrl-bar" data-chart="ax_dash_tmp3_evo">
+          <button class="chart-type-btn active" data-type="line" onclick="toggleChartType('ax_dash_tmp3_evo')" title="L&iacute;nea">&#x1F4C8;</button>
+          <button class="chart-type-btn" data-type="bar" onclick="toggleChartType('ax_dash_tmp3_evo')" title="Barra">&#x1F4CA;</button>
+        </div>
+        <button class="expand-btn" onclick="expandChart('ax_dash_tmp3_evo','Evoluci&oacute;n temporales +3 d&iacute;as','Contenedores','')">&#x2922; Expandir</button>
+        <button class="dl-btn" onclick="dlCardImagen('card_dash_tmp3_evo','TemporalesEvolucion')">&#x2B07; PNG</button>
+      </div>
+    </div>
+    <div style="position:relative;height:260px;"><canvas id="ax_dash_tmp3_evo" role="img" aria-label="Evolucion de temporales con mas de 3 dias"></canvas></div>
+  </div>
+
+  <!-- ── Desglose por tipo de temporal ── -->
+  <div class="ccard" id="card_dash_tmp3_det" style="margin-top:14px;">
+    <div class="ccard-hdr">
+      <div><div class="ccard-title">Desglose por tipo de temporal &mdash; m&aacute;s de 3 d&iacute;as</div>
+      <div class="ccard-sub" id="dash_tmp3_det_sub">Elige un tipo para ver en qu&eacute; d&iacute;a hubo m&aacute;s</div></div>
+      <div class="ccard-actions">
+        <div class="chart-ctrl-bar" id="tmp3-foco-bar">
+          <button class="period-btn active" data-f="all" onclick="tmpSetFoco('all',this)">Todos</button>
+          <button class="period-btn" data-f="pr" onclick="tmpSetFoco('pr',this)">PR</button>
+          <button class="period-btn" data-f="vt" onclick="tmpSetFoco('vt',this)">Ventanas</button>
+          <button class="period-btn" data-f="it" onclick="tmpSetFoco('it',this)">In-Transit</button>
+          <button class="period-btn" data-f="rs" onclick="tmpSetFoco('rs',this)">Recstage</button>
+          <button class="period-btn" data-f="ul" onclick="tmpSetFoco('ul',this)">Unlocated</button>
+        </div>
+        <button class="expand-btn" onclick="expandChart('ax_dash_tmp3_det','Desglose de temporales','Contenedores','')">&#x2922; Expandir</button>
+        <button class="dl-btn" onclick="dlCardImagen('card_dash_tmp3_det','TemporalesDesglose')">&#x2B07; PNG</button>
+      </div>
+    </div>
+    <div id="dash_tmp3_peak" style="font-size:11px;color:var(--muted);margin-bottom:8px;min-height:15px;"></div>
+    <div style="position:relative;height:260px;"><canvas id="ax_dash_tmp3_det" role="img" aria-label="Desglose de temporales por tipo"></canvas></div>
   </div>
 
 </div>
@@ -14740,60 +14784,294 @@ function _tmpCharts(){
   }
 }
 
-/* ── Tarjeta del Dashboard principal ── */
+/* ══ Tarjetas del Dashboard principal ══ */
+var TMP_PERIOD='dia';      /* dia | semana | mes */
+var TMP_FOCO='all';        /* all | pr | vt | it | rs | ul */
+var _MES3=['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+
+function tmpSetPeriod(p,btn){
+  TMP_PERIOD=p;
+  var bar=document.getElementById('tmp3-vista-bar');
+  if(bar) bar.querySelectorAll('.period-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-p')===p); });
+  renderDashTemporales();
+}
+function tmpSetFoco(f,btn){
+  TMP_FOCO=f;
+  var bar=document.getElementById('tmp3-foco-bar');
+  if(bar) bar.querySelectorAll('.period-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-f')===f); });
+  renderDashTemporales();
+}
+/* Jornadas filtradas por los filtros globales AÑO / MES del dashboard */
+function _tmpFiltradas(){
+  var T=(typeof TEMPORALES!=='undefined' && Array.isArray(TEMPORALES))?TEMPORALES.slice():[];
+  T=T.filter(function(t){ return t && t.fecha; });
+  try{
+    if(typeof anioFiltro!=='undefined' && anioFiltro!=='ALL') T=T.filter(function(t){ return t.fecha.slice(0,4)===anioFiltro; });
+    if(typeof mesFiltro!=='undefined' && mesFiltro!=='ALL')   T=T.filter(function(t){ return _MES3[(+t.fecha.slice(5,7))-1]===mesFiltro; });
+  }catch(e){}
+  T.sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
+  return T;
+}
+/* Semana ISO de una fecha YYYY-MM-DD */
+function _tmpISO(f){
+  var p=f.split('-'), d=new Date(+p[0],+p[1]-1,+p[2]);
+  var t=new Date(d.valueOf()); t.setDate(t.getDate()+3-((t.getDay()+6)%7));
+  var w1=new Date(t.getFullYear(),0,4);
+  var n=1+Math.round(((t-w1)/86400000-3+((w1.getDay()+6)%7))/7);
+  return {y:t.getFullYear(), w:n};
+}
+/* Agrupa por día / semana / mes — los valores se PROMEDIAN (es un stock, no un flujo) */
+function _tmpAgrupa(T, period){
+  if(period==='dia'){
+    return T.map(function(t){
+      var n=_tmpNorm(t);
+      return {label:_tmpFechaCorta(t.fecha), fecha:t.fecha, c3:n.c3, total3:n.total3, total:n.total, n:1};
+    });
+  }
+  var map={}, ord=[];
+  T.forEach(function(t){
+    var key, lab;
+    if(period==='semana'){ var w=_tmpISO(t.fecha); key=w.y+'-S'+(w.w<10?'0':'')+w.w; lab='S'+w.w+' '+_MES3[(+t.fecha.slice(5,7))-1]; }
+    else { key=t.fecha.slice(0,7); lab=_MES3[(+t.fecha.slice(5,7))-1]+' '+t.fecha.slice(2,4); }
+    if(!map[key]){ map[key]={label:lab,fecha:t.fecha,c3:{pr:0,vt:0,it:0,rs:0,ul:0},total3:0,total:0,n:0,dias:[]}; ord.push(key); }
+    var g=map[key], n=_tmpNorm(t);
+    TMP_CATS.forEach(function(c){ g.c3[c.k]+=n.c3[c.k]||0; });
+    g.total3+=n.total3; g.total+=n.total; g.n++; g.dias.push(t.fecha);
+  });
+  ord.sort();
+  return ord.map(function(k){
+    var g=map[k], o={label:g.label,fecha:g.fecha,c3:{},total3:Math.round(g.total3/g.n),total:Math.round(g.total/g.n),n:g.n,dias:g.dias};
+    TMP_CATS.forEach(function(c){ o.c3[c.k]=Math.round(g.c3[c.k]/g.n); });
+    return o;
+  });
+}
+/* Plugin local: dibuja el valor dentro de cada segmento apilado */
+function _tmpStackLabels(){
+  return {
+    id:'tmpStackLabels',
+    afterDatasetsDraw:function(chart){
+      var ctx=chart.ctx;
+      ctx.save(); ctx.font="800 10px 'Inter',sans-serif"; ctx.textAlign='center'; ctx.textBaseline='middle';
+      chart.data.datasets.forEach(function(ds,di){
+        if(ds.type==='line' || ds._noSeg) return;
+        var meta=chart.getDatasetMeta(di); if(meta.hidden) return;
+        meta.data.forEach(function(bar,i){
+          var v=ds.data[i]; if(!v) return;
+          var h=Math.abs(bar.base-bar.y); if(h<14) return;
+          var y=bar.y+(bar.base-bar.y)/2;
+          ctx.fillStyle='rgba(255,255,255,0.95)';
+          ctx.fillText((+v).toLocaleString('es-VE'), bar.x, y);
+        });
+      });
+      ctx.restore();
+    }
+  };
+}
+
 function renderDashTemporales(){
   var cv=document.getElementById('ax_dash_tmp3'); if(!cv) return;
   var kp=document.getElementById('dash_tmp3_kpis');
   var sb=document.getElementById('dash_tmp3_sub');
-  var T=(typeof TEMPORALES!=='undefined' && Array.isArray(TEMPORALES))?TEMPORALES:[];
+  var T=_tmpFiltradas();
   if(!T.length){
-    if(kp) kp.innerHTML='<div style="font-size:11px;color:var(--muted);">Sin jornadas cargadas — ve a <b>CARGA</b> y sube el reporte de ubicaciones.</div>';
-    try{ killAx('ax_dash_tmp3'); }catch(e){}
+    if(kp) kp.innerHTML='<div style="font-size:11px;color:var(--muted);">Sin jornadas en el filtro actual — ve a <b>CARGA</b> y sube el reporte de ubicaciones.</div>';
+    if(sb) sb.textContent='Sin jornadas para el filtro seleccionado';
+    try{ killAx('ax_dash_tmp3'); killAx('ax_dash_tmp3_det'); }catch(e){}
+    var pk0=document.getElementById('dash_tmp3_peak'); if(pk0) pk0.textContent='';
     return;
   }
+  var U=(T[T.length-1].umbral)||3;
+  var G=_tmpAgrupa(T,TMP_PERIOD);
   var N=T.map(_tmpNorm);
   var cur=N[N.length-1], prev=N.length>1?N[N.length-2]:null;
-  var U=(T[T.length-1].umbral)||3;
   var ef=(prev&&prev.total3>0)?((prev.total3-cur.total3)/prev.total3*100):null;
-  if(sb) sb.innerHTML='Contenedores en ubicación temporal sin movimiento por más de '+U+' días · apilados por tipo · '+T.length+' jornada'+(T.length===1?'':'s')+' cargada'+(T.length===1?'':'s');
+  var prom=N.reduce(function(a,n){ return a+n.total3; },0)/N.length;
+  var pMax=0, pMaxF='';
+  N.forEach(function(n,i){ if(n.total3>pMax){ pMax=n.total3; pMaxF=_tmpFechaCorta(T[i].fecha); } });
+  var pLbl={dia:'Jornada',semana:'Semana',mes:'Mes'}[TMP_PERIOD];
+
+  if(sb) sb.innerHTML='Contenedores en ubicación temporal sin movimiento por más de '+U+' días · vista por <b>'+pLbl.toLowerCase()+'</b> · '
+    +T.length+' jornada'+(T.length===1?'':'s')+(TMP_PERIOD!=='dia'?' agrupadas en '+G.length+' '+(TMP_PERIOD==='mes'?'meses':'semanas')+' (promedio diario)':'');
+
   if(kp){
-    var box=function(lab,val,col){ return '<div style="background:rgba('+col+',.08);border:1px solid rgba('+col+',.25);border-radius:6px;padding:6px 14px;">'
+    var box=function(lab,val,col,note){ return '<div style="background:rgba('+col+',.08);border:1px solid rgba('+col+',.25);border-radius:6px;padding:6px 14px;">'
       +'<div style="font-size:9px;font-weight:700;color:rgb('+col+');text-transform:uppercase;letter-spacing:.06em;">'+lab+'</div>'
-      +'<div style="font-size:20px;font-weight:900;color:rgb('+col+');font-family:var(--font);">'+val+'</div></div>'; };
+      +'<div style="font-size:20px;font-weight:900;color:rgb('+col+');font-family:var(--font);">'+val+'</div>'
+      +(note?'<div style="font-size:9px;color:var(--muted);margin-top:1px;">'+note+'</div>':'')+'</div>'; };
     var pc=cur.total>0?(cur.total3/cur.total*100):0;
-    var peor=null, pk=null;
-    TMP_CATS.forEach(function(c){ var v=cur.c3[c.k]||0; if(peor==null||v>peor){ peor=v; pk=c.l; } });
-    kp.innerHTML=box('Con +'+U+' días',_tmpNum(cur.total3),'196,50,60')
-      +box('% del total temporal',pc.toFixed(1)+'%','0,30,98')
-      +box('Efectividad vs ant.',(ef==null?'—':(ef>=0?'+':'')+ef.toFixed(1)+'%'),(ef==null?'110,120,140':(ef>=0?'0,135,90':'196,50,60')))
-      +box('Mayor foco',(pk||'—')+' · '+_tmpNum(peor||0),'232,160,0');
+    var peor=-1, pk=null;
+    TMP_CATS.forEach(function(c){ var v=cur.c3[c.k]||0; if(v>peor){ peor=v; pk=c.l; } });
+    kp.innerHTML=box('Promedio diario +'+U+'d', _tmpNum(prom), '0,30,98', N.length+' jornada'+(N.length===1?'':'s')+' en el filtro')
+      +box('Última jornada', _tmpNum(cur.total3), '196,50,60', pc.toFixed(1)+'% de '+_tmpNum(cur.total)+' temporales')
+      +box('Efectividad vs ant.', (ef==null?'—':(ef>=0?'+':'')+ef.toFixed(1)+'%'), (ef==null?'110,120,140':(ef>=0?'0,135,90':'196,50,60')), 'reducción de +'+U+'d')
+      +box('Pico', _tmpNum(pMax), '232,160,0', pMaxF||'—')
+      +box('Mayor foco hoy', (pk||'—')+' · '+_tmpNum(peor<0?0:peor), '106,63,209', 'tipo con más +'+U+'d');
   }
+
   if(typeof Chart==='undefined' || typeof AX==='undefined') return;
+  var lbl=G.map(function(g){ return g.label; });
+
+  /* ── 1. Apilado por tipo + línea de total ── */
   try{ killAx('ax_dash_tmp3'); }catch(e){}
-  var lbl=T.map(function(t){ return _tmpFechaCorta(t.fecha); });
-  AX['ax_dash_tmp3']=new Chart(cv,{type:'bar',data:{labels:lbl,datasets:TMP_CATS.map(function(c){
-      return {label:c.l, data:N.map(function(n){ return n.c3[c.k]||0; }),
+  AX['ax_dash_tmp3']=new Chart(cv,{type:'bar',
+    data:{labels:lbl,datasets:TMP_CATS.map(function(c){
+      return {label:c.l, data:G.map(function(g){ return g.c3[c.k]||0; }),
               backgroundColor:c.c, borderRadius:3, borderSkipped:false, stack:'t', maxBarThickness:54};
-    }).concat([{label:'Total +'+U+'d', type:'line', data:N.map(function(n){ return n.total3; }),
-      borderColor:'#C4323C', backgroundColor:'transparent', borderWidth:2,
+    }).concat([{label:'Total +'+U+'d', type:'line', data:G.map(function(g){ return g.total3; }),
+      borderColor:'#C4323C', backgroundColor:'transparent', borderWidth:2, _noSeg:true,
       pointRadius:4, pointHoverRadius:8, pointBackgroundColor:'#C4323C', pointBorderColor:'#fff', pointBorderWidth:2,
-      tension:0.3, fill:false, order:0}])
-  },options:{
-    responsive:true, maintainAspectRatio:false, animation:false,
-    plugins:{
-      legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:12,font:{size:10,weight:'600'},color:'rgba(0,48,135,0.72)'}},
-      tooltip:{callbacks:{label:function(ctx){
-        var n=N[ctx.dataIndex], v=+ctx.raw||0;
-        if(ctx.dataset.type==='line') return ' Total +'+U+'d: '+v.toLocaleString('es-VE');
-        var pc=(n&&n.total3>0)?(v/n.total3*100):0;
-        return ' '+ctx.dataset.label+': '+v.toLocaleString('es-VE')+'  ('+pc.toFixed(1)+'%)';
-      }}}
+      tension:0.3, fill:false, order:0,
+      showValueLabels:true, valueLabelColor:'#C4323C', valueLabelOffset:14,
+      valueLabelFormat:function(v){ return Math.round(v).toLocaleString('es-VE'); }}])
     },
-    scales:{
-      x:{stacked:true,grid:{display:false},ticks:{maxRotation:45,maxTicksLimit:24,font:{size:10}}},
-      y:{stacked:true,beginAtZero:true,grid:{color:'rgba(13,45,107,.07)'},ticks:{font:{size:10},callback:function(v){return (+v).toLocaleString('es-VE');}}}
+    plugins:[_tmpStackLabels()],
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      layout:{padding:{top:20}},
+      plugins:{
+        legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:12,font:{size:10,weight:'600'},color:'rgba(0,48,135,0.72)'}},
+        tooltip:{callbacks:{
+          title:function(c){ var g=G[c[0].dataIndex]; return g.label+(g.n>1?' · promedio de '+g.n+' jornadas':''); },
+          label:function(ctx){
+            var g=G[ctx.dataIndex], v=+ctx.raw||0;
+            if(ctx.dataset.type==='line') return ' Total +'+U+'d: '+v.toLocaleString('es-VE');
+            var pc=(g&&g.total3>0)?(v/g.total3*100):0;
+            return ' '+ctx.dataset.label+': '+v.toLocaleString('es-VE')+'  ('+pc.toFixed(1)+'%)';
+          }}}
+      },
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{maxRotation:45,maxTicksLimit:26,font:{size:10}}},
+        y:{stacked:true,beginAtZero:true,grace:'12%',grid:{color:'rgba(13,45,107,.07)'},ticks:{font:{size:10},callback:function(v){return (+v).toLocaleString('es-VE');}}}
+      }
+    }});
+  AX['ax_dash_tmp3']._periodAgg=true;   /* sin trendline automática: es apilada */
+
+  /* ── 1b. Evolución del total +N días (vs total de temporales) ── */
+  var cvE=document.getElementById('ax_dash_tmp3_evo');
+  if(cvE){
+    try{ killAx('ax_dash_tmp3_evo'); }catch(e){}
+    var e3=G.map(function(g){ return g.total3; });
+    var eT=G.map(function(g){ return g.total; });
+    var ecol=e3.map(function(v,i){ if(i===0) return '#C4323C'; var q=e3[i-1]; return v<q?'#00875A':(v>q?'#C4323C':'#1A5CA8'); });
+    var sbE=document.getElementById('dash_tmp3_evo_sub');
+    if(sbE) sbE.innerHTML='Línea roja = contenedores +'+U+'d · línea gris = total de temporales (eje der.) · verde = bajó vs '+(TMP_PERIOD==='dia'?'la jornada anterior':'el período anterior')
+      +(TMP_PERIOD!=='dia'?' · promedio diario por '+(TMP_PERIOD==='mes'?'mes':'semana'):'');
+    AX['ax_dash_tmp3_evo']=new Chart(cvE,{type:'line',data:{labels:lbl,datasets:[
+      {label:'Con más de '+U+' días', data:e3,
+       showValueLabels:true, valueLabelColor:'#C4323C', valueLabelOffset:14,
+       valueLabelFormat:function(v){ return Math.round(v).toLocaleString('es-VE'); },
+       borderColor:'#C4323C', backgroundColor:'rgba(196,50,60,0.10)',
+       pointBackgroundColor:ecol, pointBorderColor:'#ffffff', pointBorderWidth:2,
+       borderWidth:2.5, tension:0.3, cubicInterpolationMode:'monotone', fill:true,
+       pointRadius:5, pointHoverRadius:9},
+      {label:'Total temporales (eje der.)', data:eT, yAxisID:'y1',
+       borderColor:'rgba(0,48,135,0.35)', backgroundColor:'transparent',
+       pointBackgroundColor:'rgba(0,48,135,0.35)', pointBorderColor:'#ffffff', pointBorderWidth:1,
+       borderWidth:1.6, borderDash:[5,4], tension:0.3, fill:false,
+       pointRadius:3, pointHoverRadius:7}
+    ]},options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      layout:{padding:{top:20}},
+      plugins:{
+        legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:12,font:{size:10,weight:'600'},color:'rgba(0,48,135,0.72)'}},
+        tooltip:{callbacks:{
+          title:function(c){ var g=G[c[0].dataIndex]; return g.label+(g.n>1?' · promedio de '+g.n+' jornadas':''); },
+          label:function(ctx){
+            var i=ctx.dataIndex, s=' '+ctx.dataset.label+': '+Math.round(ctx.raw).toLocaleString('es-VE');
+            if(ctx.datasetIndex===0 && i>0 && e3[i-1]>0){ var d=(e3[i-1]-e3[i])/e3[i-1]*100; s+='  ('+(d>=0?'+':'')+d.toFixed(1)+'% efectividad)'; }
+            return s;
+          }}}
+      },
+      scales:{
+        x:{grid:{color:'rgba(0,48,135,0.06)',drawTicks:false},ticks:{maxRotation:45,maxTicksLimit:26,font:{size:10}}},
+        y:{beginAtZero:true,grace:'18%',position:'left',grid:{color:'rgba(13,45,107,.07)'},ticks:{font:{size:10},color:'#C4323C',callback:function(v){return (+v).toLocaleString('es-VE');}}},
+        y1:{beginAtZero:true,grace:'12%',position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:10},color:'rgba(0,48,135,0.45)',callback:function(v){return (+v).toLocaleString('es-VE');}}}
+      }
+    }});
+    AX['ax_dash_tmp3_evo']._periodAgg=true;
+  }
+
+  /* ── 2. Desglose por tipo ── */
+  var cv2=document.getElementById('ax_dash_tmp3_det'); if(!cv2) return;
+  var pk=document.getElementById('dash_tmp3_peak');
+  var sb2=document.getElementById('dash_tmp3_det_sub');
+  try{ killAx('ax_dash_tmp3_det'); }catch(e){}
+
+  if(TMP_FOCO==='all'){
+    /* un grupo de barras por tipo, lado a lado */
+    if(sb2) sb2.innerHTML='Los cinco tipos lado a lado por '+pLbl.toLowerCase()+' · pulsa un tipo para aislarlo';
+    if(pk){
+      var txt=[];
+      TMP_CATS.forEach(function(c){
+        var mx=-1,mf='';
+        G.forEach(function(g){ var v=g.c3[c.k]||0; if(v>mx){ mx=v; mf=g.label; } });
+        if(mx>0) txt.push('<b style="color:'+c.c+';">'+c.l+'</b> máx '+_tmpNum(mx)+' en '+mf);
+      });
+      pk.innerHTML=txt.length?('Picos por tipo — '+txt.join(' &nbsp;·&nbsp; ')):'Sin contenedores con más de '+U+' días en el filtro actual.';
     }
-  }});
+    AX['ax_dash_tmp3_det']=new Chart(cv2,{type:'bar',
+      data:{labels:lbl,datasets:TMP_CATS.map(function(c){
+        return {label:c.l, data:G.map(function(g){ return g.c3[c.k]||0; }),
+                backgroundColor:c.c, borderRadius:3, borderSkipped:false, maxBarThickness:26,
+                showValueLabels:true, valueLabelColor:c.c, valueLabelOffset:9, _noSeg:true,
+                valueLabelFormat:function(v){ return Math.round(v).toLocaleString('es-VE'); }};
+      })},
+      options:{
+        responsive:true, maintainAspectRatio:false, animation:false,
+        layout:{padding:{top:18}},
+        plugins:{
+          legend:{display:true,position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:12,font:{size:10,weight:'600'},color:'rgba(0,48,135,0.72)'}},
+          tooltip:{callbacks:{title:function(c){ var g=G[c[0].dataIndex]; return g.label+(g.n>1?' · promedio de '+g.n+' jornadas':''); }}}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{maxRotation:45,maxTicksLimit:26,font:{size:10}}},
+          y:{beginAtZero:true,grace:'14%',grid:{color:'rgba(13,45,107,.07)'},ticks:{font:{size:10},callback:function(v){return (+v).toLocaleString('es-VE');}}}
+        }
+      }});
+    AX['ax_dash_tmp3_det']._periodAgg=true;
+  } else {
+    var cat=null; TMP_CATS.forEach(function(c){ if(c.k===TMP_FOCO) cat=c; });
+    if(!cat) cat=TMP_CATS[0];
+    var serie=G.map(function(g){ return g.c3[cat.k]||0; });
+    var mx=Math.max.apply(null,serie.concat([0]));
+    var iMax=serie.indexOf(mx);
+    var prom2=serie.reduce(function(a,b){return a+b;},0)/(serie.length||1);
+    if(sb2) sb2.innerHTML='Solo <b style="color:'+cat.c+';">'+cat.l+'</b> ('+cat.sub+') por '+pLbl.toLowerCase()+' · la barra más alta queda resaltada';
+    if(pk) pk.innerHTML = mx>0
+      ? ('<b style="color:'+cat.c+';">'+cat.l+'</b> — máximo <b>'+_tmpNum(mx)+'</b> en <b>'+(G[iMax]?G[iMax].label:'—')+'</b> · promedio '+_tmpNum(prom2)+' por '+pLbl.toLowerCase()+' · último '+_tmpNum(serie[serie.length-1]))
+      : ('Sin contenedores '+cat.l+' con más de '+U+' días en el filtro actual.');
+    AX['ax_dash_tmp3_det']=new Chart(cv2,{type:'bar',
+      data:{labels:lbl,datasets:[{
+        label:cat.l, data:serie, maxBarThickness:60, borderRadius:4, borderSkipped:false, _noSeg:true,
+        backgroundColor:serie.map(function(v,i){ return (v===mx&&mx>0)?cat.c:_tmpFade(cat.c); }),
+        borderColor:cat.c, borderWidth:serie.map(function(v){ return (v===mx&&mx>0)?0:1; }),
+        showValueLabels:true, valueLabelColor:cat.c, valueLabelOffset:9,
+        valueLabelFormat:function(v){ return Math.round(v).toLocaleString('es-VE'); }
+      }]},
+      options:{
+        responsive:true, maintainAspectRatio:false, animation:false,
+        layout:{padding:{top:18}},
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{
+            title:function(c){ var g=G[c[0].dataIndex]; return g.label+(g.n>1?' · promedio de '+g.n+' jornadas':''); },
+            label:function(ctx){
+              var g=G[ctx.dataIndex], v=+ctx.raw||0, pc=(g&&g.total3>0)?(v/g.total3*100):0;
+              return ' '+cat.l+': '+v.toLocaleString('es-VE')+'  ('+pc.toFixed(1)+'% de los +'+U+'d)';
+            }}}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{maxRotation:45,maxTicksLimit:26,font:{size:10}}},
+          y:{beginAtZero:true,grace:'14%',grid:{color:'rgba(13,45,107,.07)'},ticks:{font:{size:10},callback:function(v){return (+v).toLocaleString('es-VE');}}}
+        }
+      }});
+    AX['ax_dash_tmp3_det']._periodAgg=true;
+  }
+}
+function _tmpFade(hex){
+  var m=/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex||'');
+  if(!m) return 'rgba(0,48,135,0.25)';
+  return 'rgba('+parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16)+',0.30)';
 }
 
 function nocTab(btn, page) {
@@ -14902,6 +15180,15 @@ function repoSetPeriod(p, btn){
   ['rop_chart','vent_chart'].forEach(function(id){
     if(AX[id] && typeof setRVPeriod==='function'){ try{ setRVPeriod(id,p); }catch(e){} }
   });
+  /* Temporales +N días siguen la misma vista D/S/M */
+  try{
+    if(typeof tmpSetPeriod==='function'){
+      var tb=document.getElementById('tmp3-vista-bar');
+      if(tb) tb.querySelectorAll('.period-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-p')===p); });
+      TMP_PERIOD=p;
+      if(typeof renderDashTemporales==='function') renderDashTemporales();
+    }
+  }catch(e){}
 }
 function renderChart_byPeriod(chartId, period) {
   var chart = AX[chartId];
